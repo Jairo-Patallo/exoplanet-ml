@@ -70,4 +70,12 @@ que la curva del exoplaneta tendrá una caída mucho mas rápida.
 Otro tipo de curvas son en los que dos estrellas están orbitando alrededor de un centro de masa. Cuando ambas estrellas están en el punto de observación se crea una grafo con la luz combinada, pero cuando, por la posición del observador,
 solo podemos ver una estrella alrededor de otra. Como orbitan en centro, irá cambiando el brillo dependiendo de la estrella que estemos observando. Por eso hay dos caídas, una el eclipse secundario y otra el eclipse primario.
 
+Otra diferencia que podemos saber es por el porcentaje de caída de brillo que hay en el tránsito de un exoplaneta comparado con
+un falso positivo. Cuando tenemos una caída de brillo superior al 2% podemos saber que el tránsito es un falso positivo más
+que un exoplaneta. El cambio del 2% es algo demasiado grande como para ser causado por un exoplaneta .
+
+Otra manera de conocer la diferencia entre un exoplaneta y un sistema de estrellas binario. Creamos filtros donde cada estrella 
+tendrá un color distinto debido a las distintas temperaturas que tiene, la profundidad y la diferencia de color en los filtros
+dará una indicación de un posible sistema de estrellas binario. 
+
 https://pressbooks.howardcc.edu/jrip3/chapter/exoplanet-photometry-and-false-positives/
