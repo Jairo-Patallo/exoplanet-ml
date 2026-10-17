@@ -79,3 +79,4 @@ tendrá un color distinto debido a las distintas temperaturas que tiene, la prof
 dará una indicación de un posible sistema de estrellas binario. 
 
 https://pressbooks.howardcc.edu/jrip3/chapter/exoplanet-photometry-and-false-positives/
+
