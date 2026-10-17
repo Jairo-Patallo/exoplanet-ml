@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Variables del dataset exoplanet-transit-detection</title>
+<style>
+@page{size:A4;margin:18mm}
+body{font-family:Segoe UI,Arial,sans-serif;font-size:10.5pt;color:#1a1a1a;line-height:1.4}
+h1{font-size:20pt;margin-bottom:2px}h2{font-size:14pt;border-bottom:2px solid #345;padding-bottom:3px;margin-top:22px;color:#234}
+.sub{color:#555;margin-top:0}
+table{border-collapse:collapse;width:100%;margin:8px 0;page-break-inside:auto}
+tr{page-break-inside:avoid}
+th,td{border:1px solid #bbb;padding:4px 6px;vertical-align:top;text-align:left}
+th{background:#e8edf3}td:first-child{font-family:Consolas,monospace;font-size:9.5pt;white-space:nowrap}
+.note{background:#fff6e0;border-left:4px solid #e0a000;padding:6px 10px;margin:10px 0}
+</style></head><body>
+<h1>Variables y metodología: exoplanet-transit-detection</h1>
+<p class="sub">Fuente: Hugging Face, <i>bingbangboom/exoplanet-transit-detection</i> (licencia CC-BY-4.0). 23 567 filas (train 18 853 / val 2 357 / test 2 357), formato Parquet. Misiones: Kepler, K2 y TESS.</p>
+
+<div class="note">Cada fila es <b>una estrella</b> con su curva de luz ya preprocesada, metadatos estelares, parámetros del tránsito y una etiqueta. Las definiciones de las columnas estelares (sección 5) están completadas con el significado estándar de los catálogos de la NASA a partir del nombre; la página del dataset no las detalla.</div>
+
+<h2>1. Identificación y etiquetas</h2>
+<table><tr><th>Variable</th><th>Tipo</th><th>Explicación</th></tr>
+<tr><td>star_id</td><td>texto</td><td>Identificador único de la estrella con prefijo de misión: KIC_ (Kepler), TIC_ (TESS), EPIC_ (K2).</td></tr>
+<tr><td>mission</td><td>texto</td><td>Misión de origen: <code>kepler</code>, <code>k2</code> o <code>tess</code>. Importante para evitar sesgos: cada misión tiene distinto ruido y cadencia.</td></tr>
+<tr><td>cadence</td><td>texto</td><td>Frecuencia de muestreo: <code>long</code> (≈30 min, Kepler/K2) o <code>2min</code> (TESS).</td></tr>
+<tr><td>disposition</td><td>texto</td><td><b>Etiqueta objetivo</b>. <code>PLANET</code> (planeta confirmado o candidato), <code>FALSE_POSITIVE</code> (falso positivo) o <code>NO_SIGNAL</code> (estrella Kepler sin tránsito detectado). Reparto: 41,5 % / 25,2 % / 33,3 %.</td></tr>
+<tr><td>label_source</td><td>texto</td><td>Origen de la etiqueta: <code>kepler_robovetter</code>, <code>tess_tfopwg</code>, <code>k2_project</code> o <code>no_signal</code>.</td></tr>
+<tr><td>confidence_score</td><td>decimal 0–1</td><td>Etiqueta suave de confianza. Kepler confirmado = 1,0; Kepler Robovetter = <i>koi_score</i>; TESS candidato = 0,9; TESS ambiguo = 0,5; TESS falso positivo = 0,0; K2 confirmado = 1,0; K2 candidato = 0,7; NO_SIGNAL = 1,0.</td></tr>
+<tr><td>has_transit_params</td><td>booleano</td><td>Verdadero si existen periodo, duración y época. Solo entonces se pueden calcular las curvas plegadas.</td></tr>
+</table>
+
+<h2>2. Curvas de luz (arrays float32)</h2>
+<p>Se guardan como bytes y se leen con <code>np.frombuffer(x, dtype=np.float32)</code>. El flujo está normalizado dividiendo por su mediana (el brillo normal vale ≈1,0).</p>
+<table><tr><th>Variable</th><th>Longitud</th><th>Explicación</th></tr>
+<tr><td>flux_raw</td><td>20 000</td><td>Curva de luz completa, en orden temporal, sin plegar. Pasos: unión de trimestres/sectores (<i>stitch</i>), normalización por la mediana, eliminación de valores a más de 5σ, interpolación de NaN y remuestreo a 20 000 puntos. Es la única vista con datos reales en NO_SIGNAL.</td></tr>
+<tr><td>flux_global</td><td>201</td><td>Curva plegada al periodo orbital, con toda la fase. Muestra la forma global: tránsito, posible eclipse secundario y variabilidad.</td></tr>
+<tr><td>flux_local</td><td>81</td><td>Zoom alrededor del tránsito (±4 veces su duración). Muestra la forma fina del tránsito (¿en U o en V?).</td></tr>
+<tr><td>flux_odd</td><td>201</td><td>Plegado usando solo los tránsitos impares.</td></tr>
+<tr><td>flux_even</td><td>201</td><td>Plegado usando solo los tránsitos pares. Comparar con <i>flux_odd</i> ayuda a detectar binarias eclipsantes: si las profundidades difieren, no es un planeta.</td></tr>
+<tr><td>flux_raw_len, flux_global_len, flux_local_len, flux_folded_len</td><td>entero</td><td>Longitud de cada array (20 000, 201, 81 y 201). Sirven de control de consistencia.</td></tr>
+</table>
+<p>En las filas NO_SIGNAL las cuatro vistas plegadas están rellenas de ceros, porque no hay periodo con el que plegar.</p>
+
+<h2>3. Banderas de falso positivo (solo Kepler)</h2>
+<p>Son NaN en TESS, K2 y NO_SIGNAL. Proceden del clasificador automático Robovetter de Kepler.</p>
+<table><tr><th>Variable</th><th>Tipo</th><th>Explicación</th></tr>
+<tr><td>fp_flag_not_transit</td><td>0/1</td><td>La señal no tiene forma de tránsito (ruido, instrumento o variabilidad estelar).</td></tr>
+<tr><td>fp_flag_stellar</td><td>0/1</td><td>Eclipse estelar: probablemente una binaria eclipsante.</td></tr>
+<tr><td>fp_flag_centroid</td><td>0/1</td><td>El centroide de la imagen se desplaza durante el evento, lo que indica que la señal viene de otra estrella cercana.</td></tr>
+<tr><td>fp_flag_ephemeris</td><td>0/1</td><td>La señal comparte periodo y época con otro objeto, así que es contaminación por una señal vecina.</td></tr>
+<tr><td>disposition_disputed</td><td>0/1</td><td>La clasificación cambió entre versiones trimestrales del catálogo Kepler; indica etiqueta menos fiable.</td></tr>
+</table>
+
+<h2>4. Parámetros del tránsito (NaN en NO_SIGNAL)</h2>
+<table><tr><th>Variable</th><th>Unidad</th><th>Explicación</th></tr>
+<tr><td>period_days</td><td>días</td><td>Periodo orbital: tiempo entre dos tránsitos consecutivos.</td></tr>
+<tr><td>epoch_bjd</td><td>BJD</td><td>Instante del primer tránsito de referencia, en fecha juliana baricéntrica. Junto con el periodo permite predecir todos los tránsitos.</td></tr>
+<tr><td>duration_hrs</td><td>horas</td><td>Duración del tránsito. Depende del periodo y del tamaño de la estrella.</td></tr>
+<tr><td>depth_ppm</td><td>ppm</td><td>Profundidad: caída de brillo en partes por millón (10 000 ppm = 1 %). Es aproximadamente (R<sub>planeta</sub>/R<sub>estrella</sub>)².</td></tr>
+<tr><td>planet_radius_earth</td><td>radios terrestres</td><td>Radio estimado del planeta.</td></tr>
+<tr><td>n_planets_in_system</td><td>entero</td><td>Número de planetas o candidatos conocidos en la misma estrella.</td></tr>
+<tr><td>kepoi_name</td><td>texto</td><td>Nombre KOI (p. ej. K02718.01), solo para Kepler.</td></tr>
+</table>
+
+<h2>5. Propiedades estelares y observacionales</h2>
+<table><tr><th>Variable</th><th>Unidad</th><th>Explicación</th></tr>
+<tr><td>teff</td><td>K</td><td>Temperatura efectiva de la estrella (determina su color y tipo).</td></tr>
+<tr><td>logg</td><td>log<sub>10</sub>(cm/s²)</td><td>Gravedad superficial. Distingue enanas de gigantes.</td></tr>
+<tr><td>radius</td><td>R☉</td><td>Radio estelar en radios solares.</td></tr>
+<tr><td>mass</td><td>M☉</td><td>Masa estelar en masas solares.</td></tr>
+<tr><td>metallicity</td><td>[Fe/H]</td><td>Abundancia de elementos pesados respecto al Sol.</td></tr>
+<tr><td>kepmag</td><td>magnitud</td><td>Brillo aparente en la banda de Kepler. Menor valor significa más brillante y menos ruido.</td></tr>
+<tr><td>cdpp_3hr</td><td>ppm</td><td>Ruido fotométrico esperado en intervalos de 3 horas. Cuanto menor, más fácil detectar tránsitos pequeños.</td></tr>
+<tr><td>ra</td><td>grados</td><td>Ascensión recta (coordenada celeste).</td></tr>
+<tr><td>dec</td><td>grados</td><td>Declinación (coordenada celeste).</td></tr>
+<tr><td>source_urls</td><td>texto</td><td>URLs de MAST de los archivos originales de la curva de luz (trazabilidad).</td></tr>
+</table>
+
+<h2>6. Advertencias para modelar</h2>
+<ul>
+<li><b>Fuga de información (leakage):</b> <i>confidence_score</i>, <i>fp_flag_*</i>, <i>disposition_disputed</i>, <i>label_source</i> y <i>kepoi_name</i> derivan de la propia etiqueta. No deben usarse como entradas del modelo.</li>
+<li><b>Atajos:</b> <i>mission</i> o <i>has_transit_params</i> pueden revelar la clase (NO_SIGNAL es solo Kepler y no tiene parámetros).</li>
+<li><b>Valores nulos:</b> muchas columnas son NaN según la misión o la clase; hay que tratarlo explícitamente.</li>
+<li><b>Entradas razonables para un modelo de curvas de luz:</b> <i>flux_global</i>, <i>flux_local</i>, <i>flux_odd</i> y <i>flux_even</i>, y opcionalmente algunas variables estelares.</li>
+</ul>
+
+<h2>7. Fundamento físico del método de tránsito</h2>
+<p>Cuando un planeta pasa por delante de su estrella, bloquea una fracción del disco estelar y el flujo observado cae. Para una estrella de radio R<sub>*</sub> y un planeta de radio R<sub>p</sub>, la <b>profundidad</b> del tránsito es aproximadamente</p>
+<p style="text-align:center"><i>δ ≈ (R<sub>p</sub> / R<sub>*</sub>)²</i></p>
+<p>Por eso la caída depende del <b>área</b> (cuadrado del radio): un Júpiter frente al Sol da ≈ 1 % (10 000 ppm), mientras que una Tierra da ≈ 0,008 % (≈ 84 ppm). El <b>periodo</b> P es el tiempo entre tránsitos consecutivos, y la <b>duración</b> es aproximadamente <i>T ≈ (P/π)·(R<sub>*</sub>/a)</i>, donde <i>a</i> es el semieje mayor de la órbita. Para que se vea un tránsito, la órbita debe estar casi de canto respecto a nosotros, por lo que la mayoría de planetas existentes no se detectan por este método.</p>
+
+<h2>8. Planteamiento como problema de aprendizaje automático</h2>
+<ul>
+<li><b>Tarea:</b> clasificación multiclase supervisada. Dada la curva de luz de una estrella, predecir <code>disposition</code> ∈ {PLANET, FALSE_POSITIVE, NO_SIGNAL}.</li>
+<li><b>Entrada:</b> series temporales de flujo (<code>flux_global</code>, <code>flux_local</code>, <code>flux_odd</code>, <code>flux_even</code>) y, opcionalmente, variables estelares (<code>teff</code>, <code>radius</code>, <code>cdpp_3hr</code>...).</li>
+<li><b>Etiquetas:</b> provienen de catálogos de la NASA (Robovetter para Kepler, TFOPWG para TESS). No son verdad absoluta: son la mejor clasificación disponible, y algunas cambian con el tiempo (<code>disposition_disputed</code>). El modelo aprende a imitar ese criterio.</li>
+<li><b>Representación (idea de «vista global» y «vista local»):</b> el enfoque habitual en la literatura, p. ej. Shallue &amp; Vanderburg (2018, <i>Astronet</i>), pliega la curva al periodo orbital y la representa en dos escalas: una global que contiene toda la órbita (eclipses secundarios, variabilidad) y una local que amplía el tránsito (forma, profundidad). Este dataset sigue esa idea con resoluciones menores (201 y 81 puntos), y añade las vistas par/impar para detectar binarias eclipsantes.</li>
+</ul>
+
+<h3>Pipeline general</h3>
+<table><tr><th>Paso</th><th>Qué se hace</th><th>Por qué</th></tr>
+<tr><td>1. Descarga</td><td>Flujo PDCSAP desde MAST (Lightkurve).</td><td>PDCSAP ya corrige tendencias instrumentales comunes de la nave.</td></tr>
+<tr><td>2. Unión</td><td><i>Stitch</i> de trimestres/sectores/campañas.</td><td>Obtener una serie larga continua.</td></tr>
+<tr><td>3. Normalización</td><td>Dividir por la mediana.</td><td>Hace comparables estrellas de brillo distinto; el nivel normal ≈ 1.</td></tr>
+<tr><td>4. Valores atípicos</td><td>Eliminar puntos a &gt; 5σ de la mediana local.</td><td>Quitar rayos cósmicos y errores sin borrar los tránsitos (que son caídas pequeñas).</td></tr>
+<tr><td>5. NaN</td><td>Interpolación lineal.</td><td>Los modelos no admiten huecos.</td></tr>
+<tr><td>6. Remuestreo</td><td>20 000 puntos en <code>flux_raw</code>.</td><td>Longitud fija de entrada.</td></tr>
+<tr><td>7. Plegado de fase</td><td>Superponer todos los tránsitos usando periodo y época; agrupar en bins.</td><td>Al sumar muchos tránsitos, la señal crece frente al ruido aleatorio (≈ √N).</td></tr>
+<tr><td>8. Par/impar</td><td>Plegar por separado tránsitos pares e impares.</td><td>Una binaria eclipsante alterna eclipses de distinta profundidad.</td></tr>
+</table>
+
+<h2>9. Mi preprocesado (<code>src/preprocess.py</code>)</h2>
+<p>Parto del split <b>test</b> (2 357 estrellas) para explorar. El script realiza:</p>
+<ol>
+<li><b>Decodificación:</b> convierte los bytes de cada columna en matrices <code>float32</code> de forma (n estrellas, longitud) y comprueba con <code>assert</code> que las longitudes son 20 000, 201, 81, 201 y 201.</li>
+<li><b>Limpieza:</b> reemplaza valores no finitos (NaN/inf) por 1,0, el nivel normal del flujo. Resultado: no hubo ninguno que reemplazar.</li>
+<li><b>Marcado de vistas vacías:</b> crea <code>folded_empty</code>, verdadero si las vistas plegadas son todo ceros. Hay 823 estrellas así: las 784 NO_SIGNAL más 39 candidatas de TESS/K2 sin periodo, duración o época. Las marco en lugar de borrarlas para no perder información.</li>
+<li><b>Variables derivadas simples:</b> <code>raw_std_ppm</code> (ruido global), <code>local_min_depth_ppm</code> (profundidad medida en la vista local) y <code>odd_even_diff_ppm</code> (diferencia entre mínimos par e impar).</li>
+<li><b>Guardado:</b> metadatos en <code>meta.parquet</code> y una matriz <code>.npy</code> por vista, para cargar rápido.</li>
+</ol>
+<p><b>Lo que NO hago todavía</b> (y habría que hacer al entrenar): escalar las curvas con estadísticos calculados <u>solo con train</u> si se decide estandarizar, tratar el desbalance de clases, y entrenar con los splits train y val originales. Los splits ya vienen estratificados por clase y misión, así que no hay que re-dividir. No existe todavía ningún modelo entrenado en el proyecto.</p>
+
+<h2>10. Tipos de curvas de luz</h2>
+<table><tr><th>Tipo</th><th>Aspecto esperado</th><th>Vista donde se reconoce</th></tr>
+<tr><td>Planeta (PLANET)</td><td>Caída pequeña (≈ 0,01–1 %), de fondo plano y bordes cortos (forma de U), profundidad igual en tránsitos pares e impares, sin eclipse secundario apreciable.</td><td><code>flux_local</code>, <code>flux_odd</code> vs <code>flux_even</code></td></tr>
+<tr><td>Binaria eclipsante (FALSE_POSITIVE)</td><td>Caída profunda, a menudo en forma de V, con eclipse secundario y profundidades distintas par/impar.</td><td><code>flux_global</code>, <code>flux_odd</code> vs <code>flux_even</code></td></tr>
+<tr><td>Falso positivo por contaminación</td><td>Parece un tránsito, pero lo causa otra estrella cercana; se delata por el desplazamiento del centroide, no por la forma. Esta información no está en las curvas, sino en <code>fp_flag_centroid</code>.</td><td>Solo metadatos</td></tr>
+<tr><td>Variabilidad / ruido (FALSE_POSITIVE)</td><td>Caídas irregulares, no periódicas, por manchas, pulsaciones o instrumento.</td><td><code>flux_raw</code></td></tr>
+<tr><td>Sin señal (NO_SIGNAL)</td><td>Solo ruido fotométrico alrededor de 1, sin caídas periódicas.</td><td><code>flux_raw</code></td></tr>
+</table>
+<p><b>Observación sobre los datos reales (split test):</b> la mediana de <code>raw_std_ppm</code> es ≈ 1 700 ppm en PLANET, ≈ 1 350 en FALSE_POSITIVE y ≈ 430 en NO_SIGNAL. La clase NO_SIGNAL es mucho más tranquila, pero esto <b>no</b> implica que los planetas sean «más ruidosos»: NO_SIGNAL es solo Kepler, mientras que PLANET incluye muchas estrellas de TESS, con más ruido. Es un ejemplo de sesgo por misión. Además, la diferencia par/impar mediana es mayor en PLANET (≈ 73 ppm) que en FALSE_POSITIVE (≈ 35 ppm), al contrario de lo esperado; el mínimo de una curva plegada es muy sensible al ruido, así que esta variable simple no sirve por sí sola.</p>
+
+<h2>11. Plan de modelado propuesto</h2>
+<ol>
+<li><b>Baseline:</b> clasificador simple (regresión logística o Random Forest) sobre variables tabulares derivadas (profundidad, duración, <code>odd_even_diff_ppm</code>, <code>cdpp_3hr</code>...), <u>sin</u> columnas con fuga de información.</li>
+<li><b>Modelo de aprendizaje profundo:</b> CNN 1D con ramas separadas para global y local (y par/impar como canales), concatenadas y seguidas de capas densas con salida softmax de 3 clases. Se entrena con entropía cruzada, <code>model.train()</code>/<code>model.eval()</code> y semillas fijas.</li>
+<li><b>Evaluación:</b> métricas por clase (precisión, recall, F1) y F1 macro, más matriz de confusión. La exactitud (accuracy) global es poco informativa con clases desbalanceadas. Selección de hiperparámetros solo con validación; test se usa una sola vez al final.</li>
+<li><b>Análisis de errores:</b> revisar por misión (Kepler / TESS / K2) para comprobar que el modelo no depende de la misión como atajo.</li>
+</ol>
+
+<h2>12. Limitaciones</h2>
+<ul>
+<li>Las etiquetas son clasificaciones automáticas o de la comunidad, no verdades verificadas.</li>
+<li>El plegado depende de que el periodo ya haya sido detectado: este dataset no sirve para <i>descubrir</i> el periodo desde cero (para eso se usa p. ej. el algoritmo BLS).</li>
+<li>El remuestreo a 201 y 81 puntos pierde detalle fino, sobre todo en tránsitos cortos.</li>
+<li>Mezcla misiones con distinta cadencia y ruido, lo que introduce sesgos.</li>
+<li>Los resultados descritos en la sección 10 son de la exploración del split test y no de un modelo; no se ha entrenado ni evaluado ninguno.</li>
+</ul>
+
+<h2>13. Cómo ejecutar el proyecto</h2>
+<pre style="background:#f3f3f3;padding:8px;font-size:9pt">.venv\Scripts\python.exe src/preprocess.py
+.venv\Scripts\streamlit.exe run app.py</pre>
+<p>La app tiene cuatro pestañas: <b>Resumen</b> (composición por clase y misión), <b>Explorador</b> (una estrella: curva completa, plegada global, local y par/impar), <b>Comparar clases</b> (mediana e intervalo intercuartílico, y galería aleatoria) y <b>Variables</b> (histogramas por clase).</p>
+</body></html>
