@@ -1,0 +1,130 @@
+train: 18853 filas | val: 2357 filas (val solo para el test de atajos)
+
+======================================================================
+1. Integridad: valores imposibles y composición
+======================================================================
+disposition  FALSE_POSITIVE  NO_SIGNAL  PLANET    All
+mission                                              
+k2                      192          0     996   1188
+kepler                 3712       6272    2859  12843
+tess                    845          0    3977   4822
+All                    4749       6272    7832  18853
+
+Filas PLANET/FP con valores físicamente imposibles o sospechosos:
+ disposition                        FALSE_POSITIVE  PLANET
+period_days <= 0                                0       0
+duration_hrs <= 0                               2       3
+depth_ppm <= 0                                  0       0
+depth_ppm >= 1e6 (caída >= 100 %)               2       0
+duración > periodo                              1       0
+Rp catálogo > 100 R_T                         274      28
+vistas plegadas todo cero                      49     282
+
+PLANET con Rp > 100 R_T por label_source:
+ label_source
+kepler_robovetter    17
+k2_project           10
+tess_tfopwg           1
+Name: count, dtype: int64
+
+======================================================================
+2. Tasa de NaN por misión y por clase (%)
+======================================================================
+         teff  logg  radius   mass  metallicity  kepmag  cdpp_3hr  period_days  duration_hrs  depth_ppm  planet_radius_earth
+mission                                                                                                                     
+k2       33.5  46.4     3.1   56.8         65.5     0.2     100.0          1.5          20.3       34.9                 27.2
+kepler    1.8   1.8     1.8   11.7          6.2     0.0      19.3         48.8          48.8       50.6                 50.6
+tess      1.8  12.1     6.9  100.0        100.0     0.0     100.0          1.4           0.0        0.0                  6.9 
+
+                 teff  logg  radius  mass  metallicity  kepmag  cdpp_3hr  period_days  duration_hrs  depth_ppm  planet_radius_earth
+disposition                                                                                                                       
+FALSE_POSITIVE   4.4   7.5     5.4  22.7         27.1     0.1      21.8          0.3           0.7        4.1                  8.3
+NO_SIGNAL        0.0   0.0     0.0  20.3          3.9     0.0      39.6        100.0         100.0      100.0                100.0
+PLANET           6.4  12.9     4.4  59.4         62.2     0.0      63.5          0.9           2.6        5.7                  6.3
+
+======================================================================
+3. Test de atajos: entrenar en train, evaluar en val (macro-F1)
+======================================================================
+                 tarea                     entrada  macro-F1 val
+              3 clases   dummy (clase mayoritaria)         0.196
+              3 clases solo máscara isna() estelar         0.478
+              3 clases       solo misión (one-hot)         0.458
+vetting (PLANET vs FP)   dummy (clase mayoritaria)         0.384
+vetting (PLANET vs FP) solo máscara isna() estelar         0.687
+vetting (PLANET vs FP)       solo misión (one-hot)         0.687
+
+Vetting (train, con vistas): 12250 filas -> {'PLANET': 7550, 'FALSE_POSITIVE': 4700}
+Coherencia catálogo vs curva: mediana |log10(Rp_implícito/Rp_catálogo)| = 0.036;  Spearman(depth_ppm, depth_local) = 0.948
+
+======================================================================
+4. Separabilidad PLANET vs FP: AUC [IC95 %] global y POR MISIÓN (efecto Simpson)
+======================================================================
+AUC = 0.5 -> la variable no separa; |AUC-0.5| grande -> separa. AUC<0.5: PLANET tiene valores MENORES.
+                                todas            kepler                k2              tess
+period_days          0.57 [0.56,0.58]  0.63 [0.62,0.64]  0.75 [0.71,0.79]  0.62 [0.60,0.64]
+duration_hrs         0.40 [0.39,0.42]  0.44 [0.43,0.45]  0.50 [0.44,0.55]  0.52 [0.50,0.54]
+depth_ppm            0.50 [0.49,0.51]  0.40 [0.39,0.41]  0.07 [0.05,0.10]  0.59 [0.57,0.61]
+planet_radius_earth  0.40 [0.39,0.41]  0.33 [0.32,0.34]  0.20 [0.10,0.32]  0.49 [0.47,0.51]
+teff                 0.43 [0.42,0.44]  0.40 [0.39,0.41]  0.40 [0.34,0.45]  0.42 [0.40,0.44]
+logg                 0.53 [0.52,0.54]  0.55 [0.54,0.57]  0.66 [0.61,0.72]  0.57 [0.55,0.59]
+radius               0.46 [0.45,0.47]  0.44 [0.43,0.46]  0.31 [0.27,0.35]  0.40 [0.37,0.42]
+mass                 0.44 [0.43,0.45]  0.45 [0.43,0.46]  0.38 [0.31,0.44]                 —
+metallicity          0.66 [0.64,0.67]  0.66 [0.65,0.68]  0.62 [0.54,0.70]                 —
+kepmag               0.38 [0.37,0.39]  0.53 [0.52,0.54]  0.41 [0.36,0.47]  0.64 [0.62,0.66]
+cdpp_3hr             0.44 [0.43,0.46]  0.44 [0.43,0.46]                 —                 —
+rp_implied           0.47 [0.45,0.48]  0.37 [0.36,0.38]  0.08 [0.06,0.11]  0.53 [0.51,0.55]
+log_rp_ratio         0.66 [0.65,0.67]  0.70 [0.69,0.72]                 —  0.61 [0.59,0.63]
+log_rho_ratio        0.60 [0.59,0.62]  0.61 [0.59,0.62]  0.43 [0.35,0.50]                 —
+duty_cycle           0.36 [0.35,0.38]  0.32 [0.31,0.33]  0.19 [0.15,0.23]  0.36 [0.34,0.38]
+snr_expected         0.35 [0.33,0.36]  0.35 [0.33,0.36]                 —                 —
+depth_local_ppm      0.51 [0.50,0.52]  0.41 [0.39,0.42]  0.09 [0.07,0.11]  0.61 [0.60,0.64]
+snr_local            0.44 [0.43,0.46]  0.40 [0.39,0.41]  0.29 [0.24,0.35]  0.55 [0.53,0.58]
+ingress_frac         0.34 [0.33,0.35]  0.31 [0.30,0.33]  0.38 [0.33,0.41]  0.41 [0.39,0.44]
+odd_even_z           0.54 [0.52,0.55]  0.56 [0.54,0.57]  0.63 [0.58,0.68]  0.50 [0.48,0.52]
+secondary_z          0.45 [0.44,0.46]  0.43 [0.42,0.44]  0.45 [0.40,0.51]  0.48 [0.45,0.50]
+
+======================================================================
+5. Reglas físicas a mano (positivo = FALSE_POSITIVE), evaluadas en train
+======================================================================
+                                   regla  % marcado  precision FP  recall FP  F1 FP
+                δ > 2 % (regla original)      0.122         0.750      0.238  0.361
+                   Rp implícito > 22 R_T      0.099         0.861      0.223  0.354
+log ρ_tr/ρ_cat < -1 (densidad 10x menor)      0.043         0.936      0.106  0.190
+                         par/impar z > 3      0.189         0.386      0.190  0.255
+                        secundario z > 3      0.281         0.456      0.334  0.386
+     forma τ/T > 0.35 (V) y SNR_local>10      0.194         0.719      0.363  0.482
+(Referencia: proporción de FP en vetting train = 0.384; un clasificador al azar tiene precision ≈ esa cifra)
+Calibración odd_even_z en PLANET: mediana |z| = 1.16 (teórico 0.67), P(|z|>3) = 0.197 (teórico 0.003)
+Calibración secondary_z en PLANET: mediana |z| = 2.60 (teórico 0.67), P(|z|>3) = 0.449 (teórico 0.003)
+
+======================================================================
+6. Correlación de Spearman (rango; robusta a escalas log y outliers)
+======================================================================
+Pares con |ρ_s| > 0.7 (redundancia):
+ logg                 radius                -0.97
+depth_ppm            depth_local_ppm        0.95
+planet_radius_earth  rp_implied             0.92
+period_days          duty_cycle            -0.89
+depth_ppm            rp_implied             0.87
+radius               mass                   0.85
+rp_implied           depth_local_ppm        0.83
+kepmag               cdpp_3hr               0.81
+snr_expected         snr_local              0.80
+depth_ppm            planet_radius_earth    0.80
+planet_radius_earth  depth_local_ppm        0.76
+logg                 mass                  -0.75
+depth_ppm            snr_expected           0.73
+snr_expected         depth_local_ppm        0.72
+planet_radius_earth  snr_expected           0.72
+teff                 mass                   0.72
+
+======================================================================
+7. Forma del tránsito: perfiles medios normalizados y PCA de flux_local
+======================================================================
+Curvas con SNR_local > 10: 9870 ({'PLANET': 6140, 'FALSE_POSITIVE': 3730})
+Varianza explicada por PC1..PC5: [0.437 0.105 0.097 0.04  0.037]
+  AUC de PC1 para PLANET vs FP: 0.563
+  AUC de PC2 para PLANET vs FP: 0.618
+  AUC de PC3 para PLANET vs FP: 0.556
+
+Figuras y tablas en results\eda/
