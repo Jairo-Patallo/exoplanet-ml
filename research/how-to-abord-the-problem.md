@@ -19,3 +19,5 @@ Esto es porque los datos que están etiquetados como NO_SIGNAL tienen estos dato
 
 Quedan las variables teff, logg, radius, mass, metallicity, kepmag, cdpp_3hr. 
 Las curvas se usarán aparte como entrada del modelo.
+
+Como primer modelo vamos a crear un baseline de tipo "más frecuente". Los resultados son una precision de 0.42 y un f1 score de 0.59 para los datos etiquetados como posible exoplaneta
