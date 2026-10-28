@@ -2,3 +2,4 @@
 data/
 __pycache__/
 results/eda/derived_features_train.csv
+*.egg-info/

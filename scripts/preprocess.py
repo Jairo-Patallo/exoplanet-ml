@@ -1,23 +1,22 @@
-"""Preprocesado del split test: decodifica las curvas de luz y guarda arrays listos para usar.
+"""Preprocesado de una muestra de TRAIN para la app: decodifica las curvas y guarda arrays listos para usar.
 
-Uso:  python src/preprocess.py
+Se usa una muestra estratificada por misión y clase (no test: test no se mira hasta la evaluación final).
+Uso:  python scripts/preprocess.py   (desde la raíz del repo)
 Salida (data/processed/):
   meta.parquet      -> metadatos sin las columnas binarias + variables derivadas
   curves_<vista>.npy -> matrices float32 (n_estrellas, longitud) por vista
 """
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 
-RAW = Path("data/raw/test.parquet")
-OUT = Path("data/processed")
+from exoplanet.data import DATA, TARGET, load_split
+
+OUT = DATA / "processed"
+N_SAMPLE = 3000
+SEED = 42
 VIEWS = {"flux_raw": 20000, "flux_global": 201, "flux_local": 81, "flux_odd": 201, "flux_even": 201}
-# Columnas derivadas de la etiqueta: se conservan en meta para mostrarlas,
+# meta conserva las columnas de exoplanet.data.LEAKAGE para mostrarlas en la app,
 # pero NO deben usarse como entradas de un modelo (fuga de información).
-LEAKAGE = ["confidence_score", "label_source", "kepoi_name",
-           "fp_flag_not_transit", "fp_flag_stellar", "fp_flag_centroid",
-           "fp_flag_ephemeris", "disposition_disputed"]
 
 
 def decode(col: pd.Series, length: int) -> np.ndarray:
@@ -29,7 +28,11 @@ def decode(col: pd.Series, length: int) -> np.ndarray:
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    df = pd.read_parquet(RAW)
+    ids = load_split("train", columns=["star_id", "mission", TARGET])
+    frac = N_SAMPLE / len(ids)
+    sample = ids.groupby(["mission", TARGET]).sample(frac=frac, random_state=SEED)["star_id"]
+    # El filtro se aplica al leer: no se carga train entero (~1.5 GB) en memoria
+    df = pd.read_parquet(DATA / "train.parquet", filters=[("star_id", "in", sample.tolist())])
     print(f"Filas: {len(df)} | clases:\n{df['disposition'].value_counts().to_string()}")
 
     curves = {name: decode(df[name], n) for name, n in VIEWS.items()}
