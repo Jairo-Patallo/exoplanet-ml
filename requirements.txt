@@ -5,3 +5,4 @@ matplotlib
 pyarrow
 huggingface_hub
 scikit-learn
+pytest

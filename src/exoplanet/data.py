@@ -7,6 +7,7 @@ Uso:  python -m exoplanet.data   -> imprime recuentos por split, misión y clase
 """
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 DATA = Path(__file__).resolve().parents[2] / "data"  # funciona desde cualquier directorio
@@ -33,6 +34,29 @@ def load_split(split: str, mission: str | None = None, columns: list[str] | None
         raise ValueError(f"mission debe ser una de {MISSIONS}, no {mission!r}")
     filters = [("mission", "==", mission)] if mission else None
     return pd.read_parquet(DATA / f"{split}.parquet", columns=columns, filters=filters)
+
+
+def load_vetting(split: str, missions: tuple[str, ...] = MISSIONS, columns: list[str] | None = None) -> pd.DataFrame:
+    """Filas PLANET/FP de `missions` con vistas plegadas (las que no las tienen se excluyen del vetting)."""
+    if split not in SPLITS or not set(missions) <= set(MISSIONS):
+        raise ValueError(f"split o misiones no válidos: {split!r}, {missions!r}")
+    cols = None if columns is None else list(dict.fromkeys(columns + ["mission", TARGET, "flux_global"]))
+    filters = [("mission", "in", list(missions)), (TARGET, "!=", "NO_SIGNAL")]
+    df = pd.read_parquet(DATA / f"{split}.parquet", columns=cols, filters=filters)
+    df = df[df["flux_global"].map(lambda b: np.frombuffer(b, np.float32).any())].reset_index(drop=True)
+    return df if columns is None or "flux_global" in columns else df.drop(columns="flux_global")
+
+
+def lomo_folds(columns: list[str] | None = None):
+    """Validación dejando una misión fuera (vetting). Por fold: (misión excluida, fit, tune, dev).
+
+    fit = train de las otras dos, tune = val de las otras dos, dev = val de la excluida.
+    El split test no se lee nunca aquí (ver research/03-protocolo-evaluacion.md).
+    """
+    for held_out in MISSIONS:
+        rest = tuple(m for m in MISSIONS if m != held_out)
+        yield (held_out, load_vetting("train", rest, columns), load_vetting("val", rest, columns),
+               load_vetting("val", (held_out,), columns))
 
 
 def main() -> None:
