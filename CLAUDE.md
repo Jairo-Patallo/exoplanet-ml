@@ -124,7 +124,7 @@ Act as a practical Machine Learning and Deep Learning coding assistant. Prioriti
 
 \- Pick the next task from the highest-priority section, then highest-priority task, then lowest effort. Keep at most 1-2 tasks En proceso.
 
-\- When starting a task: set En proceso and Inicio. When finishing: check "Criterio de hecho", fill Archivos and Notas (key metrics), set Hecho and Fin.
+\- When starting a task: set En proceso and Inicio. When finishing: check "Criterio de hecho", fill Archivos and Notas (key metrics), set Hecho and Fin. A task is Hecho only if a verifiable artifact exists (commit, path or passing test).
 
 \- The main page has one heading per phase ("## Fases"), each with its own table filtered by that Sección. A new section needs a new heading and filtered view there.
 

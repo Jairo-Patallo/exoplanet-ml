@@ -1,4 +1,4 @@
-"""Experimentos A, B y C: transferencia directa (sin adaptación) hacia K2 en vetting (PLANET vs FALSE_POSITIVE).
+"""REFERENCIA CON CATÁLOGO, NO PORTABLE (usa teff, logg, log_rp_implied y log_period). Experimentos A, B y C: transferencia directa (sin adaptación) hacia K2 en vetting (PLANET vs FALSE_POSITIVE).
 
   A: entrena en Kepler -> K2     B: entrena en TESS -> K2     C: entrena en Kepler + TESS -> K2
 Referencias: dummy (clase más frecuente) y regresión logística entrenada solo con K2 (CV agrupada por estrella).
@@ -6,7 +6,7 @@ Referencias: dummy (clase más frecuente) y regresión logística entrenada solo
 Uso:  python scripts/transfer_k2.py   (desde la raíz del repo)
 Reglas: los modelos fuente nunca ven K2. K2 se evalúa con train+val; el TEST de K2 no se toca.
 Clase positiva = FALSE_POSITIVE (la minoritaria en K2: la PR-AUC del azar es su prevalencia).
-Salida: results/transfer/a_b_vs_k2.csv
+Salida: results/catalog_reference/a_b_vs_k2.csv
 """
 from pathlib import Path
 
@@ -23,7 +23,7 @@ from exoplanet.data import CLEAN_COLS, clean, load_split
 from exoplanet.features import catalog_features, curve_features
 
 SEED = 42
-OUT = Path("results/transfer")
+OUT = Path("results/catalog_reference")
 VIEWS = {"flux_local": 81, "flux_global": 201, "flux_odd": 201, "flux_even": 201}
 RAW = ["star_id", "mission", "radius", "teff", "logg", "mass", "cdpp_3hr"]
 # Variables disponibles en las tres misiones (ni mass, ni metallicity, ni cdpp_3hr, ni log_rho_ratio)
