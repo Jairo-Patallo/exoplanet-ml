@@ -5,8 +5,10 @@ de fila (np.ndarray), no copias de datos. La misión excluida solo aparece en `e
 """
 from dataclasses import dataclass
 
+import astropy.units as u
 import numpy as np
 import pandas as pd
+from astropy.coordinates import SkyCoord
 
 from exoplanet.data import MISSIONS, SPLITS, TARGET, load_split
 
@@ -21,9 +23,26 @@ class Fold:
 
 
 def load_meta() -> pd.DataFrame:
-    """star_id, misión, clase y split de todas las estrellas, sin cargar las curvas."""
-    return pd.concat([load_split(s, columns=["star_id", "mission", TARGET]).assign(split=s) for s in SPLITS],
-                     ignore_index=True)
+    """star_id, misión, clase, coordenadas y split de todas las estrellas, sin cargar las curvas."""
+    cols = ["star_id", "mission", TARGET, "ra", "dec"]
+    return pd.concat([load_split(s, columns=cols).assign(split=s) for s in SPLITS], ignore_index=True)
+
+
+def shared_stars(meta: pd.DataFrame, radius_arcsec: float = 2.0) -> dict[str, set[str]]:
+    """Por misión excluida M: star_id de las otras misiones a menos de `radius_arcsec` de alguna estrella de M.
+    Es la misma estrella física observada por dos misiones (p. ej. TESS reobserva campos de Kepler y K2)."""
+    meta = meta.dropna(subset=["ra", "dec"])
+    sky = SkyCoord(meta.ra.to_numpy() * u.deg, meta.dec.to_numpy() * u.deg)
+    shared = {}
+    for held_out in MISSIONS:
+        in_m = (meta.mission == held_out).to_numpy()
+        found = set()
+        for other in (m for m in MISSIONS if m != held_out):
+            in_o = (meta.mission == other).to_numpy()
+            _, sep, _ = sky[in_o].match_to_catalog_sky(sky[in_m])
+            found |= set(meta.star_id.to_numpy()[in_o][(sep < radius_arcsec * u.arcsec)])
+        shared[held_out] = found
+    return shared
 
 
 def _rows(meta: pd.DataFrame, missions, splits, exclude=frozenset()) -> np.ndarray:
@@ -31,11 +50,12 @@ def _rows(meta: pd.DataFrame, missions, splits, exclude=frozenset()) -> np.ndarr
     return np.flatnonzero(mask.to_numpy())
 
 
-def nested_folds(meta: pd.DataFrame, exclude=frozenset()) -> list[Fold]:
-    """Un fold externo por misión excluida. `exclude` (star_id) se quita solo de los conjuntos de ajuste,
-    p. ej. las estrellas observadas también por la misión excluida (tarea #36)."""
+def nested_folds(meta: pd.DataFrame, shared: dict[str, set[str]] | None = None) -> list[Fold]:
+    """Un fold externo por misión excluida. `shared` (salida de `shared_stars`) quita de los conjuntos de ajuste,
+    no de la evaluación, las estrellas que la misión excluida también observa."""
     folds = []
     for held_out in MISSIONS:
+        exclude = (shared or {}).get(held_out, frozenset())
         a, b = (m for m in MISSIONS if m != held_out)
         inner = [(_rows(meta, [x], ["train"], exclude), _rows(meta, [y], ["val"], exclude)) for x, y in ((a, b), (b, a))]
         folds.append(Fold(held_out, (a, b), _rows(meta, [a, b], ["train", "val"], exclude),

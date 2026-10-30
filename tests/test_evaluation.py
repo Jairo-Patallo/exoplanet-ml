@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from exoplanet.data import DATA, MISSIONS, SPLITS
-from exoplanet.evaluation import in_domain_split, load_meta, nested_folds
+from exoplanet.evaluation import in_domain_split, load_meta, nested_folds, shared_stars
 
 
 def fake_meta(n_per_cell: int = 4) -> pd.DataFrame:
@@ -12,8 +12,8 @@ def fake_meta(n_per_cell: int = 4) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["star_id", "mission", "disposition", "split"])
 
 
-def check_folds(meta: pd.DataFrame, exclude=frozenset()) -> None:
-    folds = nested_folds(meta, exclude)
+def check_folds(meta: pd.DataFrame, shared=None) -> None:
+    folds = nested_folds(meta, shared)
     assert [f.held_out for f in folds] == list(MISSIONS)
     for f in folds:
         held = meta.mission.to_numpy() == f.held_out
@@ -36,12 +36,33 @@ def test_nested_folds_synthetic():
     check_folds(fake_meta())
 
 
-def test_exclude_only_from_fit():
+def test_shared_only_dropped_from_fit_of_its_fold():
     meta = fake_meta()
-    drop = {"kepler_train_0", "tess_val_1"}
-    for f in nested_folds(meta, drop):
-        assert not drop & set(meta.star_id[f.fit_idx])
-        assert len(f.eval_idx) == (meta.mission == f.held_out).sum(), "exclude no debe tocar la misión excluida"
+    shared = {"k2": {"kepler_train_0", "tess_val_1"}}   # solo afecta al fold que excluye K2
+    for f in nested_folds(meta, shared):
+        dropped = shared.get(f.held_out, set())
+        assert not dropped & set(meta.star_id[f.fit_idx])
+        assert len(f.eval_idx) == (meta.mission == f.held_out).sum(), "shared no debe tocar la misión excluida"
+    other = next(f for f in nested_folds(meta, shared) if f.held_out == "tess")
+    assert "kepler_train_0" in set(meta.star_id[other.fit_idx]), "no debe quitarse en los demás folds"
+
+
+def test_shared_stars_synthetic():
+    meta = pd.DataFrame({"star_id": ["k1", "k2", "t1", "t2", "e1"],
+                         "mission": ["kepler", "kepler", "tess", "tess", "k2"],
+                         "ra": [10.0, 50.0, 10.0 + 1 / 3600, 120.0, 200.0],      # t1 a 1" de k1
+                         "dec": [20.0, -10.0, 20.0, 30.0, 5.0]})
+    shared = shared_stars(meta)
+    assert shared["kepler"] == {"t1"} and shared["tess"] == {"k1"} and shared["k2"] == set()
+
+
+@pytest.mark.skipif(not (DATA / "train.parquet").exists(), reason="faltan los datos en data/")
+def test_shared_stars_real_data():
+    meta = load_meta()
+    shared = shared_stars(meta)
+    check_folds(meta, shared)
+    for f in nested_folds(meta, shared):
+        assert not shared[f.held_out] & set(meta.star_id[f.fit_idx])
 
 
 def test_in_domain_split():

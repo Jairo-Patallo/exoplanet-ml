@@ -16,7 +16,7 @@ import pandas as pd
 from sklearn.metrics import average_precision_score, f1_score
 
 from exoplanet.data import CLASSES, MISSIONS, TARGET
-from exoplanet.evaluation import in_domain_split, load_meta, nested_folds
+from exoplanet.evaluation import in_domain_split, load_meta, nested_folds, shared_stars
 
 OUT = Path("results/baseline")
 SEED = 42
@@ -59,10 +59,11 @@ def evaluate(meta: pd.DataFrame, fit_idx: np.ndarray, eval_idx: np.ndarray, clas
 
 def main() -> None:
     meta = load_meta()
+    shared = shared_stars(meta)
     rng = np.random.default_rng(SEED)
     rows = []
     for variant, classes in VARIANTS.items():
-        for f in nested_folds(meta):
+        for f in nested_folds(meta, shared):
             rows.append({"variante": variant, "evaluacion": f"externo: excluida {f.held_out}",
                          **evaluate(meta, f.fit_idx, f.eval_idx, classes, rng)})
         for mission in MISSIONS:
