@@ -1,0 +1,9 @@
+subconjunto,entradas,n_train,n_val,balanced_accuracy,auc_ovr_macro
+PLANET + FP,variables derivadas de la curva,12581,1573,"0.697 [0.663,0.728]","0.863 [0.843,0.882]"
+PLANET + FP,vistas plegadas (local+global),12581,1573,"0.716 [0.685,0.749]","0.912 [0.899,0.924]"
+solo PLANET,variables derivadas de la curva,7832,979,"0.643 [0.605,0.675]","0.846 [0.825,0.866]"
+solo PLANET,vistas plegadas (local+global),7832,979,"0.702 [0.670,0.735]","0.913 [0.895,0.927]"
+solo FP,variables derivadas de la curva,4749,594,"0.752 [0.686,0.820]","0.874 [0.837,0.910]"
+solo FP,vistas plegadas (local+global),4749,594,"0.756 [0.682,0.822]","0.929 [0.905,0.952]"
+con NO_SIGNAL (todas),variables derivadas de la curva,18853,2357,"0.672 [0.640,0.704]","0.852 [0.834,0.868]"
+con NO_SIGNAL (todas),vistas plegadas (local+global),18853,2357,"0.691 [0.664,0.720]","0.877 [0.861,0.890]"
