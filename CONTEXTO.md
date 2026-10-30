@@ -14,7 +14,8 @@ Escalera de modelos, todos con el mismo protocolo: reglas físicas → regresió
 - Las decisiones importantes de ML (misión reservada para test, umbrales, armonización de etiquetas…) son del usuario: Claude propone con pros y contras y espera.
 - Las tareas viven en Notion. Estados: No empezado → En proceso → **Esperando decisión** → Hecho. Máximo 1-2 En proceso. Una tarea solo es Hecho si existe un artefacto verificable (commit, ruta o test que pasa).
 - **Autonomía acordada:** ejecutar tareas del tablero y dejar en Notion el estado, los archivos y las métricas. Descargas: hasta **50 GB acumulados** sin preguntar (llevan unos 70 MB en disco). Seguir preguntando antes de: decisiones de ML con alternativas reales, instalar paquetes, commits/push (salvo petición explícita), borrar tareas y cambiar prioridades de secciones existentes.
-- Notas del usuario: base de Notion "Notas de Jairo". Leerla antes de cada tarea y al empezar cada sesión, también las de tareas ya Hechas; toda nota *Nueva* se revisa, se responde en "Respuesta de Claude" y pasa a *Revisada*.
+- Notas del usuario: van en la columna "Nota de Jairo" de cada tarea y de cada bloque (ya no hay base de notas aparte). Antes de cada tarea y al empezar cada sesión, buscar filas con la nota rellena y "Nota revisada" sin marcar, también en tareas Hechas; responder en "Respuesta de Claude" y marcar la casilla.
+- Bloques: el tablero se reorganizó en 7 bloques grandes. **El usuario decide qué bloque se hace primero**; Claude solo recomienda y no empieza otro sin su visto bueno.
 - Explicar al usuario lo que se hace en cada paso.
 
 ## 3. Datos y entorno
@@ -62,9 +63,10 @@ Documentos: `research/03-protocolo-evaluacion.md` (protocolo, ablación de varia
 ## 7. Notion
 
 - Página principal: https://app.notion.com/p/40715f33376c81ea9534c0e8bd2b267d
-- Tareas: `collection://cf064316-c55a-46e0-a764-9985c623078f` · Secciones: `collection://a3702b25-45cb-47e0-860f-5837c94448bb` · Notas de Jairo: `collection://c990a21d-c985-4cbf-b87b-a38c882c01ac`
-- Secciones nuevas respecto al plan inicial: Fase 1B (etiquetas, fugas y protocolo), 1C (preprocesado propio), 1D (CoRoT) y Transversal (calidad y reproducibilidad).
-- Tablero: 47 tareas, 16 Hechas, 1 Esperando decisión (#31 CoRoT), el resto No empezado, ninguna En proceso.
+- Tareas: `collection://cf064316-c55a-46e0-a764-9985c623078f` · Bloques: `collection://a3702b25-45cb-47e0-860f-5837c94448bb`
+- **7 bloques** (reorganización del 2026-10-30; el antiguo reparto en 11 fases quedó sustituido). Tareas por bloque (hechas/total): 1 · Datos, etiquetas y protocolo (13/15); 2 · Preprocesado propio y muestra (1/5); 3 · Variables y modelos clásicos (2/9); 4 · Deep learning: MLP y CNN (0/4); 5 · Evaluación final y robustez (0/5); 6 · CoRoT (0/1, esperando el catálogo); 7 · Documentación, web y calidad (1/8). Orden recomendado por Claude: 2 → 1 → 3 → 4 → 5 → 7, y el 6 cuando se desbloquee; el usuario decide.
+- Tablero: 47 tareas, 17 Hechas, 1 Esperando decisión (#31 CoRoT), el resto No empezado, ninguna En proceso.
+- Limpieza hecha el 2026-10-30 con confirmación del usuario: se borraron (a la papelera de Notion, restaurables) la base «Notas de Jairo», 4 bloques viejos vacíos y 13 vistas enlazadas de la página principal, que ahora muestra la tabla de Bloques y la de Tareas abiertas.
 
 ## 8. Qué sigue (orden recomendado)
 

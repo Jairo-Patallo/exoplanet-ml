@@ -114,23 +114,23 @@ Act as a practical Machine Learning and Deep Learning coding assistant. Prioriti
 
 \- Tasks live in Notion, page "Exoplanet ML — Gestión del proyecto": https://app.notion.com/p/40715f33376c81ea9534c0e8bd2b267d
 
-\- Databases: `Secciones` (collection://a3702b25-45cb-47e0-860f-5837c94448bb) and `Tareas` (collection://cf064316-c55a-46e0-a764-9985c623078f). Each task belongs to one section.
+\- Databases: `Bloques` (collection://a3702b25-45cb-47e0-860f-5837c94448bb) and `Tareas` (collection://cf064316-c55a-46e0-a764-9985c623078f). The project is split into 7 big blocks; each task belongs to one block (column `Bloque`).
 
-\- Priority (sections and tasks): P0 · Crítica, P1 · Alta, P2 · Media, P3 · Baja.
+\- Priority (blocks and tasks): P0 · Crítica, P1 · Alta, P2 · Media, P3 · Baja.
 
 \- Effort: XS (<1h), S (~half day), M (1-2 days), L (3-5 days), XL (>1 week, split it).
 
-\- Status: No empezado → En proceso → Hecho.
+\- Task status: No empezado → En proceso → Esperando decisión → Hecho. Block status: Sin empezar, En curso, Esperando decisión, Hecho.
 
-\- Pick the next task from the highest-priority section, then highest-priority task, then lowest effort. Keep at most 1-2 tasks En proceso.
+\- The user decides which block is done first (columns Orden/Prioridad of Bloques); Claude only recommends (column "Recomendación de Claude") and does not start another block without approval. Within the chosen block pick the highest-priority task, then the lowest effort. Keep at most 1-2 tasks En proceso.
 
 \- When starting a task: set En proceso and Inicio. When finishing: check "Criterio de hecho", fill Archivos and Notas (key metrics), set Hecho and Fin. A task is Hecho only if a verifiable artifact exists (commit, path or passing test).
 
-\- The main page has one heading per phase ("## Fases"), each with its own table filtered by that Sección. A new section needs a new heading and filtered view there.
+\- The main page shows the Bloques table (with progress) and the open tasks; there are no per-phase headings.
 
-\- New work discovered during a task becomes a new task (No empezado) with Sección, Prioridad and Esfuerzo.
+\- New work discovered during a task becomes a new task (No empezado) with Bloque, Prioridad and Esfuerzo.
 
-\- Ask before deleting tasks or changing section priorities.
-- User notes live in the Notion database "Notas de Jairo" (data source collection://c990a21d-c985-4cbf-b87b-a38c882c01ac). Before starting any task and at the start of every session, read it, including notes on tasks already Hecho. Review every note with Estado = Nueva, answer in "Respuesta de Claude" and set it to Revisada. If a note changes a decision or reopens a task, ask before changing state or priorities.
+\- Ask before deleting tasks or changing block priorities.
+- User notes live in the columns "Nota de Jairo" of Tareas and Bloques (there is no separate notes database). Before starting any task and at the start of every session, query both databases for rows where "Nota de Jairo" is not empty and "Nota revisada" is unchecked, also in tasks already Hecho. Answer in "Respuesta de Claude" and tick "Nota revisada". If a note changes a decision or reopens a task, ask before changing state or priorities.
 - Task state "Esperando decisión": the task waits for a user decision on an important ML choice; put "ESPERANDO TU DECISIÓN: ..." with the options at the start of Notas.
 
