@@ -13,3 +13,6 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+
+[tool.setuptools.package-data]
+exoplanet = ["kepler_quarters.csv"]

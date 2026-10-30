@@ -131,4 +131,6 @@ Act as a practical Machine Learning and Deep Learning coding assistant. Prioriti
 \- New work discovered during a task becomes a new task (No empezado) with Sección, Prioridad and Esfuerzo.
 
 \- Ask before deleting tasks or changing section priorities.
+- User notes live in the Notion database "Notas de Jairo" (data source collection://c990a21d-c985-4cbf-b87b-a38c882c01ac). Before starting any task and at the start of every session, read it, including notes on tasks already Hecho. Review every note with Estado = Nueva, answer in "Respuesta de Claude" and set it to Revisada. If a note changes a decision or reopens a task, ask before changing state or priorities.
+- Task state "Esperando decisión": the task waits for a user decision on an important ML choice; put "ESPERANDO TU DECISIÓN: ..." with the options at the start of Notas.
 
