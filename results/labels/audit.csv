@@ -1,0 +1,16 @@
+mission,label_source,disposition,original,fuerza,n
+k2,k2_project,FALSE_POSITIVE,FALSE POSITIVE,fuerte,240
+k2,k2_project,PLANET,CANDIDATE,debil,899
+k2,k2_project,PLANET,CONFIRMED,fuerte,346
+kepler,kepler_confirmed,FALSE_POSITIVE,kepler_confirmed,excluida,2
+kepler,kepler_confirmed,PLANET,kepler_confirmed,fuerte,1943
+kepler,kepler_robovetter,FALSE_POSITIVE,kepler_robovetter,fuerte,4638
+kepler,kepler_robovetter,PLANET,kepler_robovetter,debil,1631
+tess,tess_tfopwg,FALSE_POSITIVE,FA,excluida,87
+tess,tess_tfopwg,FALSE_POSITIVE,FP,fuerte,968
+tess,tess_tfopwg,FALSE_POSITIVE,PC,excluida,1
+tess,tess_tfopwg,PLANET,APC,excluida,438
+tess,tess_tfopwg,PLANET,CP,fuerte,674
+tess,tess_tfopwg,PLANET,FA,excluida,1
+tess,tess_tfopwg,PLANET,FP,excluida,57
+tess,tess_tfopwg,PLANET,PC,debil,3802

@@ -24,7 +24,7 @@ class Fold:
 
 def load_meta() -> pd.DataFrame:
     """star_id, misión, clase, coordenadas y split de todas las estrellas, sin cargar las curvas."""
-    cols = ["star_id", "mission", TARGET, "ra", "dec"]
+    cols = ["star_id", "mission", TARGET, "label_source", "period_days", "ra", "dec"]
     return pd.concat([load_split(s, columns=cols).assign(split=s) for s in SPLITS], ignore_index=True)
 
 

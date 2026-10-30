@@ -38,12 +38,36 @@ Aparte, una sola vez al final: modelo entrenado con `train` y `val` de una misi�
 
 ## Reglas
 
+- **Etiquetas:** la evaluación (fold externo y dentro de dominio) usa solo etiquetas **fuertes**; el entrenamiento puede añadir las débiles como variante elegida con los folds internos. Mapeo en `04-armonizacion-etiquetas.md`.
 - La **familia de modelos se fija con los folds internos**. Si después de ver los resultados externos se cambia de familia o de preprocesado, esos resultados pasan a considerarse exploratorios y se anota la razón en el registro de decisiones.
 - **Línea base en cada fold:** dummy (clase más frecuente en las misiones de entrenamiento).
 - **Métricas:** PR-AUC por clase y por misión, macro-F1, y los puntos de la tarea #37 (calibración y recall a precisión fija). Intervalos de confianza al 95 % con bootstrap agrupado por estrella.
 - **Resultado a informar:** una tabla con tres filas externas (una por misión excluida), la fila dentro de dominio y la brecha.
 - **Modelo final:** una vez cerrado el protocolo, se entrena con las tres misiones para el uso real. Su rendimiento esperado es el de los folds externos, no el de su propio entrenamiento.
 - Toda aleatoriedad lleva semilla fija.
+
+## Variables que delatan la misión: ablación con regla fijada de antemano (tarea #43, 2026-10-30)
+
+`scripts/mission_leak.py` mostró que la misión se predice con balanced accuracy ~0,70 (azar 0,33) a partir de las variables de la curva, sobre todo por `depth_local_ppm` y `snr_local`. Que la misión se adivine no es en sí el problema (parte es física y de selección real); lo que importa es el **coste fuera de dominio**.
+
+Variantes del conjunto de variables (se comparan con el mismo modelo y los mismos folds):
+
+- **(a)** todas las variables derivadas de la curva.
+- **(b)** sin `depth_local_ppm` ni `snr_local`.
+- **(c)** solo variables invariantes a la escala de profundidad: forma normalizada a profundidad unidad (`ingress_frac` y forma del fondo), `odd_even_z`, cociente de la profundidad del secundario sobre la del primario. Quedan fuera las transformaciones monótonas de la profundidad o del SNR (Rp/R★ = √profundidad, log SNR), porque conservan esa información.
+- **(d)** cada variante anterior con **estandarización por misión** usando curvas sin etiquetar de la misión objetivo. Es una adaptación no supervisada (no usa etiquetas, pero exige un lote de curvas del telescopio nuevo): se declara como tal, **no participa en la selección** y se informa aparte.
+
+**Regla de selección (fijada antes de ejecutar):** entre (a), (b) y (c) se elige la variante con mayor **PR-AUC macro medio en los folds internos**, sin mirar nunca la misión excluida. Se informa el resultado externo de las tres (para medir el coste de cada decisión) y el de (d) por separado.
+
+Se repite `scripts/mission_leak.py` sobre las variables del preprocesado propio antes de cerrar esta decisión, porque el 0,70 puede cambiar al unificar el detrending (tarea de repetición en la Fase 1C).
+
+## Negativos NO_SIGNAL (2026-10-30)
+
+Las vistas plegadas de NO_SIGNAL del dataset de Hugging Face son relleno a cero, así que los negativos se fabrican con la función de plegado propia. El método debe ser **idéntico en las cuatro misiones**, para que la clase no quede correlacionada con la forma de generarla:
+
+- **Método principal:** estrellas **sin candidato** (sin TCE en Kepler, sin TOI en TESS, sin candidato en K2), plegadas con un periodo, época y duración al azar tomados de la distribución de los positivos de su misión. En Kepler se usan las NO_SIGNAL ya existentes, también re-plegadas con esta función (no sus vistas a cero).
+- **Complementos opcionales:** tránsito enmascarado en estrellas PLANET/FP, y curvas invertidas o permutadas. Solo si el método principal no basta, y declarado aparte.
+- **Test de atajo de generación:** variables de nuisance (puntos por bin, fracción de bins vacíos o interpolados, ruido fuera del tránsito) no deben separar NO_SIGNAL del resto mejor que el azar. No se usa la media de la ventana central, porque ahí la diferencia real es que no hay caída.
 
 ## CoRoT
 

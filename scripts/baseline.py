@@ -17,11 +17,15 @@ from sklearn.metrics import average_precision_score, f1_score
 
 from exoplanet.data import CLASSES, MISSIONS, TARGET
 from exoplanet.evaluation import in_domain_split, load_meta, nested_folds, shared_stars
+from exoplanet.labels import label_strength
 
 OUT = Path("results/baseline")
 SEED = 42
 N_BOOT = 1000
-VARIANTS = {"vetting (PLANET/FP)": ("PLANET", "FALSE_POSITIVE"), "3 clases (datos actuales)": CLASSES}
+# variante -> (clases, solo etiquetas fuertes). "Fuerte" = confirmado / falso positivo claro (exoplanet.labels).
+VARIANTS = {"vetting (PLANET/FP)": (("PLANET", "FALSE_POSITIVE"), False),
+            "vetting, solo etiquetas fuertes": (("PLANET", "FALSE_POSITIVE"), True),
+            "3 clases (datos actuales)": (CLASSES, False)}
 
 
 def macro_f1_const(counts: np.ndarray, pred: int) -> np.ndarray:
@@ -39,8 +43,9 @@ def fp_prevalence(counts: np.ndarray, classes: tuple) -> np.ndarray:
     return counts[:, classes.index("FALSE_POSITIVE")] / counts.sum(axis=1)
 
 
-def evaluate(meta: pd.DataFrame, fit_idx: np.ndarray, eval_idx: np.ndarray, classes: tuple, rng) -> dict:
-    keep = lambda idx: idx[meta[TARGET].iloc[idx].isin(classes).to_numpy()]
+def evaluate(meta: pd.DataFrame, fit_idx: np.ndarray, eval_idx: np.ndarray, classes: tuple, strong_only: bool, rng) -> dict:
+    ok = meta[TARGET].isin(classes) & ((meta.fuerza == "fuerte") if strong_only else True)
+    keep = lambda idx: idx[ok.iloc[idx].to_numpy()]
     fit_idx, eval_idx = keep(fit_idx), keep(eval_idx)
     pred = meta[TARGET].iloc[fit_idx].value_counts().idxmax()
     y = meta[TARGET].iloc[eval_idx].to_numpy()
@@ -59,17 +64,18 @@ def evaluate(meta: pd.DataFrame, fit_idx: np.ndarray, eval_idx: np.ndarray, clas
 
 def main() -> None:
     meta = load_meta()
+    meta["fuerza"] = label_strength(meta)
     shared = shared_stars(meta)
     rng = np.random.default_rng(SEED)
     rows = []
-    for variant, classes in VARIANTS.items():
+    for variant, (classes, strong_only) in VARIANTS.items():
         for f in nested_folds(meta, shared):
             rows.append({"variante": variant, "evaluacion": f"externo: excluida {f.held_out}",
-                         **evaluate(meta, f.fit_idx, f.eval_idx, classes, rng)})
+                         **evaluate(meta, f.fit_idx, f.eval_idx, classes, strong_only, rng)})
         for mission in MISSIONS:
             fit, test = in_domain_split(meta, mission)
             rows.append({"variante": variant, "evaluacion": f"dentro de dominio: {mission} (test)",
-                         **evaluate(meta, fit, test, classes, rng)})
+                         **evaluate(meta, fit, test, classes, strong_only, rng)})
     df = pd.DataFrame(rows)
     OUT.mkdir(parents=True, exist_ok=True)
     df.to_csv(OUT / "dummy.csv", index=False, encoding="utf-8")
