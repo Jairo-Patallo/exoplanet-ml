@@ -9,7 +9,7 @@ from exoplanet.curves import RAW, read_prepare
 from exoplanet.data import DATA
 from exoplanet.folding import fold_views
 
-STARS = {"KIC_11446443": "kplr011446443", "EPIC_211089792": "ktwo211089792", "TIC_261136679": "tess2018206045859"}
+STARS = {"KIC_11446443": "kplr011446443", "EPIC_211089792": "ktwo211089792", "TIC_261136679": "tess2018206045859-s0001-0000000261136679"}
 READY = (DATA / "train.parquet").exists() and all(list(RAW.rglob(f"*{k}*.fits")) for k in STARS.values())
 
 

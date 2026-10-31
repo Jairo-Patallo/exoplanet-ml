@@ -6,7 +6,7 @@ un modelo de vetting puede usar "qué misión es" como atajo. Azar: balanced acc
 Ojo: acertar no prueba por sí solo que haya un atajo, porque las poblaciones de planetas difieren de verdad entre
 misiones (p. ej. TESS ve más planetas calientes); por eso se repite dentro de cada clase.
 
-Uso:  python scripts/mission_leak.py   (desde la raíz del repo)
+Uso:  python legacy/mission_leak.py   (desde la raíz del repo)
 Salida: results/leak/mission_leak.csv
 """
 from pathlib import Path
@@ -17,7 +17,7 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import balanced_accuracy_score, roc_auc_score
 
 from exoplanet.data import MISSIONS, TARGET, load_split
-from exoplanet.features import curve_features
+from features import curve_features
 
 OUT = Path("results/leak")
 SEED = 42

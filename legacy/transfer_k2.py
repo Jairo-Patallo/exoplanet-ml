@@ -3,7 +3,7 @@
   A: entrena en Kepler -> K2     B: entrena en TESS -> K2     C: entrena en Kepler + TESS -> K2
 Referencias: dummy (clase más frecuente) y regresión logística entrenada solo con K2 (CV agrupada por estrella).
 
-Uso:  python scripts/transfer_k2.py   (desde la raíz del repo)
+Uso:  python legacy/transfer_k2.py   (desde la raíz del repo)
 Reglas: los modelos fuente nunca ven K2. K2 se evalúa con train+val; el TEST de K2 no se toca.
 Clase positiva = FALSE_POSITIVE (la minoritaria en K2: la PR-AUC del azar es su prevalencia).
 Salida: results/catalog_reference/a_b_vs_k2.csv
@@ -20,7 +20,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 from exoplanet.data import CLEAN_COLS, clean, load_split
-from exoplanet.features import catalog_features, curve_features
+from features import catalog_features, curve_features
 
 SEED = 42
 OUT = Path("results/catalog_reference")

@@ -29,14 +29,13 @@ Escalera de modelos, todos con el mismo protocolo: reglas físicas → regresió
 | Módulo | Qué hace |
 |---|---|
 | `data.py` | Carga por misión y split (`load_split`), reglas de limpieza de anomalías |
-| `features.py` | Variables derivadas. Ojo: `odd_even_z` y `secondary_z` usan la vista global del dataset, que **no está centrada** (ver §6) |
 | `evaluation.py` | Protocolo anidado: `nested_folds`, `in_domain_split`, `shared_stars` (cruce por coordenadas < 2") |
 | `labels.py` | Fuerza de cada etiqueta (fuerte / débil / excluida) según la disposición original |
 | `folding.py` | `fold_views(time, flux, period, t0, duration)`: función pura, sin catálogo ni misión. Vistas con el tránsito en el bin 40 (local) y 100 (global) más variables de calidad |
 | `curves.py` | Curvas de MAST: PDCSAP, aplanado con el tránsito enmascarado, normalización, tope de ~100 d por estrella eligiendo los segmentos con más tránsitos |
 | `kepler_quarters.csv` | Intervalo real (BKJD) de cada trimestre de Kepler, medido en cabeceras (MAST da el mismo intervalo a todos) |
 
-Scripts: `baseline.py` (dummy), `mission_leak.py`, `fetch_labels.py`, `label_audit.py`, `build_kepler_quarters.py`, `transfer_k2.py` (**solo referencia con catálogo, no portable**), `eda.py`, `preprocess.py`. **26 tests** en `tests/` (todos pasan).
+Scripts activos: `baseline.py` (dummy), `fetch_labels.py`, `label_audit.py`, `build_kepler_quarters.py`, `pilot_fold.py` (piloto #47). **`legacy/`** (2026-10-30): código del primer camino, con las vistas del dataset, que no es el pipeline actual: `features.py` (su `odd_even_z`/`secondary_z` usan la vista global del dataset, **no centrada**, ver §6), `eda.py`, `mission_leak.py`, `transfer_k2.py` (**solo referencia con catálogo, no portable**), `preprocess.py`, `app.py`. Ver `legacy/README.md`. **26 tests** en `tests/` (todos pasan).
 
 Documentos: `research/03-protocolo-evaluacion.md` (protocolo, ablación de variables y negativos NO_SIGNAL), `research/04-armonizacion-etiquetas.md` (mapeo de etiquetas), `research/02-eda.md`.
 

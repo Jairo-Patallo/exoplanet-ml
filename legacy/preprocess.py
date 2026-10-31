@@ -1,7 +1,7 @@
 """Preprocesado de una muestra de TRAIN para la app: decodifica las curvas y guarda arrays listos para usar.
 
 Se usa una muestra estratificada por misión y clase (no test: test no se mira hasta la evaluación final).
-Uso:  python scripts/preprocess.py   (desde la raíz del repo)
+Uso:  python legacy/preprocess.py   (desde la raíz del repo)
 Salida (data/processed/):
   meta.parquet      -> metadatos sin las columnas binarias + variables derivadas
   curves_<vista>.npy -> matrices float32 (n_estrellas, longitud) por vista

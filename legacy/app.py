@@ -1,4 +1,4 @@
-"""App Streamlit para explorar las curvas de luz. Uso: streamlit run app.py (tras scripts/preprocess.py)."""
+"""App Streamlit para explorar las curvas de luz. Uso: streamlit run legacy/app.py (tras scripts/preprocess.py)."""
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -24,7 +24,7 @@ def load_curves() -> dict:
 
 
 if not (PROC / "meta.parquet").exists():
-    st.error("Faltan datos. Ejecuta primero: python scripts/preprocess.py")
+    st.error("Faltan datos. Ejecuta primero: python legacy/preprocess.py")
     st.stop()
 
 meta, C = load_meta(), load_curves()

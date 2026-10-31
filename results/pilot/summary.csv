@@ -1,0 +1,4 @@
+mission,n_tried,n_downloaded,pct_no_curves_or_error,pct_valid_of_downloaded,pct_valid_of_tried,pct_odd_even_valid,mb_per_star_mean,mb_per_star_median,s_per_star_median,n_strong_stars_total,est_gb_full,est_hours_full
+kepler,100,99,1.0,82.8,82.0,85.9,1.0,1.01,11.7,6560,6.6,22.6
+k2,100,100,0.0,85.0,85.0,98.0,0.53,0.42,9.5,398,0.2,1.1
+tess,100,100,0.0,97.0,97.0,93.0,6.19,7.46,13.5,1624,10.0,31.8

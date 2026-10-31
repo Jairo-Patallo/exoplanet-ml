@@ -48,7 +48,7 @@ Aparte, una sola vez al final: modelo entrenado con `train` y `val` de una misi�
 
 ## Variables que delatan la misión: ablación con regla fijada de antemano (tarea #43, 2026-10-30)
 
-`scripts/mission_leak.py` mostró que la misión se predice con balanced accuracy ~0,70 (azar 0,33) a partir de las variables de la curva, sobre todo por `depth_local_ppm` y `snr_local`. Que la misión se adivine no es en sí el problema (parte es física y de selección real); lo que importa es el **coste fuera de dominio**.
+`legacy/mission_leak.py` mostró que la misión se predice con balanced accuracy ~0,70 (azar 0,33) a partir de las variables de la curva, sobre todo por `depth_local_ppm` y `snr_local`. Que la misión se adivine no es en sí el problema (parte es física y de selección real); lo que importa es el **coste fuera de dominio**.
 
 Variantes del conjunto de variables (se comparan con el mismo modelo y los mismos folds):
 
@@ -59,7 +59,7 @@ Variantes del conjunto de variables (se comparan con el mismo modelo y los mismo
 
 **Regla de selección (fijada antes de ejecutar):** entre (a), (b) y (c) se elige la variante con mayor **PR-AUC macro medio en los folds internos**, sin mirar nunca la misión excluida. Se informa el resultado externo de las tres (para medir el coste de cada decisión) y el de (d) por separado.
 
-Se repite `scripts/mission_leak.py` sobre las variables del preprocesado propio antes de cerrar esta decisión, porque el 0,70 puede cambiar al unificar el detrending (tarea de repetición en la Fase 1C).
+Se repite `legacy/mission_leak.py` sobre las variables del preprocesado propio antes de cerrar esta decisión, porque el 0,70 puede cambiar al unificar el detrending (tarea de repetición en la Fase 1C).
 
 ## Negativos NO_SIGNAL (2026-10-30)
 
@@ -73,7 +73,10 @@ Las vistas plegadas de NO_SIGNAL del dataset de Hugging Face son relleno a cero,
 
 Si se consiguen las etiquetas (tarea #31), CoRoT se evalúa como misión excluida adicional, **sin participar nunca en la selección** (opción A). Es la prueba más limpia de portabilidad, con una muestra pequeña e intervalos de confianza amplios.
 
+## Umbral en una misión sin etiquetas (decisión del usuario, 2026-10-30, tarea #48)
+
+El prior de falsos positivos cambia mucho entre misiones (Kepler 0,71, K2 0,41, TESS 0,59 con etiquetas fuertes) y un umbral fijado en dos misiones no se transfiere a la tercera. **Decisión (opción C):** no se fija umbral para la misión excluida. La evaluación externa informa solo métricas independientes del umbral (**PR-AUC** y **ROC-AUC**). El comportamiento con un umbral concreto se muestra como análisis aparte, con curvas de calibración (tarea #37), y no entra en ninguna selección ni comparación.
+
 ## Pendiente
 
-- **Regla del umbral en una misión sin etiquetas.** El prior de falsos positivos cambia mucho entre misiones (Kepler 56 %, K2 16 %, TESS 18 %) y un umbral fijado en A y B no se transfiere. Opciones a decidir: umbral del bucle interno, ajuste por prior, o informar solo métricas sin umbral (PR-AUC) y el recall a precisión fija.
 - **Utilidad de folds** (`lomo_folds`) y baseline dummy: el trabajo registrado en la tarea #27 no existe en el repo, hay que rehacerlo.

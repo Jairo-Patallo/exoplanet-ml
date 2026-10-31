@@ -1,6 +1,6 @@
 # Análisis exploratorio (Fase 1 + exploración de variables de la Fase 2)
 
-Código: `scripts/eda.py` (análisis) y `src/exoplanet/features.py` (variables físicas). Ejecutar: `python scripts/eda.py`.
+Código: `legacy/eda.py` (análisis) y `legacy/features.py` (variables físicas). Ejecutar: `python legacy/eda.py`.
 Salida completa: `results/eda/eda_output.txt`; figuras y tablas en `results/eda/`.
 
 **Regla seguida:** solo se explora **train** (18 853 estrellas). **Val** se usa únicamente en el test de atajos
