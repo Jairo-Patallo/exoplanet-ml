@@ -1,39 +1,85 @@
-"""Escalón 1: baseline dummy de vetting con el protocolo LOMO y la referencia in-domain.
+"""Baseline dummy (clase más frecuente) con el protocolo anidado: el nuevo listón a superar.
+
+Por fold externo: la clase más frecuente en train+val de las dos misiones de ajuste, evaluada en la misión excluida entera.
+Dentro de dominio: la más frecuente en train+val de una misión, evaluada en su test.
+Dos variantes: vetting (PLANET vs FALSE_POSITIVE) y 3 clases con los datos actuales (NO_SIGNAL solo existe en Kepler).
 
 Uso:  python scripts/baseline.py   (desde la raíz del repo)
-Salida: results/baseline/dummy.csv. No lee el split test.
+Salida: results/baseline/dummy.csv
+IC 95 % por bootstrap sobre estrellas, simulado con una multinomial (el dummy es constante, así que solo importan los recuentos).
+Con scores constantes: PR-AUC de cada clase = su prevalencia y ROC-AUC = 0.5; se comprueba con sklearn en la estimación puntual.
 """
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.dummy import DummyClassifier
+from sklearn.metrics import average_precision_score, f1_score
 
-from exoplanet.data import MISSIONS, TARGET, load_vetting, lomo_folds
-from exoplanet.evaluation import POSITIVE, vetting_metrics
+from exoplanet.data import CLASSES, MISSIONS, TARGET
+from exoplanet.evaluation import in_domain_split, load_meta, nested_folds, shared_stars
+from exoplanet.labels import label_strength
 
 OUT = Path("results/baseline")
-COLS = ["star_id"]
+SEED = 42
+N_BOOT = 1000
+# variante -> (clases, solo etiquetas fuertes). "Fuerte" = confirmado / falso positivo claro (exoplanet.labels).
+VARIANTS = {"vetting (PLANET/FP)": (("PLANET", "FALSE_POSITIVE"), False),
+            "vetting, solo etiquetas fuertes": (("PLANET", "FALSE_POSITIVE"), True),
+            "3 clases (datos actuales)": (CLASSES, False)}
 
 
-def evaluate(fit: pd.DataFrame, dev: pd.DataFrame) -> dict[str, float]:
-    # "prior": predice la clase mayoritaria del fit y da como probabilidad su proporción de clases
-    model = DummyClassifier(strategy="prior").fit(np.zeros((len(fit), 1)), fit[TARGET])
-    X = np.zeros((len(dev), 1))
-    p_fp = model.predict_proba(X)[:, list(model.classes_).index(POSITIVE)]
-    return {"pred": model.predict(X[:1])[0], **vetting_metrics(dev[TARGET], model.predict(X), p_fp)}
+def macro_f1_const(counts: np.ndarray, pred: int) -> np.ndarray:
+    """Macro-F1 de un predictor constante. counts: (n_boot, n_clases) recuentos verdaderos. Solo la clase predicha tiene F1 > 0;
+    el macro promedia las clases presentes en la verdad o en la predicción."""
+    n = counts.sum(axis=1)
+    prev = counts[:, pred] / n
+    f1_pred = np.where(prev > 0, 2 * prev / (1 + prev), 0.0)
+    n_labels = (counts > 0).sum(axis=1) + (counts[:, pred] == 0)
+    return f1_pred / n_labels
+
+
+def fp_prevalence(counts: np.ndarray, classes: tuple) -> np.ndarray:
+    """PR-AUC del azar para FALSE_POSITIVE = su prevalencia (el macro-PR-AUC de un dummy siempre es 1/k, no informa)."""
+    return counts[:, classes.index("FALSE_POSITIVE")] / counts.sum(axis=1)
+
+
+def evaluate(meta: pd.DataFrame, fit_idx: np.ndarray, eval_idx: np.ndarray, classes: tuple, strong_only: bool, rng) -> dict:
+    ok = meta[TARGET].isin(classes) & ((meta.fuerza == "fuerte") if strong_only else True)
+    keep = lambda idx: idx[ok.iloc[idx].to_numpy()]
+    fit_idx, eval_idx = keep(fit_idx), keep(eval_idx)
+    pred = meta[TARGET].iloc[fit_idx].value_counts().idxmax()
+    y = meta[TARGET].iloc[eval_idx].to_numpy()
+    counts = np.array([(y == c).sum() for c in classes])
+    # estimación puntual con sklearn (comprueba las fórmulas cerradas)
+    f1 = f1_score(y, np.full(len(y), pred), average="macro", zero_division=0)
+    pr = average_precision_score(y == "FALSE_POSITIVE", np.full(len(y), float(pred == "FALSE_POSITIVE")))
+    boot = rng.multinomial(counts.sum(), counts / counts.sum(), size=N_BOOT)
+    f1_b, pr_b = macro_f1_const(boot, classes.index(pred)), fp_prevalence(boot, classes)
+    assert np.isclose(f1, macro_f1_const(counts[None], classes.index(pred))[0]), "fórmula de F1 distinta de sklearn"
+    assert np.isclose(pr, fp_prevalence(counts[None], classes)[0]), "fórmula de PR-AUC distinta de sklearn"
+    ci = lambda v, x: f"{x:.3f} [{np.percentile(v, 2.5):.3f},{np.percentile(v, 97.5):.3f}]"
+    return {"n_estrellas": len(y), "dummy_predice": pred, "macro_f1": ci(f1_b, f1), "pr_auc_FP": ci(pr_b, pr),
+            "roc_auc": "0.500 (por definición)"}
 
 
 def main() -> None:
+    meta = load_meta()
+    meta["fuerza"] = label_strength(meta)
+    shared = shared_stars(meta)
+    rng = np.random.default_rng(SEED)
+    rows = []
+    for variant, (classes, strong_only) in VARIANTS.items():
+        for f in nested_folds(meta, shared):
+            rows.append({"variante": variant, "evaluacion": f"externo: excluida {f.held_out}",
+                         **evaluate(meta, f.fit_idx, f.eval_idx, classes, strong_only, rng)})
+        for mission in MISSIONS:
+            fit, test = in_domain_split(meta, mission)
+            rows.append({"variante": variant, "evaluacion": f"dentro de dominio: {mission} (test)",
+                         **evaluate(meta, fit, test, classes, strong_only, rng)})
+    df = pd.DataFrame(rows)
     OUT.mkdir(parents=True, exist_ok=True)
-    rows = [{"protocolo": "LOMO", "mision_dev": m, "n_fit": len(fit), **evaluate(fit, dev)}
-            for m, fit, _, dev in lomo_folds(COLS)]
-    fit = load_vetting("train", columns=COLS)
-    rows += [{"protocolo": "in-domain", "mision_dev": m, "n_fit": len(fit), **evaluate(fit, load_vetting("val", (m,), COLS))}
-             for m in MISSIONS]
-    res = pd.DataFrame(rows)
-    print(res.round(3).to_string(index=False))
-    res.to_csv(OUT / "dummy.csv", index=False)
+    df.to_csv(OUT / "dummy.csv", index=False, encoding="utf-8")
+    print(df.to_string(index=False))
 
 
 if __name__ == "__main__":

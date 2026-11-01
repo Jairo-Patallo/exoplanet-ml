@@ -36,27 +36,43 @@ def load_split(split: str, mission: str | None = None, columns: list[str] | None
     return pd.read_parquet(DATA / f"{split}.parquet", columns=columns, filters=filters)
 
 
-def load_vetting(split: str, missions: tuple[str, ...] = MISSIONS, columns: list[str] | None = None) -> pd.DataFrame:
-    """Filas PLANET/FP de `missions` con vistas plegadas (las que no las tienen se excluyen del vetting)."""
-    if split not in SPLITS or not set(missions) <= set(MISSIONS):
-        raise ValueError(f"split o misiones no válidos: {split!r}, {missions!r}")
-    cols = None if columns is None else list(dict.fromkeys(columns + ["mission", TARGET, "flux_global"]))
-    filters = [("mission", "in", list(missions)), (TARGET, "!=", "NO_SIGNAL")]
-    df = pd.read_parquet(DATA / f"{split}.parquet", columns=cols, filters=filters)
-    df = df[df["flux_global"].map(lambda b: np.frombuffer(b, np.float32).any())].reset_index(drop=True)
-    return df if columns is None or "flux_global" in columns else df.drop(columns="flux_global")
+RP_MAX = 22.0  # R_tierra (~2 R_Júpiter): un PLANET mayor es ruido de etiqueta o un radio estelar erróneo
+RP_MIN = 0.3   # R_tierra: por debajo, el radio de catálogo no es creíble
+CLEAN_COLS = ["disposition", "period_days", "duration_hrs", "depth_ppm", "planet_radius_earth"]
 
 
-def lomo_folds(columns: list[str] | None = None):
-    """Validación dejando una misión fuera (vetting). Por fold: (misión excluida, fit, tune, dev).
+def anomaly_masks(df: pd.DataFrame) -> dict[str, pd.Series]:
+    """Máscaras booleanas (True = fila anómala), una por regla. Los NaN (NO_SIGNAL) nunca se marcan.
 
-    fit = train de las otras dos, tune = val de las otras dos, dev = val de la excluida.
-    El split test no se lee nunca aquí (ver research/03-protocolo-evaluacion.md).
+    La regla del radio solo se aplica a PLANET: un FP gigante (binaria eclipsante) es justo lo que el modelo debe rechazar.
+    Si `df` incluye `flux_global`, se marcan también las filas PLANET/FP con la vista plegada toda a cero.
     """
-    for held_out in MISSIONS:
-        rest = tuple(m for m in MISSIONS if m != held_out)
-        yield (held_out, load_vetting("train", rest, columns), load_vetting("val", rest, columns),
-               load_vetting("val", (held_out,), columns))
+    masks = {
+        "PLANET con Rp > RP_MAX": (df[TARGET] == "PLANET") & (df.planet_radius_earth > RP_MAX),
+        "Rp <= RP_MIN": df.planet_radius_earth <= RP_MIN,
+        "duración <= 0": df.duration_hrs <= 0,
+        "profundidad >= 100 %": df.depth_ppm >= 1e6,
+        "duración > periodo": df.duration_hrs / 24 > df.period_days,
+    }
+    if "flux_global" in df.columns:
+        empty = df.flux_global.map(lambda b: not np.frombuffer(b, np.float32).any())
+        masks["vista plegada toda a cero"] = empty & (df[TARGET] != "NO_SIGNAL")
+    return masks
+
+
+def clean(df: pd.DataFrame) -> pd.DataFrame:
+    """Elimina las filas anómalas (ver `anomaly_masks`). `df` debe incluir CLEAN_COLS."""
+    drop = pd.concat(anomaly_masks(df).values(), axis=1).any(axis=1)
+    return df[~drop]
+
+
+def cleaning_report() -> None:
+    """Filas eliminadas por regla, split y misión (sin tocar nada en disco)."""
+    for split in SPLITS:
+        df = load_split(split, columns=["mission"] + CLEAN_COLS + ["flux_global"])
+        print(f"\n{split}: {len(df)} filas, {len(df) - len(clean(df))} eliminadas")
+        for rule, m in anomaly_masks(df).items():
+            print(f"  {rule:28} {m.sum():4}  {df.mission[m].value_counts().to_dict()}")
 
 
 def main() -> None:
@@ -74,6 +90,7 @@ def main() -> None:
         shared = len(stars[a] & stars[b])
         assert shared == 0, f"{shared} estrellas compartidas entre {a} y {b}"
     print("OK: cada split contiene solo su misión y no hay estrellas compartidas entre splits")
+    cleaning_report()
 
 
 if __name__ == "__main__":

@@ -3,3 +3,14 @@ data/
 __pycache__/
 results/eda/derived_features_train.csv
 *.egg-info/
+
+# secretos y configuración local (el repo es público)
+.env
+.env.*
+*.key
+*.pem
+secrets.toml
+.streamlit/secrets.toml
+.claude/settings.local.json
+.pytest_cache/
+results/pilot_log.txt

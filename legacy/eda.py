@@ -1,6 +1,6 @@
 """Análisis exploratorio con propósito (Fase 1 de la hoja de ruta) + exploración de las variables de la Fase 2.
 
-Uso:  python scripts/eda.py   (desde la raíz del repo)
+Uso:  python legacy/eda.py   (desde la raíz del repo)
 Solo usa TRAIN para explorar; VAL únicamente para el test de atajos. TEST no se toca.
 Salida: figuras y tablas en results/eda/.
 """
@@ -15,7 +15,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score, roc_auc_score
 
 from exoplanet.data import load_split
-from exoplanet.features import LOC_VALID, catalog_features, curve_features
+from features import LOC_VALID, catalog_features, curve_features
 
 pd.set_option("display.width", 200)
 pd.set_option("display.max_columns", 30)
