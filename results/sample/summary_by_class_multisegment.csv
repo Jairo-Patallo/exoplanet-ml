@@ -1,0 +1,10 @@
+mission,disposition,n,n_error,pct_valid
+k2,FALSE_POSITIVE,195,0,92.8
+k2,NO_SIGNAL,382,0,91.1
+k2,PLANET,203,0,94.1
+kepler,FALSE_POSITIVE,706,0,78.5
+kepler,NO_SIGNAL,979,0,85.5
+kepler,PLANET,294,0,96.9
+tess,FALSE_POSITIVE,236,0,97.0
+tess,NO_SIGNAL,400,0,94.8
+tess,PLANET,164,0,96.3

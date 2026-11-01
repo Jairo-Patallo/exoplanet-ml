@@ -95,6 +95,25 @@ así que σ/√n subestima el error. Estos z **no son significancias** y no se p
 Siguen sirviendo como variables de ranking. Arreglo futuro: estimar el error con la varianza entre bloques
 (*block bootstrap*) en lugar de σ/√n.
 
+### Revisión con las vistas propias (tarea #46, 2026-11-01)
+Las vistas global y par/impar del dataset no estaban centradas en el tránsito, así que `odd_even_z` y `secondary_z`
+medían la zona equivocada. Recalculadas sobre la muestra A (vistas propias centradas, solo PLANET y FP con vista válida;
+`scripts/recheck_z_features.py`, `results/eda/z_features_own_views.csv`):
+
+| | Dataset HF | Vistas propias |
+|---|---|---|
+| `secondary_z` en PLANET: mediana \|z\|, P(\|z\|>3) | 2.60, 0.449 | **0.56, 0.010** |
+| `odd_even_z` en PLANET: mediana \|z\|, P(\|z\|>3) | 1.16, 0.197 | 1.18, 0.140 |
+| Regla secundario z > 3: precisión / recall FP | 0.46 / 0.33 | **0.96 / 0.16** (K2: 0.99 / 0.42) |
+| Regla par/impar z > 3: precisión / recall FP | 0.39 / 0.19 | 0.74 / 0.23 (prevalencia FP 0.61) |
+
+Qué queda de cada conclusión:
+- **Secundario: se rehace.** El fallo de calibración venía casi todo del descentrado. Con las vistas propias `secondary_z` se comporta como una significancia y "z > 3" sirve de test (muy preciso, poco sensible).
+- **Par/impar: sigue sin calibrar.** El ruido rojo es real; el arreglo sigue siendo el *block bootstrap* (#9). Úsese solo como ranking.
+- **Tabla de reglas (sección 5) y AUC por misión (sección 4):** las filas de estas dos variables quedan sustituidas por las de arriba. El resto de variables no usa la vista global y sigue siendo válido.
+- **#35 (fuga de misión):** sustituido por #44 (`results/leak/mission_leak_own_views.csv`).
+- **`results/catalog_reference/`** (transferencia con catálogo, usaba `odd_even_z`): solo referencia, no se rehace.
+
 ## 6. Redundancia (Spearman |ρ| > 0.7)
 
 `logg`–`radius` (-0.97), `depth_ppm`–`depth_local` (0.95), `planet_radius_earth`–`rp_implied` (0.92),
@@ -115,6 +134,6 @@ con el del catálogo (mediana |log10 ratio| = 0.036, es decir, ~8 %). Los datos 
 2. Reportar siempre las **métricas por misión**. Alternativa: entrenar solo con Kepler para quitar el confusor.
 3. No usar `kepmag`, `metallicity`, `mass` ni `cdpp_3hr` sin controlar la misión.
 4. Variables candidatas para la regresión logística: `log period`, `log duty_cycle`, `ingress_frac`, `log rp_implied`,
-   `log_rho_ratio`, `teff`, `logg`, `odd_even_z`, `secondary_z` (estas dos solo como ranking).
+   `log_rho_ratio`, `teff`, `logg`, `odd_even_z` (solo como ranking), `secondary_z` (con vistas propias, ya como test; #46).
 5. Para la CNN, recortar los bins de borde de `flux_local`.
 6. Limpiar o ponderar los 28 PLANET con Rp > 100 R⊕ (ruido de etiqueta).

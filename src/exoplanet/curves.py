@@ -15,7 +15,10 @@ from exoplanet.data import DATA
 
 RAW = DATA / "raw_lc"
 MAX_DAYS = 100.0            # D3: se acumulan segmentos hasta superar este tiempo
+MAX_SEGMENTS = {"k2": 1, "tess": 1}   # #32 (2026-11-01): los positivos tienen más sectores/campañas que los negativos y eso
+                                      # delata la clase (atajo); en Kepler todas las estrellas tienen los mismos trimestres
 MASK_WIDTH = 3.0            # D2: el tránsito enmascarado mide 3 duraciones
+MAX_MASK_FRAC = 0.8         # ... pero deja al menos un 20 % de cada órbita sin enmascarar (2026-11-01)
 MIN_WINDOW_DAYS = 0.5       # D2: ventana de aplanado >= max(3 duraciones, 0.5 d)
 MJD_OFFSET = {"kepler": -54832.5, "k2": -54832.5, "tess": -56999.5}   # tiempo de la misión = MJD + offset (BKJD, BTJD)
 SEARCH = {"kepler": dict(author="Kepler", cadence="long"), "k2": dict(author="K2", cadence="long"),
@@ -27,13 +30,14 @@ def expected_transits(tmin: float, tmax: float, period: float, t0: float) -> int
     return max(0, int(np.floor((tmax - t0) / period) - np.ceil((tmin - t0) / period) + 1))
 
 
-def select_segments(spans: list[tuple[float, float]], period: float, t0: float, max_days: float = MAX_DAYS) -> list[int]:
+def select_segments(spans: list[tuple[float, float]], period: float, t0: float, max_days: float = MAX_DAYS,
+                    max_segments: int | None = None) -> list[int]:
     """Índices de los segmentos elegidos: los de más tránsitos esperados (a igualdad, los más largos),
-    acumulando hasta superar `max_days`. `spans` y `t0` en el mismo sistema de tiempo."""
+    acumulando hasta superar `max_days` o llegar a `max_segments`. `spans` y `t0` en el mismo sistema de tiempo."""
     order = sorted(range(len(spans)), key=lambda i: (-expected_transits(*spans[i], period, t0), -(spans[i][1] - spans[i][0])))
     chosen, total = [], 0.0
     for i in order:
-        if total > max_days:
+        if total > max_days or len(chosen) == max_segments:
             break
         chosen.append(i)
         total += spans[i][1] - spans[i][0]
@@ -65,25 +69,42 @@ def target_name(star_id: str) -> str:
     return star_id.replace("_", " ")
 
 
-def download_star(star_id: str, mission: str, period: float, t0: float, max_days: float = MAX_DAYS) -> list[Path]:
-    """Descarga a data/raw_lc los segmentos elegidos por `select_segments`. Lista vacía si MAST no tiene curvas."""
+def mast_sequence(segment: int) -> int:
+    """Campaña/sector como lo numera MAST: las mitades de las campañas 10 y 11 de K2 (archivos c101/c102, c111/c112)
+    van como 10 y 11."""
+    return segment // 10 if segment >= 100 else segment
+
+
+def download_star(star_id: str, mission: str, period: float, t0: float, max_days: float = MAX_DAYS,
+                  segment: int | None = None) -> list[Path]:
+    """Descarga a data/raw_lc los segmentos elegidos por `select_segments` (1 en K2 y TESS), o solo la campaña/sector
+    `segment` si se da (negativos emparejados, #32). Lista vacía si MAST no tiene curvas."""
     res = lk.search_lightcurve(target_name(star_id), **SEARCH[mission])
+    if segment is not None:
+        res = res[np.asarray(res.table["sequence_number"]) == mast_sequence(segment)]
     if len(res) == 0:
         return []
-    chosen = select_segments(product_spans(res.table, mission), period, t0, max_days)
+    chosen = select_segments(product_spans(res.table, mission), period, t0, max_days, MAX_SEGMENTS.get(mission))
     RAW.mkdir(parents=True, exist_ok=True)
     return [Path(res[i].download(download_dir=str(RAW)).filename) for i in chosen]
+
+
+def mask_width(period: float, duration: float) -> float:
+    """Anchura de la máscara: 3 duraciones, pero como mucho MAX_MASK_FRAC del periodo (y nunca menos que el tránsito).
+    Sin el tope, con duración > P/3 (binarias de eclipse ancho) la máscara tapa toda la curva y no se puede aplanar."""
+    return max(duration, min(MASK_WIDTH * duration, MAX_MASK_FRAC * period))
 
 
 def prepare(lc: "lk.LightCurve", period: float, t0: float, duration: float) -> tuple[np.ndarray, np.ndarray]:
     """Un segmento -> (tiempo, flujo) aplanado (tránsito enmascarado) y normalizado a 1 fuera de tránsito."""
     lc = lc.remove_nans().normalize()
-    mask = lc.create_transit_mask(period=period, transit_time=t0, duration=MASK_WIDTH * duration)
+    width = mask_width(period, duration)
+    mask = lc.create_transit_mask(period=period, transit_time=t0, duration=width)
     step = float(np.median(np.diff(lc.time.value)))
     window = int(max(MASK_WIDTH * duration, MIN_WINDOW_DAYS) / step // 2 * 2 + 1)       # puntos, impar
     flat = lc.flatten(window_length=min(window, (len(lc) // 2) * 2 - 1), mask=mask)
     t, y = flat.time.value, flat.flux.value
-    out = ~flat.create_transit_mask(period=period, transit_time=t0, duration=MASK_WIDTH * duration)
+    out = ~flat.create_transit_mask(period=period, transit_time=t0, duration=width)
     return t, y / np.median(y[out])
 
 

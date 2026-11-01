@@ -9,9 +9,11 @@ Salida: data/pilot/views/<star_id>.npz (ignorado por git), results/pilot/qc.csv 
         results/pilot/summary.csv (por misión: tamaño, tiempo, % válidas y coste estimado de la muestra completa).
 """
 import argparse
+import re
 import time
 from pathlib import Path
 
+import lightkurve as lk
 import numpy as np
 import pandas as pd
 
@@ -27,7 +29,7 @@ OUT = Path("results/pilot")
 def strong_stars() -> pd.DataFrame:
     """Una fila por estrella con etiqueta fuerte y efeméride completa (todos los splits: el piloto no entrena nada)."""
     cols = ["star_id", "mission", TARGET, "label_source", "period_days", "epoch_bjd", "duration_hrs", "depth_ppm", "planet_radius_earth"]
-    df = pd.concat([load_split(s, columns=cols) for s in SPLITS], ignore_index=True)
+    df = pd.concat([load_split(s, columns=cols).assign(split=s) for s in SPLITS], ignore_index=True)
     df = df[df[TARGET] != "NO_SIGNAL"].dropna(subset=["period_days", "epoch_bjd", "duration_hrs"])
     df = clean(df)
     df = df[label_strength(df) == "fuerte"]
@@ -43,17 +45,33 @@ def sample(df: pd.DataFrame, n: int, seed: int) -> pd.DataFrame:
     return pd.concat(parts, ignore_index=True)
 
 
-def run_star(row) -> dict:
+def run_star(row, views_dir: Path = VIEWS, retries: int = 1) -> dict:
     t = time.perf_counter()
-    paths = download_star(row.star_id, row.mission, row.period_days, row.epoch_bjd)
+    for attempt in range(retries + 1):   # MAST da errores de red transitorios
+        paths = []
+        try:
+            segment = getattr(row, "segment", None)    # solo en los negativos emparejados de K2/TESS (#32)
+            segment = None if pd.isna(segment) else int(segment)
+            paths = download_star(row.star_id, row.mission, row.period_days, row.epoch_bjd, segment=segment)
+            if paths:                    # una descarga cortada deja un FITS truncado que lightkurve no vuelve a bajar
+                for p in paths:
+                    lk.read(p)
+            break
+        except Exception as e:
+            if attempt == retries:
+                raise
+            bad = re.search(r"Data product (.+?\.fits)", str(e))   # lightkurve lee al descargar: la ruta viene en el error
+            for p in paths + ([Path(bad.group(1))] if bad else []):
+                p.unlink(missing_ok=True)
+            time.sleep(5)
     t_down = time.perf_counter() - t
     if not paths:
         return {"error": "sin curvas en MAST", "t_download_s": t_down}
     t = time.perf_counter()
     T = row.duration_hrs / 24
     views = fold_views(*read_prepare(paths, row.period_days, row.epoch_bjd, T), row.period_days, row.epoch_bjd, T)
-    VIEWS.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(VIEWS / f"{row.star_id}.npz", local=views.local, glob=views.glob, odd=views.odd, even=views.even)
+    views_dir.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(views_dir / f"{row.star_id}.npz", local=views.local, glob=views.glob, odd=views.odd, even=views.even)
     return {"n_files": len(paths), "mb_downloaded": sum(p.stat().st_size for p in paths) / 1e6,
             "t_download_s": t_down, "t_fold_s": time.perf_counter() - t, **views.qc}
 

@@ -1,4 +1,7 @@
-from exoplanet.curves import MJD_OFFSET, expected_transits, kepler_span, select_segments, target_name
+import lightkurve as lk
+import numpy as np
+
+from exoplanet.curves import mast_sequence, MJD_OFFSET, expected_transits, kepler_span, mask_width, prepare, select_segments, target_name
 
 
 def test_expected_transits():
@@ -21,6 +24,7 @@ def test_select_segments_prefers_segments_with_transits():
     assert select_segments(spans, period, t0, max_days=50) == [1]       # el de 3 tránsitos (90 d) ya supera el tope
     assert select_segments(spans, period, t0, max_days=100) == [0, 1]   # luego el de 2 (total 130 d > 100)
     assert select_segments(spans, period, t0, max_days=500) == [0, 1, 2]
+    assert select_segments(spans, period, t0, max_days=500, max_segments=1) == [1]
 
 
 def test_select_segments_all_if_under_the_cap():
@@ -45,3 +49,21 @@ def test_kepler_quarters_table():
 
 def test_target_name():
     assert target_name("KIC_11446443") == "KIC 11446443" and target_name("TIC_261136679") == "TIC 261136679"
+
+
+def test_mask_width_is_capped_below_the_period():
+    assert mask_width(10.0, 0.5) == 1.5                         # caso normal: 3 duraciones
+    assert mask_width(1.0, 0.4) == 0.8                          # eclipse ancho: 80 % del periodo, no 1.2
+    assert mask_width(1.0, 0.9) == 0.9                          # nunca más estrecha que el propio tránsito
+
+
+def test_prepare_works_with_wide_eclipses():
+    t = np.arange(0, 30, 30 / 1440)
+    period, t0, dur = 1.013, 0.3, 0.4                           # duración > P/3: antes fallaba (máscara > periodo)
+    flux = np.where(np.abs(((t - t0 + 0.5 * period) % period) - 0.5 * period) < dur / 2, 0.8, 1.0)
+    tt, yy = prepare(lk.LightCurve(time=t, flux=flux), period, t0, dur)
+    assert len(tt) == len(t) and abs(np.median(yy) - 1.0) < 0.05
+
+
+def test_mast_sequence_maps_k2_half_campaigns():
+    assert mast_sequence(102) == 10 and mast_sequence(111) == 11 and mast_sequence(5) == 5

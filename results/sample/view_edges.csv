@@ -1,0 +1,10 @@
+mission,disposition,n,z_local_median,pct_local_abs_z_gt3,z_glob_median,pct_glob_abs_z_gt3
+k2,FALSE_POSITIVE,180,-0.07,6.11,-0.92,31.11
+k2,NO_SIGNAL,366,-0.02,0.0,-0.01,0.0
+k2,PLANET,188,-0.1,0.53,0.02,0.0
+kepler,FALSE_POSITIVE,554,0.01,3.97,-0.12,13.18
+kepler,NO_SIGNAL,837,0.0,0.12,0.0,0.0
+kepler,PLANET,285,-0.02,0.0,0.02,0.7
+tess,FALSE_POSITIVE,220,0.01,1.36,-0.01,0.0
+tess,NO_SIGNAL,351,-0.03,0.0,-0.0,0.0
+tess,PLANET,144,0.02,0.0,-0.03,0.0

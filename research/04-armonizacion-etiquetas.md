@@ -34,6 +34,14 @@ Cualquier combinación que no esté en la tabla es `excluida`. NO_SIGNAL no entr
 - **Excluidas:** no se usan en ningún conjunto. Las FA de TESS (87) quedan anotadas como posible complemento de NO_SIGNAL "con estructura" (sistemáticos reales).
 - **Discrepancias con el archivo actual** (58 filas PLANET de TESS que el archivo hoy llama FP o FA, y 1 FP que hoy es PC): el dataset es una instantánea antigua y las disposiciones cambian. Se excluyen en lugar de decidir cuál es la correcta.
 
+## PLANET con radio gigante (tarea #6)
+
+`data.clean` elimina los PLANET con radio de catálogo Rp > `RP_MAX` = 22 R⊕.
+- **Por qué 22:** ~2 R♃, el tope de los júpiter calientes más inflados conocidos. Un PLANET mayor es casi siempre un radio estelar erróneo o una binaria mal etiquetada. Antes se usaba 100 R⊕, que dejaba pasar casos imposibles.
+- **No hay fuga.** El umbral es físico y se fija de antemano, no se ajusta con ningún split. La regla solo mira el catálogo y la etiqueta, no la curva, y los modelos no reciben Rp.
+- **Solo se aplica a PLANET:** un FP gigante (binaria eclipsante) es justo lo que el modelo debe rechazar. Con etiqueta fuerte hay 1 979 FP con Rp > 22.
+- **Limitación:** al depender de la etiqueta, el filtro también limpia val y test. Afecta a solo 13 PLANET fuertes (Kepler 11, TESS 2; 2 en test, Rp de 22 a 78 R⊕), así que el efecto en las métricas es despreciable. Los débiles afectados (K2 110, Kepler 83, TESS 55) solo cuentan en la variante de entrenamiento con débiles.
+
 ## Consecuencias medibles
 
 - **La prevalencia de falsos positivos cambia mucho** al quedarse solo con etiquetas fuertes: Kepler 56,5 % → 70,5 %, K2 16,2 % → 41,0 %, TESS 17,5 % → 59,0 %. El listón del dummy cambia (`results/baseline/dummy.csv`, variante "solo etiquetas fuertes").

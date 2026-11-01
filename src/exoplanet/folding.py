@@ -2,7 +2,7 @@
 
 Entrada: tiempo (días), flujo ya aplanado y normalizado a 1 fuera de tránsito, y la efeméride (periodo, época, duración, en días).
 Vistas (mediana por bin, flujo normalizado a 1; el tránsito cae en el bin central de cada vista):
-  local   81 bins en [-4, 4] duraciones                    -> tránsito en el bin 40
+  local   81 bins en [-4, 4] duraciones                    -> tránsito en el bin 40 (fase envuelta si 4 dur. > P/2)
   global  201 bins en fase [-0.5, 0.5]                     -> tránsito en el bin 100
   odd/even  como global, solo con los tránsitos impares / pares (n = round((t - t0) / P))
 Bins vacíos: se interpolan si son <= MAX_EMPTY de la vista (y se guarda la fracción); si son más, la vista no es válida.
@@ -58,8 +58,13 @@ def fold_views(time: np.ndarray, flux: np.ndarray, period: float, t0: float, dur
     n_transit = np.round((time - t0) / period).astype(int)
     in_transit = np.abs(phase) < 0.5 * duration
 
+    # Si la ventana local (±4 duraciones) supera medio periodo, sus extremos son la misma fase vista desde el
+    # tránsito vecino: se envuelve con copias desplazadas ±k·P en vez de dejar bins vacíos (binarias de eclipse ancho).
+    k_max = int(np.ceil(LOCAL_HALF_WIDTH * duration / period - 0.5))
+    shifts = np.arange(-k_max, k_max + 1) * period
+    local_x = np.concatenate([(phase + s) / duration for s in shifts])
     views, empties = {}, {}
-    raw = {"local": bin_median(phase / duration, flux, -LOCAL_HALF_WIDTH, LOCAL_HALF_WIDTH, N_LOCAL),
+    raw = {"local": bin_median(local_x, np.tile(flux, len(shifts)), -LOCAL_HALF_WIDTH, LOCAL_HALF_WIDTH, N_LOCAL),
            "glob": bin_median(phase / period, flux, -0.5, 0.5, N_GLOBAL)}
     for name, parity in (("odd", 1), ("even", 0)):
         m = n_transit % 2 == parity

@@ -1,0 +1,9 @@
+mission,variable,n,auc_fp,planet_median_abs_z,planet_p_abs_z_gt3,regla_z3_pct_marcado,regla_z3_precision_fp,regla_z3_recall_fp,prevalencia_fp
+todas,odd_even_z,1394,0.537,1.182,0.14,0.188,0.742,0.23,0.607
+todas,secondary_z,1494,0.542,0.562,0.01,0.102,0.962,0.161,0.607
+k2,odd_even_z,338,0.548,1.328,0.202,0.28,0.67,0.383,0.489
+k2,secondary_z,346,0.653,0.507,0.006,0.207,0.987,0.417,0.489
+kepler,odd_even_z,784,0.55,1.099,0.12,0.179,0.787,0.213,0.66
+kepler,secondary_z,824,0.532,0.631,0.011,0.095,0.962,0.139,0.66
+tess,odd_even_z,272,0.521,1.3,0.092,0.115,0.762,0.145,0.604
+tess,secondary_z,324,0.447,0.472,0.015,0.011,0.5,0.009,0.604

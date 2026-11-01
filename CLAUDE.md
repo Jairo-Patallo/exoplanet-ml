@@ -114,23 +114,23 @@ Act as a practical Machine Learning and Deep Learning coding assistant. Prioriti
 
 \- Tasks live in Notion, page "Exoplanet ML — Gestión del proyecto": https://app.notion.com/p/40715f33376c81ea9534c0e8bd2b267d
 
-\- Databases: `Bloques` (collection://a3702b25-45cb-47e0-860f-5837c94448bb) and `Tareas` (collection://cf064316-c55a-46e0-a764-9985c623078f). The project is split into 7 big blocks; each task belongs to one block (column `Bloque`).
+\- Databases: `Fases` (collection://a3702b25-45cb-47e0-860f-5837c94448bb) and `Tareas` (collection://cf064316-c55a-46e0-a764-9985c623078f). The project is split into 5 phases (since 2026-11-01): 1 Preprocesado y primeros tests, 2 Detección por misión (3 clases), 3 Transferencia LOMO, 4 Modelo portable final, 5 Web y documentación. Each task belongs to one phase (the relation column is still named `Bloque`, as is the title column of Fases). All models use only the curve and curve-derived features; catalog features only as a comparison reference.
 
-\- Priority (blocks and tasks): P0 · Crítica, P1 · Alta, P2 · Media, P3 · Baja.
+\- Priority (phases and tasks): P0 · Crítica, P1 · Alta, P2 · Media, P3 · Baja.
 
 \- Effort: XS (<1h), S (~half day), M (1-2 days), L (3-5 days), XL (>1 week, split it).
 
-\- Task status: No empezado → En proceso → Esperando decisión → Hecho. Block status: Sin empezar, En curso, Esperando decisión, Hecho.
+\- Task status: No empezado → En proceso → Esperando decisión → Hecho. Phase status: Sin empezar, En curso, Esperando decisión, Hecho.
 
-\- The user decides which block is done first (columns Orden/Prioridad of Bloques); Claude only recommends (column "Recomendación de Claude") and does not start another block without approval. Within the chosen block pick the highest-priority task, then the lowest effort. Keep at most 1-2 tasks En proceso.
+\- The user decides which phase is done first (columns Orden/Prioridad of Fases); Claude only recommends (column "Recomendación de Claude") and does not start another phase without approval. Within the chosen phase pick the highest-priority task, then the lowest effort. Keep at most 1-2 tasks En proceso.
 
 \- When starting a task: set En proceso and Inicio. When finishing: check "Criterio de hecho", fill Archivos and Notas (key metrics), set Hecho and Fin. A task is Hecho only if a verifiable artifact exists (commit, path or passing test).
 
-\- The main page shows the Bloques table (with progress) and the open tasks; there are no per-phase headings.
+\- The main page shows the Fases table (with progress) and the open tasks; there are no per-phase headings.
 
-\- New work discovered during a task becomes a new task (No empezado) with Bloque, Prioridad and Esfuerzo.
+\- New work discovered during a task becomes a new task (No empezado) with phase (column Bloque), Prioridad and Esfuerzo.
 
-\- Ask before deleting tasks or changing block priorities.
-- User notes live in the columns "Nota de Jairo" of Tareas and Bloques (there is no separate notes database). Before starting any task and at the start of every session, query both databases for rows where "Nota de Jairo" is not empty and "Nota revisada" is unchecked, also in tasks already Hecho. Answer in "Respuesta de Claude" and tick "Nota revisada". If a note changes a decision or reopens a task, ask before changing state or priorities.
+\- Ask before deleting tasks or changing phase priorities.
+- User notes live in the columns "Nota de Jairo" of Tareas and Fases (there is no separate notes database). Before starting any task and at the start of every session, query both databases for rows where "Nota de Jairo" is not empty and "Nota revisada" is unchecked, also in tasks already Hecho. Answer in "Respuesta de Claude" and tick "Nota revisada". If a note changes a decision or reopens a task, ask before changing state or priorities.
 - Task state "Esperando decisión": the task waits for a user decision on an important ML choice; put "ESPERANDO TU DECISIÓN: ..." with the options at the start of Notas.
 

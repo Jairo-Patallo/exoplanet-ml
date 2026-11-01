@@ -31,6 +31,15 @@ def test_transit_is_centered_in_every_view():
     assert v.qc["n_transits"] == len(np.arange(T0, 100, P))
 
 
+def test_wide_eclipse_local_view_is_wrapped():
+    period, dur = 1.013, 0.25                                         # 8 duraciones ~ 2 periodos (P no múltiplo de la cadencia)
+    t = np.arange(0, 60, CADENCE)
+    flux = np.where(np.abs(((t - T0 + 0.5 * period) % period) - 0.5 * period) < dur / 2, 0.9, 1.0)
+    v = fold_views(t, flux, period, T0, dur)
+    assert v.qc["frac_empty_local"] == 0 and v.qc["valid"]
+    assert v.local[0] == v.local[-1] == v.local[N_LOCAL // 2] == np.float32(0.9)   # bordes (±4 dur ~ ±P): eclipse vecino
+
+
 def test_odd_even_parity():
     v = fold_views(*synthetic(depth_odd=0.01, depth_even=0.03), P, T0, DUR)
     assert abs(np.min(v.odd) - 0.99) < 2e-3 and abs(np.min(v.even) - 0.97) < 2e-3
