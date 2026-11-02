@@ -24,6 +24,7 @@ from pilot_fold import strong_stars
 
 OUT = "results/sample/negatives.csv"
 SEED = 0
+MISSION_SEED = {"kepler": 0, "k2": 1, "tess": 2}   # un generador por misión: rehacer una no cambia las otras
 TESS_CANDIDATES = 3000      # por sector se consulta el Tmag de este número de candidatos al azar (el TIC va por lotes)
 K2_SEARCH = "https://archive.stsci.edu/k2/data_search/search.php"
 MAST_QUERY = {"k2": dict(obs_collection="K2", provenance_name="K2", t_exptime=1800),
@@ -89,7 +90,8 @@ def matched_negatives(pos: pd.DataFrame, mission: str, exclude: set[str], rng: n
     pools, pos_mags = [], []
     for seg in sorted(pos.segment.astype(int).unique()):
         pool = mast_pool(mission, seg)
-        pool = pool[~pool.star_id.isin(exclude)].drop_duplicates("star_id")
+        pool = (pool[~pool.star_id.isin(exclude)].sort_values(["star_id", "ra", "dec"])   # MAST no garantiza el orden
+                .drop_duplicates("star_id", ignore_index=True))
         if mission == "k2":
             mags = k2_magnitudes(seg)
             pos_mags.append(mags[mags.star_id.isin(pos.star_id)])
@@ -109,16 +111,17 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--missions", nargs="+", default=["kepler", "k2", "tess"])
     args = ap.parse_args()
-    rng = np.random.default_rng(SEED)
-    eph_rng = np.random.default_rng([SEED, 1])     # efemérides con su propio generador: no cambian las parejas
     qc = pd.read_csv("results/sample/qc.csv")
     universe = strong_stars()
-    pos = qc[qc.disposition != "NO_SIGNAL"].merge(universe[["star_id", "epoch_bjd"]], on="star_id")
+    pos = (qc[qc.disposition != "NO_SIGNAL"].merge(universe[["star_id", "epoch_bjd"]], on="star_id")
+           .sort_values("star_id", ignore_index=True))   # qc.csv sale en el orden en que acabaron las descargas
     train_pos = universe.query("split == 'train'")
     exclude = known_candidates()
-    parts = [pd.read_csv(OUT).query("mission not in @args.missions")] if args.missions != ap.get_default("missions") else []
+    parts = [pd.read_csv(OUT, float_precision="round_trip").query("mission not in @args.missions")] if args.missions != ap.get_default("missions") else []
     for mission in args.missions:
         g = pos[pos.mission == mission]
+        rng = np.random.default_rng([SEED, MISSION_SEED[mission]])
+        eph_rng = np.random.default_rng([SEED, MISSION_SEED[mission], 1])   # efemérides aparte: no cambian las parejas
         if mission == "kepler":     # NO_SIGNAL del dataset, en su propio split
             n_split = g.split.value_counts().reindex(list(SPLITS), fill_value=0).to_dict()
             stars = pd.concat([load_split(s, "kepler", ["star_id", TARGET, "ra", "dec"]).query(f"{TARGET} == 'NO_SIGNAL'")

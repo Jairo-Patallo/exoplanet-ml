@@ -1,0 +1,7 @@
+mission,clase,n_train,auc_cv_vista_sin_transito
+k2,PLANET,439,0.588
+k2,FALSE_POSITIVE,430,0.844
+kepler,PLANET,904,0.588
+kepler,FALSE_POSITIVE,1118,0.652
+tess,PLANET,413,0.57
+tess,FALSE_POSITIVE,475,0.492

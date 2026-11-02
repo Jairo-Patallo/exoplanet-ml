@@ -21,7 +21,7 @@ FEATS = ["odd_even_z", "secondary_z"]
 
 def main() -> None:
     qc = pd.read_csv("results/sample/qc.csv")
-    qc = qc[qc["valid"].fillna(False).astype(bool) & (qc.disposition != "NO_SIGNAL")].reset_index(drop=True)
+    qc = qc[qc["valid"].fillna(False).astype(bool) & (qc.disposition != "NO_SIGNAL") & (qc.split == "train")].reset_index(drop=True)
     v = {k: np.stack([np.load(VIEWS / f"{s}.npz")[k] for s in qc.star_id]) for k in ("local", "odd", "even", "glob")}
     df = pd.concat([qc[["mission", "disposition", "odd_even_valid"]], curve_features(v["local"], v["odd"], v["even"], v["glob"])], axis=1)
     df.loc[~df.odd_even_valid.astype(bool), "odd_even_z"] = np.nan

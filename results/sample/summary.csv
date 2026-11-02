@@ -1,4 +1,4 @@
 mission,n_tried,n_downloaded,pct_no_curves_or_error,pct_valid_of_downloaded,pct_valid_of_tried,pct_odd_even_valid,mb_per_star_mean,mb_per_star_median,s_per_star_median,n_strong_stars_total,est_gb_full,est_hours_full
-kepler,1979,1979,0.0,84.7,84.7,83.8,0.99,1.01,4.4,6560,6.5,8.7
-k2,796,796,0.0,92.2,92.2,96.7,0.41,0.42,3.4,398,0.2,0.5
-tess,800,791,1.1,90.4,89.4,76.0,2.18,2.03,3.6,1624,3.5,2.3
+kepler,2000,2000,0.0,84.2,84.2,83.6,0.99,1.01,2.9,6560,6.5,6.3
+k2,796,796,0.0,91.8,91.8,95.9,0.41,0.42,2.3,398,0.2,0.3
+tess,800,796,0.5,93.0,92.5,80.2,2.18,2.03,3.0,1624,3.5,1.8

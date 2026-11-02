@@ -97,15 +97,15 @@ Siguen sirviendo como variables de ranking. Arreglo futuro: estimar el error con
 
 ### Revisión con las vistas propias (tarea #46, 2026-11-01)
 Las vistas global y par/impar del dataset no estaban centradas en el tránsito, así que `odd_even_z` y `secondary_z`
-medían la zona equivocada. Recalculadas sobre la muestra A (vistas propias centradas, solo PLANET y FP con vista válida;
+medían la zona equivocada. Recalculadas sobre el train de la muestra A (vistas propias centradas, solo PLANET y FP con vista válida;
 `scripts/recheck_z_features.py`, `results/eda/z_features_own_views.csv`):
 
 | | Dataset HF | Vistas propias |
 |---|---|---|
-| `secondary_z` en PLANET: mediana \|z\|, P(\|z\|>3) | 2.60, 0.449 | **0.56, 0.010** |
-| `odd_even_z` en PLANET: mediana \|z\|, P(\|z\|>3) | 1.16, 0.197 | 1.18, 0.140 |
-| Regla secundario z > 3: precisión / recall FP | 0.46 / 0.33 | **0.96 / 0.16** (K2: 0.99 / 0.42) |
-| Regla par/impar z > 3: precisión / recall FP | 0.39 / 0.19 | 0.74 / 0.23 (prevalencia FP 0.61) |
+| `secondary_z` en PLANET: mediana \|z\|, P(\|z\|>3) | 2.60, 0.449 | **0.57, 0.013** |
+| `odd_even_z` en PLANET: mediana \|z\|, P(\|z\|>3) | 1.16, 0.197 | 1.21, 0.145 |
+| Regla secundario z > 3: precisión / recall FP | 0.46 / 0.33 | **0.95 / 0.15** (K2: 0.98 / 0.38) |
+| Regla par/impar z > 3: precisión / recall FP | 0.39 / 0.19 | 0.75 / 0.24 (prevalencia FP 0.61) |
 
 Qué queda de cada conclusión:
 - **Secundario: se rehace.** El fallo de calibración venía casi todo del descentrado. Con las vistas propias `secondary_z` se comporta como una significancia y "z > 3" sirve de test (muy preciso, poco sensible).

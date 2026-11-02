@@ -29,7 +29,7 @@ def edge_z(view: np.ndarray, edge: np.ndarray, wing: np.ndarray) -> float:
 
 def main() -> None:
     qc = pd.read_csv("results/sample/qc.csv")
-    qc = qc[qc["valid"].fillna(False).astype(bool)]
+    qc = qc[qc["valid"].fillna(False).astype(bool) & (qc.split == "train")]   # sin mirar val ni test
     rows, means = [], {}
     for r in qc.itertuples():
         v = np.load(VIEWS / f"{r.star_id}.npz")

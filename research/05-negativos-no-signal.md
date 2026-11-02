@@ -14,11 +14,15 @@ Las vistas NO_SIGNAL del dataset de Hugging Face son ceros, así que los negativ
 | Emparejamiento | split | 1:1 con cada positivo: misma campaña del segmento usado y Kp más cercano | 1:1: mismo sector y Tmag más cercano |
 | Segmentos | ~100 d (D3) | 1 campaña | 1 sector |
 | Efeméride (P, duración) | pareja real de positivos de train de la misión | pareja real de positivos de train de la misma campaña | ídem, mismo sector |
-| Negativos | 979 | 398 | 400 (9 sin curva en MAST) |
+| Negativos | 1000 | 398 | 400 (4 sin curva en MAST) |
 
 Época uniforme en [0, P). Cada negativo de K2/TESS hereda el split de su pareja. Diferencia de magnitud con la pareja: mediana 0,00, p90 ≤ 0,01.
 
-## Cómo se llegó aquí (ROC-AUC NO_SIGNAL vs positivos sin mirar el tránsito, boosting, val+test)
+**Reproducible** (2026-11-01): un generador por misión (`MISSION_SEED`) y orden fijo de estrellas y candidatos (ni MAST ni las descargas en paralelo lo garantizan). Dos ejecuciones seguidas de `build_negatives.py` dan el mismo CSV byte a byte. La versión anterior (979 en Kepler, de una muestra previa) queda en `negatives_before_reproducible.csv`.
+
+## Cómo se llegó aquí (ROC-AUC NO_SIGNAL vs positivos sin mirar el tránsito, boosting)
+
+Durante la tarea estas cifras se midieron en val+test. En la auditoría (2026-11-01) el script pasó a evaluar solo en val, sin tocar el test; los números de la última fila con ese criterio son K2 0,86, Kepler 0,60 y TESS 0,58. Que las decisiones se tomaran mirando también el test es una contaminación leve: son diagnósticos de los datos, no selección de modelos.
 
 | Paso | Kepler | K2 | TESS | Atajo encontrado |
 |---|---|---|---|---|
@@ -31,15 +35,18 @@ La campaña 10 de K2 se publica en dos mitades (archivos `c101`/`c102`) pero MAS
 
 ## Lo que ve el modelo
 
-Boosting sobre la vista global **con el tránsito tapado** (20 % central), AUC con validación cruzada de 5 particiones:
+Boosting sobre la vista global **con el tránsito tapado** (20 % central), AUC con validación cruzada de 5 particiones
+**dentro de train** (`results/sample/shortcut_negatives_views.csv`):
 
 | | Kepler | K2 | TESS |
 |---|---|---|---|
-| PLANET vs NO_SIGNAL | 0,50 | 0,60 | 0,48 |
-| FP vs NO_SIGNAL | 0,67 | 0,85 | 0,49 |
+| PLANET vs NO_SIGNAL | 0,59 | 0,59 | 0,57 |
+| FP vs NO_SIGNAL | 0,65 | 0,84 | 0,49 |
+
+Con el sorteo anterior de negativos (no reproducible) PLANET daba 0,51 / 0,56 / 0,47 y FP 0,64 / 0,86 / 0,50: el AUC de PLANET varía ~0,05-0,10 solo por qué estrellas sin señal salen en el sorteo. Hay que leerlo como "0,5-0,6", no como un valor exacto.
 
 - **FP**: separación sobre todo astrofísica (binarias y estrellas variables: eclipse secundario y variabilidad fuera del tránsito; en K2 el ruido fuera de tránsito y secundario da 0,80). Es señal que el modelo debe aprender.
-- **PLANET en K2 (0,60) y ruido en Kepler (0,59)**: sesgo de detección, los planetas se encuentran más en estrellas tranquilas. Se acepta y se declara.
+- **PLANET (~0,57-0,59) y ruido en Kepler (~0,56)**: sesgo de detección, los planetas se encuentran más en estrellas tranquilas. Se acepta y se declara.
 
 ## Limitaciones y reglas para la fase 2
 
