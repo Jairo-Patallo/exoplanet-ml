@@ -11,6 +11,8 @@ Un modelo por misión; imputación y StandardScaler ajustados solo en train; hip
   knn:    k en 1..51 y pesos uniformes o por distancia (euclídea); sin pesos de clase (kNN no los admite).
   knn_pca: solo vistas (B). PCA ajustada en train antes del kNN, con 5..80 componentes: en 283 dimensiones el NO_SIGNAL
            normalizado es ruido puro y queda lejos de todo (maldición de la dimensionalidad, research/06).
+  hgb:    HistGradientBoosting con class_weight="balanced" y parada temprana (15 % de train, sin tocar val). Recibe los
+          datos ya imputados, así no puede usar el patrón de NaN (número de tránsitos) como atajo.
 El test no se toca. Solo estrellas con vista válida.
 
 Uso:  python scripts/models/sklearn_models.py [--models logreg knn]   (PYTHONPATH="src;legacy" en Windows)
@@ -23,17 +25,18 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from exoplanet.data import CLASSES, DATA, MISSIONS
+from exoplanet.data import CLASSES, MISSIONS
 from exoplanet.evaluation import evaluate_by_mission, point_metrics
+from exoplanet.views import load_sample, load_views, normalize
 from features import curve_features
 
-VIEWS = DATA / "sample" / "views"
 OUT = Path("results/models")
 SEED = 0
 K_GRID = (1, 3, 5, 7, 11, 15, 21, 31, 51)
@@ -46,6 +49,12 @@ MODELS = {
     "knn_pca": ([{"pca": n, "k": k, "weights": w} for n in (5, 10, 20, 40, 80) for k in K_GRID for w in ("uniform", "distance")],
                 lambda p: make_pipeline(PCA(n_components=p["pca"], random_state=SEED),
                                         KNeighborsClassifier(n_neighbors=p["k"], weights=p["weights"]))),
+    "hgb": ([{"lr": lr, "leaves": n, "min_leaf": m, "l2": l2} for lr in (0.03, 0.1) for n in (7, 15, 31)
+             for m in (10, 30) for l2 in (0.0, 1.0)],
+            lambda p: HistGradientBoostingClassifier(
+                learning_rate=p["lr"], max_leaf_nodes=p["leaves"], min_samples_leaf=p["min_leaf"], l2_regularization=p["l2"],
+                max_iter=500, early_stopping=True, validation_fraction=0.15, n_iter_no_change=20,
+                class_weight="balanced", random_state=SEED)),
 }
 
 
@@ -57,14 +66,6 @@ def symlog(x: np.ndarray) -> np.ndarray:
 def physical_features(v: dict) -> pd.DataFrame:
     f = curve_features(v["local"], v["odd"], v["even"], v["glob"], mask_no_dip=False)
     return f.assign(depth_local_ppm=symlog(f.depth_local_ppm), snr_local=symlog(f.snr_local))
-
-
-def normalized_views(v: dict) -> np.ndarray:
-    med = np.median(v["local"], axis=1, keepdims=True)
-    depth = med - v["local"].min(axis=1, keepdims=True)
-    loc = (v["local"] - med) / depth
-    glob = (v["glob"] - np.median(v["glob"], axis=1, keepdims=True)) / depth
-    return np.hstack([loc, glob, np.log10(depth)])
 
 
 def fit(model: str, params: dict, X: np.ndarray, y: np.ndarray):
@@ -116,11 +117,10 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--models", nargs="+", default=list(MODELS), choices=list(MODELS))
     args = ap.parse_args()
-    qc = pd.read_csv("results/sample/qc.csv")
-    qc = qc[qc["valid"].fillna(False).astype(bool) & qc.split.isin(["train", "val"])].reset_index(drop=True)
-    v = {k: np.stack([np.load(VIEWS / f"{s}.npz")[k] for s in qc.star_id]) for k in ("local", "odd", "even", "glob")}
+    qc = load_sample()
+    v = load_views(qc.star_id, ("local", "odd", "even", "glob"))
     feats = physical_features(v)
-    inputs = {"A_fisicas": feats.to_numpy(), "B_vistas": normalized_views(v)}
+    inputs = {"A_fisicas": feats.to_numpy(), "B_vistas": np.hstack(normalize(v["local"], v["glob"]))}
     OUT.mkdir(parents=True, exist_ok=True)
     for model in args.models:
         run(model, qc, inputs, list(feats.columns))

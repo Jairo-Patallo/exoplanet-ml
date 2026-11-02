@@ -62,5 +62,28 @@ Mismo script (`--models knn`), mismas entradas, mismo escalado (ajustado en trai
 | Dummy | 0,22 | 0,22 |
 | Regresión logística | 0,66 | **0,80** |
 | kNN | **0,78** | 0,49 (sin PCA) / 0,79 (con PCA) |
+| Gradient boosting | 0,78 | 0,80 (Kepler 0,89) |
 
 Los mejores (logreg B, kNN A, PCA + kNN B) quedan a ~0,78–0,80, con IC que se solapan: en val no se distinguen. El error común es FP → PLANET. Es el listón que tendrán que superar el boosting, el MLP y la CNN.
+
+## Gradient boosting (2026-11-02)
+
+`--models hgb`: `HistGradientBoostingClassifier` con `class_weight="balanced"` y parada temprana (15 % de train; val no interviene). Recibe los datos ya imputados, así que no puede usar el patrón de NaN como atajo. Rejilla de 24 combinaciones por misión: tasa de aprendizaje 0,03 o 0,1, 7–31 hojas, 10 o 30 estrellas mínimas por hoja, regularización L2 0 o 1. Tarda ~21 min en CPU, casi todo en la variante B (283 entradas). Resultados: `results/models/hgb_*.csv`.
+
+| Macro-F1 (val) | Kepler | K2 | TESS | Media | PR-AUC macro |
+|---|---|---|---|---|---|
+| A · físicas | 0,80 [0,73–0,87] | 0,82 [0,72–0,91] | 0,71 [0,58–0,81] | 0,78 [0,72–0,83] | 0,78 |
+| B · vistas | **0,89** [0,84–0,94] | 0,84 [0,74–0,92] | 0,66 [0,53–0,77] | 0,80 [0,74–0,85] | **0,86** |
+
+- **Kepler con vistas: 0,89**, el mejor resultado hasta ahora (logreg 0,84). Kepler tiene más datos (~1350 estrellas de train) y la mejor fotometría; ahí los árboles aprovechan relaciones no lineales en la forma.
+- **TESS empeora con vistas** (0,66, frente a 0,72 de logreg y PCA + kNN). Con ~590 estrellas de train, 283 entradas y curvas más ruidosas, los árboles sobreajustan. Con las variables físicas, TESS da 0,71.
+- En la media, boosting empata con los demás (0,78 con físicas, 0,80 con vistas). Su ventaja es la PR-AUC: 0,86, la mejor ordenación de todos los modelos.
+- La mayoría de misiones elige 10 estrellas mínimas por hoja y L2 = 0, el extremo menos regularizado de la rejilla. Ampliarla mejoraría como mucho unas centésimas, dentro del ruido de val.
+
+**Lectura conjunta.** El mejor modelo depende de la misión: con muchos datos (Kepler) gana el boosting sobre vistas; con pocos (TESS), los modelos simples. Esto apunta a que la limitación es la cantidad de datos por misión, no la capacidad del modelo, y es un argumento para entrenar con varias misiones a la vez (fases 3–4).
+
+## Dataset de PyTorch (tarea #15, 2026-11-02)
+
+`exoplanet.dataset.ViewDataset`: una muestra es una estrella, con vista local `(1, 81)`, vista global `(1, 201)`, `log_depth` `(1,)`, clase (índice en `CLASSES`) y misión. Usa la misma normalización que la variante B de sklearn (`exoplanet.views.normalize`); un test comprueba que la entrada coincide. `class_weights()` equivale a `class_weight="balanced"`. Todo se carga en memoria como tensores, porque son ~3 000 estrellas. Par/impar fuera, como en sklearn.
+
+**Entorno.** En Windows, Control inteligente de aplicaciones bloquea `torch.dll` (WinError 4551). PyTorch se ejecuta en **WSL2 (Ubuntu 24.04)** con un entorno propio, `~/venvs/exoplanet` (PyTorch 2.15 CPU, mismas versiones de sklearn y NumPy), sobre los mismos archivos del repo (`/mnt/c/...`). Leer de `/mnt/c` es lento: la batería de tests tarda ~3,5 min en WSL frente a ~10 s en Windows. Si molesta al entrenar, copiar `data/sample/views` al disco de Linux.
