@@ -41,10 +41,39 @@ Aparte, una sola vez al final: modelo entrenado con `train` y `val` de una misi�
 - **Etiquetas:** la evaluación (fold externo y dentro de dominio) usa solo etiquetas **fuertes**; el entrenamiento puede añadir las débiles como variante elegida con los folds internos. Mapeo en `04-armonizacion-etiquetas.md`.
 - La **familia de modelos se fija con los folds internos**. Si después de ver los resultados externos se cambia de familia o de preprocesado, esos resultados pasan a considerarse exploratorios y se anota la razón en el registro de decisiones.
 - **Línea base en cada fold:** dummy (clase más frecuente en las misiones de entrenamiento).
-- **Métricas:** PR-AUC por clase y por misión, macro-F1, y los puntos de la tarea #37 (calibración y recall a precisión fija). Intervalos de confianza al 95 % con bootstrap agrupado por estrella.
+- **Métricas:** PR-AUC por clase y por misión, macro-F1 (detalle de la fase 2 en la sección de la tarea #51), y los puntos de la tarea #37 (calibración y recall a precisión fija). Intervalos de confianza al 95 % con bootstrap agrupado por estrella.
 - **Resultado a informar:** una tabla con tres filas externas (una por misión excluida), la fila dentro de dominio y la brecha.
 - **Modelo final:** una vez cerrado el protocolo, se entrena con las tres misiones para el uso real. Su rendimiento esperado es el de los folds externos, no el de su propio entrenamiento.
 - Toda aleatoriedad lleva semilla fija.
+
+## Métricas de la fase 2: 3 clases dentro de cada misión (tarea #51, 2026-11-02)
+
+Decisión de Jairo, a propuesta de Claude. Código: `exoplanet.evaluation.point_metrics` y `evaluate_by_mission`; tests en `tests/test_evaluation.py`.
+
+| Punto | Decisión |
+|---|---|
+| Métrica principal | **Macro-F1** de PLANET / FALSE_POSITIVE / NO_SIGNAL (cada clase pesa igual) |
+| Agregación | Por misión, y como resumen la **media de las 3 misiones** (si se juntan, Kepler pesa más que K2 y TESS juntas) |
+| Secundaria | **PR-AUC one-vs-rest por clase** y su media: mide la ordenación sin umbral, la que se usa en la misión excluida (#48) |
+| Diagnóstico | Matriz de confusión y F1 por clase, por misión |
+| Selección de modelos e hiperparámetros | Macro-F1 medio en **val**; el test se mira una sola vez al final |
+| Umbral | Clase de mayor probabilidad (argmax), con pesos de clase al entrenar; sin ajuste de umbrales |
+| Incertidumbre | IC 95 % por bootstrap sobre estrellas, por misión; la media se remuestrea con los mismos índices |
+| Etiquetas | Solo fuertes (la muestra A ya lo cumple) y solo vistas válidas |
+
+**Listón (dummy, clase más frecuente de train = NO_SIGNAL en las tres misiones), en val** (`scripts/models/dummy_sample.py`, `results/models/dummy_val.csv`):
+
+| | Kepler | K2 | TESS | Media |
+|---|---|---|---|---|
+| n val | 166 | 69 | 76 | 311 |
+| Macro-F1 | 0,226 | 0,216 | 0,222 | **0,221** [0,202–0,237] |
+| PR-AUC PLANET / FP / NS (= prevalencia) | 0,16 / 0,33 / 0,51 | 0,25 / 0,28 / 0,48 | 0,20 / 0,30 / 0,50 | 0,20 / 0,30 / 0,50 |
+
+El PR-AUC macro de un dummy es siempre 1/3 (media de prevalencias) y no informa: el listón de la PR-AUC es la prevalencia de cada clase.
+
+**Limitaciones.**
+- NO_SIGNAL es ~50 % de cada misión porque se fabricó 1:1 con los positivos; en el cielo es casi el 100 %. Macro-F1 y PR-AUC dependen de esa proporción: sirven para **comparar modelos**, no como rendimiento esperado en uso real. Un informe de producción recalcularía la precisión con la prevalencia esperada.
+- Val es pequeño (K2 y TESS: 15-17 PLANET): diferencias de ~0,03 en macro-F1 pueden ser ruido; mirar siempre el IC.
 
 ## Variables que delatan la misión: ablación con regla fijada de antemano (tarea #43, 2026-10-30)
 

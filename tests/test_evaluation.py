@@ -78,3 +78,33 @@ def test_nested_folds_real_data():
     meta = load_meta()
     assert meta.star_id.is_unique
     check_folds(meta)
+
+
+def test_point_metrics_match_sklearn_and_perfect_model():
+    from sklearn.metrics import average_precision_score, f1_score
+    from exoplanet.data import CLASSES
+    from exoplanet.evaluation import point_metrics
+    rng = np.random.default_rng(0)
+    y = rng.choice(CLASSES, 300)
+    proba = rng.dirichlet(np.ones(3), 300)
+    m = point_metrics(y, proba)
+    pred = np.asarray(CLASSES)[proba.argmax(1)]
+    assert np.isclose(m["macro_f1"], f1_score(y, pred, average="macro"))
+    assert np.isclose(m["pr_auc_FALSE_POSITIVE"], average_precision_score(y == "FALSE_POSITIVE", proba[:, 1]))
+    perfect = point_metrics(y, np.stack([(y == c).astype(float) for c in CLASSES], axis=1))
+    assert perfect["macro_f1"] == 1 and perfect["pr_auc_macro"] == 1
+
+
+def test_evaluate_by_mission_mean_and_ci():
+    from exoplanet.data import CLASSES
+    from exoplanet.evaluation import evaluate_by_mission
+    rng = np.random.default_rng(1)
+    mission = np.repeat(list(MISSIONS), 100)
+    y = rng.choice(CLASSES, 300)
+    proba = rng.dirichlet(np.ones(3), 300)
+    table, conf = evaluate_by_mission(mission, y, proba, n_boot=200)
+    t = table.set_index("mision")
+    assert list(t.index) == [*MISSIONS, "media"]
+    assert np.isclose(t.loc["media", "macro_f1"], t.loc[list(MISSIONS), "macro_f1"].mean()), "la media pesa igual cada misión"
+    assert (t.macro_f1_lo <= t.macro_f1).all() and (t.macro_f1 <= t.macro_f1_hi).all()
+    assert all(c.to_numpy().sum() == 100 for c in conf.values())

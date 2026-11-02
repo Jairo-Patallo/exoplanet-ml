@@ -1,4 +1,4 @@
-"""Folds del protocolo de evaluación anidado (research/03-protocolo-evaluacion.md).
+"""Folds del protocolo de evaluación anidado y métricas de 3 clases (research/03-protocolo-evaluacion.md, tarea #51).
 
 Todo trabaja sobre `meta` (star_id, mission, disposition, split; una fila por estrella) y devuelve posiciones
 de fila (np.ndarray), no copias de datos. La misión excluida solo aparece en `eval_idx`.
@@ -9,8 +9,9 @@ import astropy.units as u
 import numpy as np
 import pandas as pd
 from astropy.coordinates import SkyCoord
+from sklearn.metrics import average_precision_score, confusion_matrix, f1_score
 
-from exoplanet.data import MISSIONS, SPLITS, TARGET, load_split
+from exoplanet.data import CLASSES, MISSIONS, SPLITS, TARGET, load_split
 
 
 @dataclass
@@ -66,3 +67,35 @@ def nested_folds(meta: pd.DataFrame, shared: dict[str, set[str]] | None = None) 
 def in_domain_split(meta: pd.DataFrame, mission: str) -> tuple[np.ndarray, np.ndarray]:
     """(train+val, test) de una misión: referencia dentro de dominio para medir la brecha."""
     return _rows(meta, [mission], ["train", "val"]), _rows(meta, [mission], ["test"])
+
+
+def point_metrics(y: np.ndarray, proba: np.ndarray, classes=CLASSES) -> dict[str, float]:
+    """Macro-F1 (principal), F1 por clase, PR-AUC one-vs-rest por clase y su media. La predicción es el argmax de
+    `proba` (n, k), cuyas columnas siguen el orden de `classes`; sin ajuste de umbral (decisión #51)."""
+    pred = np.asarray(classes)[proba.argmax(axis=1)]
+    f1 = f1_score(y, pred, labels=list(classes), average=None, zero_division=0)
+    pr = [average_precision_score(y == c, proba[:, i]) if (y == c).any() else np.nan for i, c in enumerate(classes)]
+    return {"macro_f1": f1.mean(), **{f"f1_{c}": v for c, v in zip(classes, f1)},
+            "pr_auc_macro": np.mean(pr), **{f"pr_auc_{c}": v for c, v in zip(classes, pr)}}
+
+
+def evaluate_by_mission(mission: np.ndarray, y: np.ndarray, proba: np.ndarray, classes=CLASSES,
+                        n_boot: int = 1000, seed: int = 0) -> tuple[pd.DataFrame, dict[str, pd.DataFrame]]:
+    """Métricas por misión y su media (resumen: cada misión pesa igual), con IC 95 % por bootstrap sobre estrellas
+    (una fila = una estrella). La media se remuestrea misión a misión con los mismos índices, así su IC es coherente.
+    Devuelve (tabla con columnas <métrica>, <métrica>_lo, <métrica>_hi por fila) y la matriz de confusión de cada misión."""
+    rng = np.random.default_rng(seed)
+    point, boot, conf = {}, {}, {}
+    for m in (m for m in MISSIONS if m in set(mission)):
+        i = np.flatnonzero(mission == m)
+        point[m] = point_metrics(y[i], proba[i], classes)
+        boot[m] = pd.DataFrame([point_metrics(y[b], proba[b], classes) for b in rng.choice(i, (n_boot, len(i)))])
+        conf[m] = pd.DataFrame(confusion_matrix(y[i], np.asarray(classes)[proba[i].argmax(axis=1)], labels=list(classes)),
+                               index=[f"real_{c}" for c in classes], columns=[f"pred_{c}" for c in classes])
+    point["media"] = pd.DataFrame(point).T.mean().to_dict()
+    boot["media"] = sum(boot[m] for m in conf) / len(conf)
+    rows = []
+    for name, p in point.items():
+        lo, hi = boot[name].quantile(0.025), boot[name].quantile(0.975)
+        rows.append({"mision": name, **{k: v for key in p for k, v in ((key, p[key]), (f"{key}_lo", lo[key]), (f"{key}_hi", hi[key]))}})
+    return pd.DataFrame(rows), conf
