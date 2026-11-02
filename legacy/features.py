@@ -52,8 +52,9 @@ def catalog_features(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def curve_features(local: np.ndarray, odd: np.ndarray, even: np.ndarray, glob: np.ndarray) -> pd.DataFrame:
-    """Variables medidas directamente sobre las vistas plegadas (sin usar el catálogo)."""
+def curve_features(local: np.ndarray, odd: np.ndarray, even: np.ndarray, glob: np.ndarray, mask_no_dip: bool = True) -> pd.DataFrame:
+    """Variables medidas directamente sobre las vistas plegadas (sin usar el catálogo). Con mask_no_dip=False las filas
+    sin caída (δ <= 0, típicas de NO_SIGNAL) conservan profundidad y SNR con signo y solo ingress_frac queda NaN."""
     np.seterr(divide="ignore", invalid="ignore")   # σ=0 o δ=0 -> inf/NaN, se limpian al final
     sig_loc = robust_sigma(local[:, LOC_OUT])
     depth = 1 - np.median(local[:, LOC_CORE], axis=1)
@@ -76,5 +77,8 @@ def curve_features(local: np.ndarray, odd: np.ndarray, even: np.ndarray, glob: n
     d_sec = base - np.median(glob[:, GLB_SEC], axis=1)
     feats["secondary_z"] = d_sec / (1.2533 * robust_sigma(glob[:, GLB_OUT]) / np.sqrt(len(GLB_SEC)))
     out = pd.DataFrame(feats).replace([np.inf, -np.inf], np.nan)
-    out.loc[~(depth > 0)] = np.nan     # sin caída medible las variables no tienen sentido físico
+    if mask_no_dip:
+        out.loc[~(depth > 0)] = np.nan     # sin caída medible las variables no tienen sentido físico
+    else:
+        out.loc[~(depth > 0), "ingress_frac"] = np.nan
     return out
