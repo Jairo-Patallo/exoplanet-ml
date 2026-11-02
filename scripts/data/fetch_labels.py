@@ -1,6 +1,6 @@
 """Descarga las disposiciones originales de TESS (TOI) y K2 del NASA Exoplanet Archive (TAP), que el dataset de HF no conserva.
 
-Uso:  python scripts/fetch_labels.py   (desde la raíz del repo)
+Uso:  python scripts/data/fetch_labels.py   (desde la raíz del repo)
 Salida (data/labels/, ignorado por git; son tablas pequeñas):
   toi.csv      -> tid, toi, tfopwg_disp (CP, KP, PC, APC, FP, FA), pl_orbper, ra, dec
   k2pandc.csv  -> epic_hostname, k2_name, disposition (CONFIRMED, CANDIDATE, FALSE POSITIVE, REFUTED), ra, dec

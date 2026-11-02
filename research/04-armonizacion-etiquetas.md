@@ -1,6 +1,6 @@
 # Armonización de etiquetas entre misiones
 
-Tarea #33, 2026-10-30. Código: `src/exoplanet/labels.py` (mapeo y fuerza), `scripts/fetch_labels.py` (descarga las tablas originales) y `scripts/label_audit.py` (auditoría). Tests: `tests/test_labels.py`.
+Tarea #33, 2026-10-30. Código: `src/exoplanet/labels.py` (mapeo y fuerza), `scripts/data/fetch_labels.py` (descarga las tablas originales) y `scripts/checks/label_audit.py` (auditoría). Tests: `tests/test_labels.py`.
 
 ## Problema
 
@@ -51,6 +51,6 @@ Cualquier combinación que no esté en la tabla es `excluida`. NO_SIGNAL no entr
 ## Cómo reproducirlo
 
 ```
-python scripts/fetch_labels.py   # descarga toi.csv y k2pandc.csv a data/labels/ (ignorado por git)
-python scripts/label_audit.py    # results/labels/audit.csv y strength_counts.csv
+python scripts/data/fetch_labels.py   # descarga toi.csv y k2pandc.csv a data/labels/ (ignorado por git)
+python scripts/checks/label_audit.py    # results/labels/audit.csv y strength_counts.csv
 ```

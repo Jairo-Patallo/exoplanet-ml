@@ -21,8 +21,8 @@ Escalera de modelos, todos con el mismo protocolo: reglas físicas → regresió
 ## 3. Datos y entorno
 
 - Dataset de partida: Hugging Face `bingbangboom/exoplanet-transit-detection` en `data/{train,val,test}.parquet` (carpeta `data/` ignorada por git). 23 567 estrellas: Kepler 16 054 (7 840 NO_SIGNAL), K2 1 485, TESS 6 028. Splits por estrella. Trae vistas plegadas (`flux_local` 81, `flux_global`/`flux_odd`/`flux_even` 201) y `flux_raw` (20 000 puntos, **sin tiempo**).
-- `data/labels/` (tablas TOI y K2 del NASA Exoplanet Archive, `scripts/fetch_labels.py`), `data/raw_lc/` (curvas de MAST), `data/corot/` (`scripts/` con 16 scripts wget del NASA para 97 971 curvas de solo 10 de 23 runs, y `probe/` con 5 curvas de prueba).
-- Windows 11, PowerShell. Python 3.14 con `py`. Para los scripts: `$env:PYTHONPATH='src'; py scripts/xxx.py` desde la raíz; `py -m pytest -q` ya incluye `pythonpath = ["src"]`. Para salida con acentos: `$env:PYTHONIOENCODING='utf-8'`. Dependencias nuevas añadidas: `astropy`, `lightkurve`, `pytest`.
+- `data/labels/` (tablas TOI y K2 del NASA Exoplanet Archive, `scripts/data/fetch_labels.py`), `data/raw_lc/` (curvas de MAST), `data/corot/` (`scripts/` con 16 scripts wget del NASA para 97 971 curvas de solo 10 de 23 runs, y `probe/` con 5 curvas de prueba).
+- Windows 11, PowerShell. Python 3.14 con `py`. Para los scripts: `$env:PYTHONPATH='src'; py scripts/<data|checks|models>/xxx.py` desde la raíz; `py -m pytest -q` ya incluye `pythonpath = ["src"]`. Para salida con acentos: `$env:PYTHONIOENCODING='utf-8'`. Dependencias nuevas añadidas: `astropy`, `lightkurve`, `pytest`.
 
 ## 4. Código (`src/exoplanet/`)
 
@@ -35,7 +35,7 @@ Escalera de modelos, todos con el mismo protocolo: reglas físicas → regresió
 | `curves.py` | Curvas de MAST: PDCSAP, aplanado con el tránsito enmascarado, normalización, tope de ~100 d por estrella eligiendo los segmentos con más tránsitos |
 | `kepler_quarters.csv` | Intervalo real (BKJD) de cada trimestre de Kepler, medido en cabeceras (MAST da el mismo intervalo a todos) |
 
-Scripts activos: `baseline.py` (dummy), `fetch_labels.py`, `label_audit.py`, `build_kepler_quarters.py`, `pilot_fold.py` (piloto #47). **`legacy/`** (2026-10-30): código del primer camino, con las vistas del dataset, que no es el pipeline actual: `features.py` (su `odd_even_z`/`secondary_z` usan la vista global del dataset, **no centrada**, ver §6), `eda.py`, `mission_leak.py`, `transfer_k2.py` (**solo referencia con catálogo, no portable**), `preprocess.py`, `app.py`. Ver `legacy/README.md`. **26 tests** en `tests/` (todos pasan).
+Scripts (2026-11-02): `scripts/data/` (pipeline: `fetch_labels`, `build_kepler_quarters`, `pilot_fold`, `build_sample`, `build_negatives`), `scripts/checks/` (diagnósticos: `label_audit`, `check_view_edges`, `shortcut_negatives`, `mission_leak_views`, `recheck_z_features`) y `scripts/models/` (`baseline`). **`legacy/`** (2026-10-30): código del primer camino, con las vistas del dataset, que no es el pipeline actual: `features.py` (su `odd_even_z`/`secondary_z` usan la vista global del dataset, **no centrada**, ver §6), `eda.py`, `mission_leak.py`, `transfer_k2.py` (**solo referencia con catálogo, no portable**), `preprocess.py`, `app.py`. Ver `legacy/README.md`. **26 tests** en `tests/` (todos pasan).
 
 Documentos: `research/03-protocolo-evaluacion.md` (protocolo, ablación de variables y negativos NO_SIGNAL), `research/04-armonizacion-etiquetas.md` (mapeo de etiquetas), `research/02-eda.md`.
 

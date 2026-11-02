@@ -1,10 +1,10 @@
 """Auditoría de etiquetas (tarea #33): qué significa PLANET / FALSE_POSITIVE en cada misión.
 
 Cruza las filas del dataset de HF con las disposiciones originales de TESS (TOI) y K2 (NASA Exoplanet Archive,
-scripts/fetch_labels.py) y cuenta la fuerza de cada etiqueta (exoplanet.labels). Kepler no necesita cruce: el dataset
+scripts/data/fetch_labels.py) y cuenta la fuerza de cada etiqueta (exoplanet.labels). Kepler no necesita cruce: el dataset
 ya trae label_source (kepler_confirmed / kepler_robovetter).
 
-Uso:  python scripts/label_audit.py   (desde la raíz del repo, tras scripts/fetch_labels.py)
+Uso:  python scripts/checks/label_audit.py   (desde la raíz del repo, tras scripts/data/fetch_labels.py)
 Salida: results/labels/audit.csv (cruce completo) y results/labels/strength_counts.csv (fuerza por misión y clase)
 """
 from pathlib import Path

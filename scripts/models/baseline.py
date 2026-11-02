@@ -4,7 +4,7 @@ Por fold externo: la clase más frecuente en train+val de las dos misiones de aj
 Dentro de dominio: la más frecuente en train+val de una misión, evaluada en su test.
 Dos variantes: vetting (PLANET vs FALSE_POSITIVE) y 3 clases con los datos actuales (NO_SIGNAL solo existe en Kepler).
 
-Uso:  python scripts/baseline.py   (desde la raíz del repo)
+Uso:  python scripts/models/baseline.py   (desde la raíz del repo)
 Salida: results/baseline/dummy.csv
 IC 95 % por bootstrap sobre estrellas, simulado con una multinomial (el dummy es constante, así que solo importan los recuentos).
 Con scores constantes: PR-AUC de cada clase = su prevalencia y ROC-AUC = 0.5; se comprueba con sklearn en la estimación puntual.

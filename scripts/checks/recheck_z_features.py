@@ -4,7 +4,7 @@ En el dataset de HF la vista global y las par/impar no estaban centradas en el t
 medía estas dos variables en la zona equivocada. Aquí se repiten, sobre la muestra A (solo PLANET y FP con vista
 válida), las tres cosas del EDA que las usaban: AUC por misión (FP vs PLANET), calibración en PLANET y reglas z > 3.
 
-Uso:  python scripts/recheck_z_features.py   (PYTHONPATH="src;legacy" en Windows)
+Uso:  python scripts/checks/recheck_z_features.py   (PYTHONPATH="src;legacy" en Windows)
 Salida: results/eda/z_features_own_views.csv
 """
 import numpy as np

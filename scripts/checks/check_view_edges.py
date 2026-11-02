@@ -4,7 +4,7 @@ En el dataset de HF los bins 0-4 y 76-80 de la vista local tenían artefactos. A
 exoplanet.folding los heredan: por estrella, desviación de los bins de borde frente al ruido de las alas (bins 5-29 y
 51-75 de la local; 0-4/196-200 frente a 5-79/121-195 en la global), en unidades de ese ruido (MAD).
 
-Uso:  python scripts/check_view_edges.py   (PYTHONPATH=src)
+Uso:  python scripts/checks/check_view_edges.py   (PYTHONPATH=src)
 Salida: results/sample/view_edges.csv (por misión y clase) y results/sample/view_edges.png (vista local media).
 """
 import matplotlib

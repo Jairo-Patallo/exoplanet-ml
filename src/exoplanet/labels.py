@@ -12,7 +12,7 @@ Mapeo versionado y razonado en research/04-armonizacion-etiquetas.md. Cualquier 
 import numpy as np
 import pandas as pd
 
-from exoplanet.data import DATA, TARGET
+from exoplanet.data import DATA, SPLITS, TARGET, clean, load_split
 
 # (misión, clase del dataset, disposición original) -> fuerza. En Kepler la "disposición original" es label_source.
 STRENGTH = {
@@ -71,3 +71,13 @@ def label_strength(df: pd.DataFrame, **external) -> pd.Series:
     ext = external_disposition(df, **external)
     keys = zip(df.mission, df[TARGET], ext)
     return pd.Series([STRENGTH.get(k, "excluida") for k in keys], index=df.index)
+
+
+def strong_stars() -> pd.DataFrame:
+    """Una fila por estrella con etiqueta fuerte y efeméride completa (todos los splits: el piloto no entrena nada)."""
+    cols = ["star_id", "mission", TARGET, "label_source", "period_days", "epoch_bjd", "duration_hrs", "depth_ppm", "planet_radius_earth"]
+    df = pd.concat([load_split(s, columns=cols).assign(split=s) for s in SPLITS], ignore_index=True)
+    df = df[df[TARGET] != "NO_SIGNAL"].dropna(subset=["period_days", "epoch_bjd", "duration_hrs"])
+    df = clean(df)
+    df = df[label_strength(df) == "fuerte"]
+    return df.drop_duplicates("star_id").reset_index(drop=True)

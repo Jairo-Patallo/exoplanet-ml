@@ -4,7 +4,7 @@ MAST da el mismo intervalo (toda la misión) para todos los trimestres de una es
 de archivo no son fiables, así que se mide: se busca en el dataset una estrella con los 18 trimestres (Q0-Q17) y se leen
 TSTART/TSTOP de cada archivo (~10 MB en total, a data/raw_lc).
 
-Uso:  python scripts/build_kepler_quarters.py   (desde la raíz del repo)
+Uso:  python scripts/data/build_kepler_quarters.py   (desde la raíz del repo)
 Salida: src/exoplanet/kepler_quarters.csv  (quarter, tstart_bkjd, tstop_bkjd)
 """
 import warnings

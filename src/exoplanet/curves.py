@@ -4,6 +4,8 @@ Decisiones aprobadas: flujo PDCSAP con la máscara de calidad por defecto (D1); 
 enmascarado (D2); tope de ~4 meses de datos por estrella, eligiendo los segmentos con más tránsitos (D3);
 normalización por la mediana fuera de tránsito (D8). El plegado en sí está en `exoplanet.folding`.
 """
+import re
+import time
 from functools import lru_cache
 from pathlib import Path
 
@@ -11,7 +13,8 @@ import lightkurve as lk
 import numpy as np
 import pandas as pd
 
-from exoplanet.data import DATA
+from exoplanet.data import DATA, MISSIONS
+from exoplanet.folding import fold_views
 
 RAW = DATA / "raw_lc"
 MAX_DAYS = 100.0            # D3: se acumulan segmentos hasta superar este tiempo
@@ -47,7 +50,7 @@ def select_segments(spans: list[tuple[float, float]], period: float, t0: float, 
 @lru_cache(maxsize=1)
 def kepler_quarters() -> pd.DataFrame:
     """Intervalo de cada trimestre de Kepler. MAST da el mismo intervalo (toda la misión) para todos los trimestres,
-    así que se usa la tabla medida en las cabeceras de los archivos (scripts/build_kepler_quarters.py)."""
+    así que se usa la tabla medida en las cabeceras de los archivos (scripts/data/build_kepler_quarters.py)."""
     return pd.read_csv(Path(__file__).with_name("kepler_quarters.csv")).set_index("quarter")
 
 
@@ -112,3 +115,56 @@ def read_prepare(paths: list[Path], period: float, t0: float, duration: float) -
     """Lee los segmentos (PDCSAP, calidad por defecto), prepara cada uno por separado y los concatena."""
     parts = [prepare(lk.read(p, quality_bitmask="default"), period, t0, duration) for p in paths]
     return np.concatenate([p[0] for p in parts]), np.concatenate([p[1] for p in parts])
+
+
+def run_star(row, views_dir: Path, retries: int = 1) -> dict:
+    """Descarga y pliega una estrella; guarda sus vistas en views_dir/<star_id>.npz y devuelve su calidad (qc)."""
+    t = time.perf_counter()
+    for attempt in range(retries + 1):   # MAST da errores de red transitorios
+        paths = []
+        try:
+            segment = getattr(row, "segment", None)    # solo en los negativos emparejados de K2/TESS (#32)
+            segment = None if pd.isna(segment) else int(segment)
+            paths = download_star(row.star_id, row.mission, row.period_days, row.epoch_bjd, segment=segment)
+            if paths:                    # una descarga cortada deja un FITS truncado que lightkurve no vuelve a bajar
+                for p in paths:
+                    lk.read(p)
+            break
+        except Exception as e:
+            if attempt == retries:
+                raise
+            bad = re.search(r"Data product (.+?\.fits)", str(e))   # lightkurve lee al descargar: la ruta viene en el error
+            for p in paths + ([Path(bad.group(1))] if bad else []):
+                p.unlink(missing_ok=True)
+            time.sleep(5)
+    t_down = time.perf_counter() - t
+    if not paths:
+        return {"error": "sin curvas en MAST", "t_download_s": t_down}
+    t = time.perf_counter()
+    T = row.duration_hrs / 24
+    views = fold_views(*read_prepare(paths, row.period_days, row.epoch_bjd, T), row.period_days, row.epoch_bjd, T)
+    views_dir.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(views_dir / f"{row.star_id}.npz", local=views.local, glob=views.glob, odd=views.odd, even=views.even)
+    return {"n_files": len(paths), "mb_downloaded": sum(p.stat().st_size for p in paths) / 1e6,
+            "t_download_s": t_down, "t_fold_s": time.perf_counter() - t, **views.qc}
+
+
+def summarize(qc: pd.DataFrame, universe: pd.DataFrame) -> pd.DataFrame:
+    """Por misión: % descargadas y válidas, tamaño y tiempo por estrella, y coste estimado de bajar todo el universo."""
+    ok = qc[qc["error"].isna()]
+    rows = []
+    for m in MISSIONS:
+        a, o = qc[qc.mission == m], ok[ok.mission == m]
+        if a.empty:
+            continue
+        n_all = int((universe.mission == m).sum())
+        rows.append({"mission": m, "n_tried": len(a), "n_downloaded": len(o), "pct_no_curves_or_error": round(100 * (1 - len(o) / len(a)), 1),
+                     "pct_valid_of_downloaded": round(100 * o["valid"].mean(), 1) if len(o) else np.nan,
+                     "pct_valid_of_tried": round(100 * o["valid"].sum() / len(a), 1),
+                     "pct_odd_even_valid": round(100 * o["odd_even_valid"].mean(), 1) if len(o) else np.nan,
+                     "mb_per_star_mean": round(o["mb_downloaded"].mean(), 2), "mb_per_star_median": round(o["mb_downloaded"].median(), 2),
+                     "s_per_star_median": round((o["t_download_s"] + o["t_fold_s"]).median(), 1),
+                     "n_strong_stars_total": n_all,
+                     "est_gb_full": round(n_all * o["mb_downloaded"].mean() / 1000, 1),
+                     "est_hours_full": round(n_all * (o["t_download_s"] + o["t_fold_s"]).mean() / 3600, 1)})
+    return pd.DataFrame(rows)

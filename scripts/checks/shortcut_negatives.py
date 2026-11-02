@@ -7,7 +7,7 @@ Si sí, un modelo podría aprender ese atajo en vez de la forma del tránsito. P
      cruzada de 5 particiones dentro de train.
 El test no se toca (auditoría 2026-11-01). También comprueba que ninguna vista válida sea constante o tenga NaN.
 
-Uso:  python scripts/shortcut_negatives.py   (PYTHONPATH=src)
+Uso:  python scripts/checks/shortcut_negatives.py   (PYTHONPATH=src)
 Salida: results/sample/shortcut_negatives.csv y shortcut_negatives_views.csv
 """
 import numpy as np

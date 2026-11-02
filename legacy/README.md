@@ -1,6 +1,6 @@
 # legacy/
 
-Código del primer camino del proyecto, que usa las vistas plegadas del dataset de Hugging Face (la vista global no está centrada) y variables de catálogo. Se conserva como referencia y para reutilizar ideas; **no forma parte del pipeline actual** (vistas propias de MAST: `src/exoplanet/` + `scripts/pilot_fold.py`).
+Código del primer camino del proyecto, que usa las vistas plegadas del dataset de Hugging Face (la vista global no está centrada) y variables de catálogo. Se conserva como referencia y para reutilizar ideas; **no forma parte del pipeline actual** (vistas propias de MAST: `src/exoplanet/` + `scripts/data/pilot_fold.py`).
 
 Se ejecuta desde la raíz con `PYTHONPATH=src`, p. ej. `python legacy/eda.py`. Los resultados siguen en `results/`.
 

@@ -1,6 +1,6 @@
 # Negativos NO_SIGNAL y test de atajo
 
-Tarea #32, 2026-11-01. Código: `src/exoplanet/negatives.py`, `scripts/build_negatives.py` (lista), `scripts/build_sample.py --negatives` (descarga y plegado), `scripts/shortcut_negatives.py` (test de atajo). Tests: `tests/test_negatives.py`, `tests/test_curves.py`.
+Tarea #32, 2026-11-01. Código: `src/exoplanet/negatives.py`, `scripts/data/build_negatives.py` (lista), `scripts/data/build_sample.py --negatives` (descarga y plegado), `scripts/checks/shortcut_negatives.py` (test de atajo). Tests: `tests/test_negatives.py`, `tests/test_curves.py`.
 
 ## Problema
 

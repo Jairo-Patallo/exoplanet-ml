@@ -5,7 +5,7 @@ evaluado en val, con las variables derivadas de la curva (legacy/features.py) y 
 Azar: balanced accuracy 1/3 y AUC 0.5. Si sigue acertando igual que en #35, la causa no es el preprocesado del
 dataset sino las poblaciones de estrellas y planetas de cada misión.
 
-Uso:  python scripts/mission_leak_views.py   (PYTHONPATH="src;legacy" en Windows, "src:legacy" en Linux)
+Uso:  python scripts/checks/mission_leak_views.py   (PYTHONPATH="src;legacy" en Windows, "src:legacy" en Linux)
 Salida: results/leak/mission_leak_own_views.csv
 """
 from pathlib import Path

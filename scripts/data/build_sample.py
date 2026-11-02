@@ -6,7 +6,7 @@ se descartan al cargar (opción a) y el sesgo se mide por misión y clase en sum
 Descarga en paralelo con procesos (la descarga espera a la red, no a la CPU). Se puede interrumpir y relanzar: salta las ya hechas
 y reintenta las que dieron error. Con --workers > 1 MAST corta algunas descargas (FITS truncados): usar 1 si pasa.
 
-Uso:  python scripts/build_sample.py [--kepler 1000] [--tess 400] [--workers 4] [--limit N] [--negatives]   (PYTHONPATH=src)
+Uso:  python scripts/data/build_sample.py [--kepler 1000] [--tess 400] [--workers 4] [--limit N] [--negatives]   (PYTHONPATH=src)
 Salida: data/sample/views/<star_id>.npz (ignorado por git), results/sample/qc.csv, summary.csv y summary_by_class.csv.
 """
 import argparse
@@ -17,8 +17,9 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 
+from exoplanet.curves import run_star, summarize
 from exoplanet.data import DATA, TARGET
-from pilot_fold import run_star, strong_stars, summarize
+from exoplanet.labels import strong_stars
 
 VIEWS = DATA / "sample" / "views"
 OUT = Path("results/sample")

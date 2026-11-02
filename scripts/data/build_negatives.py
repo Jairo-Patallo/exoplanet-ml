@@ -4,9 +4,9 @@ Necesita la muestra de positivos ya descargada (results/sample/qc.csv y data/raw
 o sector (TESS) del único segmento que usa cada positivo. Magnitudes: Kp del archivo de K2 y Tmag del TIC (MAST).
 Con --missions solo se rehacen esas misiones y se conservan las filas de las demás.
 
-Uso:  python scripts/build_negatives.py [--missions k2 tess]   (PYTHONPATH=src)
+Uso:  python scripts/data/build_negatives.py [--missions k2 tess]   (PYTHONPATH=src)
 Salida: results/sample/negatives.csv (una fila por estrella, con split y efeméride). La descarga y el plegado se hacen
-con  python scripts/build_sample.py --negatives
+con  python scripts/data/build_sample.py --negatives
 """
 import argparse
 from io import StringIO
@@ -19,8 +19,8 @@ from astroquery.mast import Catalogs, Observations
 
 from exoplanet.curves import MAX_SEGMENTS, RAW, mast_sequence, select_segments
 from exoplanet.data import DATA, SPLITS, TARGET, load_split
+from exoplanet.labels import strong_stars
 from exoplanet.negatives import match_negatives, random_ephemerides, segment_ephemerides, segment_of
-from pilot_fold import strong_stars
 
 OUT = "results/sample/negatives.csv"
 SEED = 0

@@ -98,7 +98,7 @@ Siguen sirviendo como variables de ranking. Arreglo futuro: estimar el error con
 ### Revisión con las vistas propias (tarea #46, 2026-11-01)
 Las vistas global y par/impar del dataset no estaban centradas en el tránsito, así que `odd_even_z` y `secondary_z`
 medían la zona equivocada. Recalculadas sobre el train de la muestra A (vistas propias centradas, solo PLANET y FP con vista válida;
-`scripts/recheck_z_features.py`, `results/eda/z_features_own_views.csv`):
+`scripts/checks/recheck_z_features.py`, `results/eda/z_features_own_views.csv`):
 
 | | Dataset HF | Vistas propias |
 |---|---|---|

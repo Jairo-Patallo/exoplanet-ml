@@ -30,14 +30,16 @@ Desde la etapa 1 se mantienen dos reglas: entradas **solo de la curva** (nada de
 ## Estructura
 
 - `src/exoplanet/`: paquete activo. `data.py` (carga y limpieza), `labels.py` (fuerza de etiqueta: fuerte/débil/excluida), `curves.py` (descarga y preparación de curvas de MAST), `folding.py` (`fold_views`: vistas local de 81 bins y global, impar y par de 201), `evaluation.py` (protocolo LOMO anidado).
-- `scripts/`: `pilot_fold.py` (piloto #47: descarga y plegado de ~300 estrellas), `baseline.py` (dummy), `fetch_labels.py`, `label_audit.py`, `build_kepler_quarters.py`.
+- `scripts/data/`: pipeline de datos (`fetch_labels`, `build_kepler_quarters`, `pilot_fold`, `build_sample`, `build_negatives`).
+- `scripts/checks/`: diagnósticos que solo escriben informes (`label_audit`, `check_view_edges`, `shortcut_negatives`, `mission_leak_views`, `recheck_z_features`).
+- `scripts/models/`: modelos (`baseline`). Los scripts no se importan entre sí: lo compartido va en `src/exoplanet/`.
 - `legacy/`: primer camino, con las vistas del dataset de Hugging Face. **No es el pipeline actual**; se conserva como referencia (ver `legacy/README.md`).
 - `research/`: decisiones razonadas (EDA, protocolo, armonización de etiquetas). `results/`: salidas. `tests/`: pruebas.
 
 ## Cómo ejecutar (Windows, PowerShell, Python 3.14 con `py`)
 
 ```powershell
-$env:PYTHONPATH='src'; $env:PYTHONIOENCODING='utf-8'; py scripts/pilot_fold.py --n 100
+$env:PYTHONPATH='src'; $env:PYTHONIOENCODING='utf-8'; py scripts/data/pilot_fold.py --n 100
 py -m pytest -q
 ```
 
