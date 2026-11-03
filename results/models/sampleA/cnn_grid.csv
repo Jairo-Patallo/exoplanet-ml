@@ -1,0 +1,17 @@
+entrenamiento,modelo,base,dropout,epoca_parada,macro_f1_val,segundos
+por_mision,kepler,8,0.3,3,0.8668,5
+por_mision,kepler,8,0.5,14,0.8141,7
+por_mision,kepler,16,0.3,3,0.8588,10
+por_mision,kepler,16,0.5,7,0.8651,11
+por_mision,k2,8,0.3,13,0.8928,3
+por_mision,k2,8,0.5,23,0.8904,4
+por_mision,k2,16,0.3,9,0.8771,5
+por_mision,k2,16,0.5,11,0.846,6
+por_mision,tess,8,0.3,7,0.7848,3
+por_mision,tess,8,0.5,6,0.6297,3
+por_mision,tess,16,0.3,16,0.7978,6
+por_mision,tess,16,0.5,9,0.7504,5
+conjunta,todas,8,0.3,2,0.8349,9
+conjunta,todas,8,0.5,4,0.8319,10
+conjunta,todas,16,0.3,7,0.8259,21
+conjunta,todas,16,0.5,10,0.8285,23

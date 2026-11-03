@@ -1,0 +1,5 @@
+mision,hiperparametros,macro_f1,macro_f1_lo,macro_f1_hi,f1_PLANET,f1_PLANET_lo,f1_PLANET_hi,f1_FALSE_POSITIVE,f1_FALSE_POSITIVE_lo,f1_FALSE_POSITIVE_hi,f1_NO_SIGNAL,f1_NO_SIGNAL_lo,f1_NO_SIGNAL_hi,pr_auc_macro,pr_auc_macro_lo,pr_auc_macro_hi,pr_auc_PLANET,pr_auc_PLANET_lo,pr_auc_PLANET_hi,pr_auc_FALSE_POSITIVE,pr_auc_FALSE_POSITIVE_lo,pr_auc_FALSE_POSITIVE_hi,pr_auc_NO_SIGNAL,pr_auc_NO_SIGNAL_lo,pr_auc_NO_SIGNAL_hi
+kepler,"hidden=64, dropout=0.2, weight_decay=0.0001",0.84,0.776,0.9,0.806,0.679,0.912,0.771,0.667,0.857,0.943,0.904,0.974,0.919,0.867,0.961,0.919,0.832,0.978,0.891,0.805,0.957,0.949,0.878,0.996
+k2,"hidden=256, dropout=0.5, weight_decay=0.0001",0.818,0.72,0.906,0.703,0.5,0.85,0.889,0.757,0.977,0.862,0.767,0.943,0.895,0.818,0.964,0.793,0.612,0.928,0.973,0.918,1.0,0.917,0.814,0.989
+tess,"hidden=64, dropout=0.2, weight_decay=0.0001",0.725,0.62,0.827,0.765,0.6,0.909,0.556,0.348,0.733,0.854,0.767,0.926,0.761,0.671,0.87,0.717,0.531,0.935,0.689,0.512,0.839,0.876,0.768,0.972
+media,,0.794,0.742,0.841,0.758,0.67,0.843,0.738,0.642,0.817,0.886,0.842,0.925,0.858,0.813,0.907,0.81,0.713,0.906,0.851,0.786,0.909,0.914,0.862,0.961

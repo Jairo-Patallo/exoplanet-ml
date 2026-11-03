@@ -82,13 +82,19 @@ def run(model: str, qc: pd.DataFrame, inputs: dict, feat_names: list[str]) -> No
     grid_params = MODELS[model][0]
     y, val = qc.disposition.to_numpy(), (qc.split == "val").to_numpy()
     grid, tables, confs, coefs = [], [], {}, []
+    total = sum(name in ONLY_VARIANTS.get(model, inputs) for name in inputs) * len(MISSIONS) * len(grid_params)
+    done = 0
     for name, X in inputs.items():
         if name not in ONLY_VARIANTS.get(model, inputs):
             continue
         p_val, chosen = np.zeros((val.sum(), len(CLASSES))), {}
         for m in MISSIONS:
             tr, va = (qc.mission == m).to_numpy() & ~val, (qc.mission == m).to_numpy() & val
-            scores = [point_metrics(y[va], proba(fit(model, p, X[tr], y[tr]), X[va]))["macro_f1"] for p in grid_params]
+            scores = []
+            for p in grid_params:
+                scores.append(point_metrics(y[va], proba(fit(model, p, X[tr], y[tr]), X[va]))["macro_f1"])
+                done += 1
+                print(f"progreso {model}: {done}/{total} ajustes ({100 * done / total:.0f} %)", flush=True)
             grid += [{"variante": name, "mision": m, **p, "macro_f1_val": s} for p, s in zip(grid_params, scores)]
             best = grid_params[int(np.argmax(scores))]
             fitted = fit(model, best, X[tr], y[tr])

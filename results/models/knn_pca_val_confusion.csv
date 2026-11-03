@@ -1,10 +1,10 @@
 variante,mision,real,pred_PLANET,pred_FALSE_POSITIVE,pred_NO_SIGNAL
-B_vistas,kepler,real_PLANET,19,7,1
-B_vistas,kepler,real_FALSE_POSITIVE,4,46,4
-B_vistas,kepler,real_NO_SIGNAL,2,5,78
+B_vistas,kepler,real_PLANET,141,33,2
+B_vistas,kepler,real_FALSE_POSITIVE,36,318,30
+B_vistas,kepler,real_NO_SIGNAL,7,16,533
 B_vistas,k2,real_PLANET,13,2,2
 B_vistas,k2,real_FALSE_POSITIVE,1,18,0
 B_vistas,k2,real_NO_SIGNAL,5,1,27
-B_vistas,tess,real_PLANET,9,4,2
-B_vistas,tess,real_FALSE_POSITIVE,4,13,6
-B_vistas,tess,real_NO_SIGNAL,1,0,37
+B_vistas,tess,real_PLANET,40,10,9
+B_vistas,tess,real_FALSE_POSITIVE,16,43,30
+B_vistas,tess,real_NO_SIGNAL,2,8,139

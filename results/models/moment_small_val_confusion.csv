@@ -1,0 +1,10 @@
+mision,real,pred_PLANET,pred_FALSE_POSITIVE,pred_NO_SIGNAL
+kepler,real_PLANET,150,20,6
+kepler,real_FALSE_POSITIVE,36,309,39
+kepler,real_NO_SIGNAL,2,32,522
+k2,real_PLANET,14,0,3
+k2,real_FALSE_POSITIVE,1,18,0
+k2,real_NO_SIGNAL,4,2,27
+tess,real_PLANET,43,9,7
+tess,real_FALSE_POSITIVE,21,51,17
+tess,real_NO_SIGNAL,6,4,139

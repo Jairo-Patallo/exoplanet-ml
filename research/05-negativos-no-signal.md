@@ -56,3 +56,16 @@ Con el sorteo anterior de negativos (no reproducible) PLANET daba 0,51 / 0,56 / 
 - Con 1 sector, el % de vistas válidas de PLANET en TESS baja de 96,3 % a 87,8 % (planetas de periodo largo con pocos tránsitos).
 
 Resultados: `results/sample/shortcut_negatives.csv` (final) y `*_multisegment.csv`, `*_matched_v1.csv` (pasos intermedios).
+
+## Muestra completa (2026-11-03)
+
+8 582 negativos 1:1 (Kepler 6 560, TESS 1 624, K2 398) con el mismo procedimiento; 11 de TESS sin curva en MAST. Vistas válidas: NO_SIGNAL Kepler 83,5 %, K2 91,2 %, TESS 89,3 %.
+
+Test de atajo con la vista global sin tránsito (CV en train):
+
+| | Kepler A → completa | K2 | TESS A → completa |
+|---|---|---|---|
+| PLANET vs NO_SIGNAL | 0,59 → 0,60 | 0,59 | 0,57 → 0,55 |
+| FP vs NO_SIGNAL | 0,65 → 0,69 | 0,84 | 0,49 → 0,54 |
+
+Metadatos y ruido (train → val, boosting): Kepler 0,64, TESS 0,59, K2 0,77 (K2 sin cambios). Con ~5 veces más datos, el atajo sigue siendo débil para PLANET y estable. Bordes: sin artefactos en NO_SIGNAL ni en PLANET (|z| > 3 ≤ 0,2 % en la vista global). Los FP de K2 dan 32 % en la global, que es física (eclipses secundarios cerca de la fase 0,5), no un artefacto.

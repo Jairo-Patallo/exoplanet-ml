@@ -2,9 +2,9 @@ mission,disposition,n,z_local_median,pct_local_abs_z_gt3,z_glob_median,pct_glob_
 k2,FALSE_POSITIVE,142,0.03,6.34,-0.6,32.39
 k2,NO_SIGNAL,288,0.01,0.0,0.01,0.0
 k2,PLANET,151,-0.11,0.66,0.0,0.0
-kepler,FALSE_POSITIVE,444,0.01,3.6,-0.12,13.51
-kepler,NO_SIGNAL,674,0.0,0.59,0.0,0.0
-kepler,PLANET,230,0.0,0.0,0.0,0.87
-tess,FALSE_POSITIVE,177,0.02,1.13,-0.01,0.0
-tess,NO_SIGNAL,298,-0.01,0.0,-0.05,0.0
-tess,PLANET,115,0.0,0.0,-0.03,0.0
+kepler,FALSE_POSITIVE,2962,0.0,2.57,-0.1,12.39
+kepler,NO_SIGNAL,4383,0.0,0.14,0.0,0.0
+kepler,PLANET,1474,-0.01,0.0,-0.02,0.2
+tess,FALSE_POSITIVE,722,0.02,0.69,-0.03,0.28
+tess,NO_SIGNAL,1154,0.01,0.09,-0.0,0.0
+tess,PLANET,455,0.03,0.0,-0.03,0.0

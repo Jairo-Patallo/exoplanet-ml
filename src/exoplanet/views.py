@@ -20,8 +20,12 @@ def load_sample(splits=("train", "val")) -> pd.DataFrame:
 
 def load_views(star_ids, keys=("local", "glob")) -> dict[str, np.ndarray]:
     """Vistas apiladas por clave: {"local": (n, 81), "glob": (n, 201), ...} en el orden de star_ids."""
-    files = [np.load(SAMPLE_VIEWS / f"{s}.npz") for s in star_ids]
-    return {k: np.stack([f[k] for f in files]) for k in keys}
+    out = {k: [] for k in keys}
+    for s in star_ids:
+        with np.load(SAMPLE_VIEWS / f"{s}.npz") as f:   # cerrar cada archivo: con ~15 000 abiertos a la vez el SO falla
+            for k in keys:
+                out[k].append(f[k])
+    return {k: np.stack(v) for k, v in out.items()}
 
 
 def normalize(local: np.ndarray, glob: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:

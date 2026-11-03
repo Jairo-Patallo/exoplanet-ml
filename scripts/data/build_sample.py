@@ -89,7 +89,8 @@ def main() -> None:
         for i, fut in enumerate(as_completed(futures), 1):
             rec = fut.result()
             done = pd.concat([done, pd.DataFrame([rec])], ignore_index=True)
-            done.to_csv(qc_path, index=False, encoding="utf-8")
+            done.to_csv(qc_path.with_suffix(".tmp"), index=False, encoding="utf-8")
+            qc_path.with_suffix(".tmp").replace(qc_path)   # atómico: un apagón no deja qc.csv a medias (pasó el 2026-11-02)
             msg = rec.get("error") if isinstance(rec.get("error"), str) else f"valid={rec['valid']} {rec['mb_downloaded']:.1f} MB"
             log(f"[{i}/{len(todo)}] {rec['star_id']} {rec['mission']}: {msg}")
 
