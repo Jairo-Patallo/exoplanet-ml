@@ -22,6 +22,7 @@ Escalera de modelos, todos con el mismo protocolo: reglas físicas → regresió
 
 - Dataset de partida: Hugging Face `bingbangboom/exoplanet-transit-detection` en `data/{train,val,test}.parquet` (carpeta `data/` ignorada por git). 23 567 estrellas: Kepler 16 054 (7 840 NO_SIGNAL), K2 1 485, TESS 6 028. Splits por estrella. Trae vistas plegadas (`flux_local` 81, `flux_global`/`flux_odd`/`flux_even` 201) y `flux_raw` (20 000 puntos, **sin tiempo**).
 - `data/labels/` (tablas TOI y K2 del NASA Exoplanet Archive, `scripts/data/fetch_labels.py`), `data/raw_lc/` (curvas de MAST), `data/corot/` (`scripts/` con 16 scripts wget del NASA para 97 971 curvas de solo 10 de 23 runs, y `probe/` con 5 curvas de prueba).
+- **GPU** (2026-11-03): RX 9070 XT con ROCm 7.2.1 en WSL, entorno `~/venvs/exoplanet-rocm` (PyTorch 2.9.1+rocm7.2.1); exportar `HSA_ENABLE_DXG_DETECTION=1`; usar bf16 (fp32 va a ~1 TFLOPS). Entorno de MOMENT: `~/venvs/moment` (CPU).
 - **PyTorch solo en WSL2** (2026-11-02): en Windows, Control inteligente de aplicaciones bloquea `torch.dll`. Desde la raíz del repo en Ubuntu: `~/venvs/exoplanet/bin/python -m pytest -q` (PyTorch 2.15 CPU).
 - Windows 11, PowerShell. Python 3.14 con `py`. Para los scripts: `$env:PYTHONPATH='src'; py scripts/<data|checks|models>/xxx.py` desde la raíz; `py -m pytest -q` ya incluye `pythonpath = ["src"]`. Para salida con acentos: `$env:PYTHONIOENCODING='utf-8'`. Dependencias nuevas añadidas: `astropy`, `lightkurve`, `pytest`.
 

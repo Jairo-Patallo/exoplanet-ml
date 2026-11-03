@@ -63,6 +63,8 @@ Mismo script (`--models knn`), mismas entradas, mismo escalado (ajustado en trai
 | Regresión logística | 0,66 | **0,80** |
 | kNN | **0,78** | 0,49 (sin PCA) / 0,79 (con PCA) |
 | Gradient boosting | 0,78 | 0,80 (Kepler 0,89) |
+| MLP | — | 0,79 |
+| CNN (media de 3 semillas) | — | ~0,82 por misión, ~0,83 conjunta (PR-AUC 0,91) |
 
 Los mejores (logreg B, kNN A, PCA + kNN B) quedan a ~0,78–0,80, con IC que se solapan: en val no se distinguen. El error común es FP → PLANET. Es el listón que tendrán que superar el boosting, el MLP y la CNN.
 
@@ -87,3 +89,116 @@ Los mejores (logreg B, kNN A, PCA + kNN B) quedan a ~0,78–0,80, con IC que se 
 `exoplanet.dataset.ViewDataset`: una muestra es una estrella, con vista local `(1, 81)`, vista global `(1, 201)`, `log_depth` `(1,)`, clase (índice en `CLASSES`) y misión. Usa la misma normalización que la variante B de sklearn (`exoplanet.views.normalize`); un test comprueba que la entrada coincide. `class_weights()` equivale a `class_weight="balanced"`. Todo se carga en memoria como tensores, porque son ~3 000 estrellas. Par/impar fuera, como en sklearn.
 
 **Entorno.** En Windows, Control inteligente de aplicaciones bloquea `torch.dll` (WinError 4551). PyTorch se ejecuta en **WSL2 (Ubuntu 24.04)** con un entorno propio, `~/venvs/exoplanet` (PyTorch 2.15 CPU, mismas versiones de sklearn y NumPy), sobre los mismos archivos del repo (`/mnt/c/...`). Leer de `/mnt/c` es lento: la batería de tests tarda ~3,5 min en WSL frente a ~10 s en Windows. Si molesta al entrenar, copiar `data/sample/views` al disco de Linux.
+
+## MLP (tarea #29, 2026-11-02)
+
+`scripts/models/mlp.py`, ejecutado en WSL. Mismo protocolo que sklearn: entrada del dataset (283 valores, estandarizados con train), un modelo por misión, pesos de clase "balanced", selección en val por macro-F1. Red: 2 capas ocultas con ReLU y dropout, AdamW (lr 1e-3, lotes de 64). Parada temprana con un 15 % de train apartado (paciencia 20 épocas). Rejilla: 64 o 256 neuronas, dropout 0,2 o 0,5, weight decay 1e-4 o 1e-2. La mejor configuración se repite con 3 semillas. Tarda 27 s en CPU. Resultados: `results/models/mlp_*.csv`; pesos y configuración en `data/models/mlp_<misión>.pt`.
+
+| Macro-F1 (val) | Kepler | K2 | TESS | Media | PR-AUC macro |
+|---|---|---|---|---|---|
+| MLP | 0,84 [0,78–0,90] | 0,82 [0,72–0,91] | 0,73 [0,62–0,83] | **0,79** [0,74–0,84] | 0,86 |
+| Semillas (media ± desv.) | 0,844 ± 0,007 | 0,811 ± 0,023 | 0,726 ± 0,014 | | |
+
+- **No supera el listón de 0,80:** empata con la regresión logística (0,80) y el boosting (0,80) sobre las mismas vistas. PR-AUC 0,86, igual que el boosting.
+- **La parada temprana llega muy pronto** (épocas 2–14): con ~600–1350 estrellas y 283 entradas, la red empieza a memorizar enseguida. Por eso el weight decay no cambia nada (mismas cifras con 1e-4 y 1e-2): la regularización efectiva es la parada temprana. En la práctica el MLP se queda cerca de un modelo lineal regularizado, y por eso da lo mismo que la regresión logística.
+- La variabilidad entre semillas (desv. 0,01–0,02) es mucho menor que el ancho de los IC (~0,2): el resultado no depende de la suerte de la inicialización.
+
+**Lectura.** Cuatro familias de modelos (lineal, vecinos, árboles, red) acaban en 0,78–0,80 con estos datos. Es una señal fuerte de que el techo lo pone la cantidad de datos por misión y la dificultad de FP frente a PLANET, no el modelo. Una CNN (que aprovecha que los puntos vecinos de la curva están relacionados) podría ganar algo, pero con los mismos datos es de esperar un efecto pequeño. Lo que más promete es entrenar con más datos: varias misiones juntas o etiquetas débiles (`04-armonizacion-etiquetas.md`).
+
+## CNN de dos ramas (tarea #16, 2026-11-02)
+
+`scripts/models/cnn.py`, en WSL. Arquitectura al estilo AstroNet (Shallue & Vanderburg 2018):
+- rama global de 5 bloques convolucionales, rama local de 2 bloques, con BatchNorm y max-pool;
+- se unen con log10 de la profundidad;
+- 2 capas densas de 256 con dropout.
+
+Tiene 0,5 millones (base 8) o 1,3 millones (base 16) de parámetros. Aumento por **reflexión en el tiempo** de las vistas. Mismo entrenamiento que el MLP (`exoplanet.training`: pesos de clase, parada temprana con el 15 % de train, AdamW) y selección en val por macro-F1 entre base 8/16 y dropout 0,3/0,5. Dos formas de entrenar (decisión de Jairo):
+- **por misión:** comparable con los demás modelos;
+- **conjunta:** una CNN con el train de las tres misiones (~3 veces más datos), configuración elegida por el macro-F1 medio de las misiones. Sigue siendo dentro de dominio, no LOMO.
+
+Tarda ~4 min en CPU. Resultados: `results/models/cnn_*.csv`; log en `data/models/cnn_log.txt`.
+
+| Macro-F1 (val) | Kepler | K2 | TESS | Media | PR-AUC macro |
+|---|---|---|---|---|---|
+| CNN por misión (semilla 0) | 0,87 [0,80–0,92] | 0,89 [0,81–0,96] | 0,80 [0,70–0,88] | **0,85** [0,80–0,90] | **0,91** |
+| CNN conjunta (semilla 0) | 0,86 [0,79–0,91] | 0,85 [0,75–0,93] | 0,80 [0,70–0,90] | 0,84 [0,78–0,88] | 0,91 |
+| Media de 3 semillas, por misión | 0,85 ± 0,02 | 0,85 ± 0,05 | 0,76 ± 0,04 | ~0,82 | |
+| Media de 3 semillas, conjunta | 0,84 ± 0,01 | 0,88 ± 0,04 | 0,78 ± 0,02 | ~0,83 | |
+
+**Lectura.**
+- **La CNN es el mejor modelo de la fase 2**, sobre todo en **PR-AUC: 0,91**, frente a 0,86 del MLP y del boosting. Ordena claramente mejor las estrellas. En macro-F1 la mejora es más modesta.
+- **La cifra de 0,85 es optimista.** La semilla 0 sirvió para elegir la configuración y es además la mejor de las tres. La media de las 3 semillas (~0,82–0,83) es la estimación honesta. Frente al MLP (0,79, que apenas variaba con la semilla), la ganancia real es de ~+0,03–0,04, dentro de unos IC que se solapan.
+- **La CNN es más inestable entre semillas** (desv. hasta 0,05 en K2 y TESS) que el MLP (≤ 0,02): con 0,5 millones de parámetros y ~600 estrellas, cada entrenamiento acaba en un sitio distinto. Si se usa, conviene **promediar varias semillas** (ensemble), que además suele mejorar el resultado.
+- **Entrenar con las tres misiones juntas no gana con claridad:** media ~0,83 frente a ~0,82. Ayuda algo en K2 y TESS, las misiones con menos datos (0,88 frente a 0,85 y 0,78 frente a 0,76 en media de semillas), y empata en Kepler. Los datos de una misión sirven poco para otra tal cual; es justo lo que estudia la fase 3.
+- La parada temprana sigue llegando pronto (épocas 2–23): la CNN también memoriza enseguida. El aumento por reflexión no lo evita del todo.
+- La convolución ayuda por su sesgo inductivo, no por tener más parámetros: aprovecha que los puntos vecinos de la curva están relacionados y reutiliza los mismos filtros en toda la vista.
+
+## Muestra completa (2026-11-03)
+
+Se descargaron todas las estrellas con etiqueta fuerte: Kepler 6 560, TESS 1 624 y K2 398 positivos, más un NO_SIGNAL por positivo. En total 17 164 estrellas, ~14 700 con vista válida, frente a ~3 100 en la muestra A. K2 no cambia: ya estaba completa. Mismo código, mismo protocolo y misma selección en val. Val crece de 311 a 1 482 estrellas (Kepler 166 → 1 116, TESS 76 → 297). Los resultados de la muestra A quedan en `results/models/sampleA/`.
+
+| Macro-F1 en val, media de misiones [IC 95 %] | Muestra A | Muestra completa | PR-AUC (completa) |
+|---|---|---|---|
+| Dummy | 0,22 | 0,22 | — |
+| Regresión logística, físicas / vistas | 0,66 / 0,80 | 0,67 / 0,78 [0,74–0,81] | 0,70 / 0,80 |
+| kNN, físicas / PCA + vistas | 0,78 / 0,79 | 0,73 / 0,80 [0,76–0,83] | 0,73 / 0,78 |
+| Gradient boosting, físicas / vistas | 0,78 / 0,80 | 0,75 / **0,82** [0,78–0,85] | 0,79 / 0,85 |
+| MLP | 0,79 | 0,78 [0,74–0,81] | 0,84 |
+| **CNN** por misión / conjunta | 0,85 / 0,84 | **0,84** [0,81–0,87] / **0,84** [0,81–0,88] | **0,91 / 0,90** |
+| CNN, media de 3 semillas, por misión / conjunta | ~0,82 / ~0,83 | 0,83 / 0,84 | |
+
+Por misión (CNN por misión, completa): Kepler 0,87 [0,85–0,89], K2 0,87 [0,78–0,95], TESS 0,78 [0,73–0,83].
+
+**Lectura.**
+- **Las medidas son mucho más fiables:** el IC de Kepler pasa de ±0,06 a ±0,02. Ahora sí se distinguen modelos dentro de Kepler.
+- **Más datos no han roto el techo.** Kepler tiene 6,5 veces más estrellas de entrenamiento y la CNN se queda en 0,87, igual que antes. El límite no es la cantidad de datos sino la información de la curva: algunos falsos positivos no se distinguen de un planeta solo con la forma del tránsito.
+- **TESS baja en casi todos los modelos** (logreg 0,72 → 0,68; MLP 0,73 → 0,67). El val anterior (76 estrellas) era optimista por azar; con 297 la cifra es más realista. La excepción es el boosting sobre vistas (0,66 → 0,75): con 4 veces más datos de TESS deja de sobreajustar.
+- **Ranking estable:** CNN (0,84, PR-AUC 0,91) > boosting sobre vistas (0,82) > resto (~0,78–0,80). Entrenar con las tres misiones juntas empata con entrenar por misión (0,84).
+- **Errores de la CNN en Kepler** (`cnn_val_confusion.csv`): de 384 FP, 39 se toman por PLANET y **42 por NO_SIGNAL**. Estos últimos son probablemente FP sin un tránsito visible en la curva de la propia estrella: el eclipse está en una estrella vecina (desplazamiento del centroide) o es una coincidencia de efemérides. El Robovetter los detecta con información que no está en la curva. Es un **límite físico de un modelo "solo curva"** y conviene medirlo (análisis de errores por tipo de FP).
+
+## MOMENT congelado + regresión logística (2026-11-03)
+
+`scripts/models/moment_probe.py`, en un entorno aparte de WSL (`~/venvs/moment`). momentfm fija versiones antiguas, así que se instaló sin dependencias y con transformers 4.57; el modelo carga y funciona. MOMENT (AutonLab, licencia MIT) es un modelo general de series temporales. Su preentrenamiento (Time-series Pile: Informer, Monash, UCR/UEA, TSB-UAD) no incluye Kepler, K2 ni TESS, así que no hay fuga de etiquetas. El modelo no se entrena:
+- cada vista normalizada se rellena hasta 512 puntos con máscara y se convierte en un vector;
+- se unen el vector de la local, el de la global y log10 de la profundidad;
+- encima va una regresión logística por misión, con el mismo protocolo que el resto.
+
+| Macro-F1 en val (muestra completa) | Kepler | K2 | TESS | Media | PR-AUC |
+|---|---|---|---|---|---|
+| Regresión logística sobre vistas | 0,83 | 0,83 | 0,68 | 0,78 | 0,80 |
+| MOMENT-small (35 M) + logística | 0,86 | 0,85 | 0,74 | **0,82** [0,78–0,85] | 0,84 |
+| MOMENT-large (341 M) + logística | 0,85 | 0,87 | 0,72 | 0,81 [0,78–0,84] | 0,85 |
+| CNN (referencia) | 0,87 | 0,87 | 0,78 | 0,84 | 0,91 |
+
+- **Los vectores de MOMENT contienen información útil sin haber visto un solo tránsito.** Con la misma regresión logística suben de 0,78 a 0,82, sobre todo en TESS.
+- **El modelo grande no mejora al pequeño** (0,81 frente a 0,82) y tarda 52 min frente a 13 min en CPU. Congelado, el tamaño no ayuda.
+- No supera a la CNN, sobre todo en PR-AUC (0,84–0,85 frente a 0,91). El siguiente paso razonable sería el fine-tuning (paso 2), ya viable con la GPU.
+
+## GPU AMD en WSL (2026-11-03)
+
+RX 9070 XT (gfx1201) funcionando con **ROCm 7.2.1** y **PyTorch 2.9.1+rocm7.2.1** (wheel oficial de repo.radeon.com) en el entorno `~/venvs/exoplanet-rocm`. En ROCm 7.2.1 el instalador ya no tiene el usecase `wsl`: se instala con `amdgpu-install --usecase=rocm --no-dkms`, más el puente **librocdxg** (paquete `rocdxg-roct` 1.2.2) y `HSA_ENABLE_DXG_DETECTION=1`. El controlador de Windows de octubre de 2026 sirve.
+
+- Rendimiento medido: **bf16 ~112 TFLOPS**, pero **fp32 solo ~1,2 TFLOPS** (las rutinas fp32 aún no están optimizadas para gfx1201 en esta versión; cambiar de librería BLAS no lo arregla). Conclusión: entrenar en GPU con **precisión mixta bf16** (`torch.autocast`).
+- Verificación: el MLP entrenado en GPU da macro-F1 medio 0,777 frente a 0,781 en CPU, una diferencia dentro de la variación entre semillas. Matmul GPU frente a CPU: error relativo 2,5e-6.
+
+## Fine-tuning de MOMENT-small en GPU (2026-11-03)
+
+`scripts/models/moment_finetune.py` (WSL + ROCm, bf16; ~21 min en total, 2–4 min por entrenamiento).
+- **Arquitectura:** MOMENT-small entero entrenable (35 M de parámetros), compartido para la vista local y la global. Sus dos vectores se unen con log10 de la profundidad y pasan a una cabeza densa de 256.
+- **Entrenamiento:** tasa de aprendizaje baja para MOMENT y 1e-3 para la cabeza. Una sola red con las tres misiones. Mismo protocolo que la CNN conjunta: pesos de clase, parada temprana con el 15 % de train, reflexión, selección en val y 3 semillas.
+- **Cambio en `exoplanet.training.fit`:** admite tasa de aprendizaje por grupos, bf16 y paciencia. Con los valores por defecto, el MLP da resultados idénticos byte a byte.
+
+| Tasa de MOMENT | 1e-5 | **3e-5** | 1e-4 |
+|---|---|---|---|
+| Macro-F1 medio en val (semilla 0) | 0,804 | **0,811** | 0,806 |
+
+| Macro-F1 en val | Kepler | K2 | TESS | Media | PR-AUC |
+|---|---|---|---|---|---|
+| MOMENT fine-tuning (semilla 0) | 0,87 [0,85–0,89] | 0,84 | 0,72 [0,67–0,78] | 0,81 [0,78–0,85] | 0,88 |
+| MOMENT fine-tuning, media de 3 semillas | 0,872 | 0,843 | 0,729 | 0,815 | |
+| MOMENT congelado (small) | 0,86 | 0,85 | 0,74 | 0,82 | 0,84 |
+| CNN conjunta (media de 3 semillas) | 0,868 | 0,886 | 0,764 | 0,839 | 0,90 |
+
+**Lectura.** El fine-tuning **no supera a la CNN** ni al MOMENT congelado en macro-F1, aunque mejora la ordenación respecto al congelado (PR-AUC 0,88 frente a 0,84). En Kepler, con muchos datos, empata con la CNN (0,87). En TESS y K2 pierde: con 35 M de parámetros sobreajusta enseguida (para en las épocas 6–16).
+
+**Conclusión de la fase 2 con la entrada "solo curva":** seis familias de modelos (lineal, kNN, boosting, MLP, CNN y un modelo preentrenado de 35–341 M de parámetros) se quedan en 0,81–0,84 con la muestra completa. El límite está en la información de la entrada, no en el modelo. Siguiente paso propuesto: añadir la vista de centroide, normalizada por estrella para que sea comparable entre telescopios, como variante "curva + centroide", y mantener "solo curva" como versión 100 % portable (CoRoT).
