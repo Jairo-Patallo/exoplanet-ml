@@ -130,3 +130,27 @@ Decisión de Jairo: medir el efecto de más tránsitos sin abrir el atajo de sec
 **No ayuda** (ligeramente peor en todo, sin IC). El modelo ya veía curvas con pocos tránsitos en Kepler/K2; lo que falta en TESS es información en sus propias curvas, no ejemplos con pocos tránsitos. Además, el recorte no imita el ruido ni los píxeles de TESS. Descartado; el paso de ruido y dilución, que dependía de este, no se hace.
 
 **Aviso de selección.** AdaBN, 2 sectores y recorte se han evaluado sobre el mismo TESS train + val. La cifra final de portabilidad debe salir del test de TESS (sin tocar) con la receta fijada antes de mirarlo, indicando cuántas variantes se probaron.
+
+## Pseudo-etiquetas en TESS: prueba barata en mitades (2026-11-04)
+
+Variante d del protocolo (adaptación sin etiquetas). `scripts/models/pseudo_labels.py`, `results/models/pseudo_labels_tess.csv`. TESS train + val se parte en dos mitades estratificadas; el modelo LOMO pseudo-etiqueta una mitad (prob. ≥ 0,9 y las 3 semillas de acuerdo), se reentrena con Kepler + K2 + esas pseudo-etiquetas y se evalúa en la otra mitad. Criterio fijado antes: límite inferior del IC de la mejora > 0.
+
+| | PR-AUC macro | Macro-F1 | F1 FP |
+|---|---|---|---|
+| LOMO | 0,764 | 0,691 | 0,54 |
+| LOMO + pseudo-etiquetas | 0,763 | 0,692 | 0,54 |
+
+**Diferencia −0,001, IC 95 % [−0,007, +0,004]: no sale bien; no se hace la versión grande** (descarga de ~7 400 candidatos de los tres telescopios).
+
+**Por qué.** Solo ~640 de cada mitad pasan el umbral (49 %), y son los casos fáciles: 65 % NO_SIGNAL (ya acertaba el 93 %) y solo ~75 FP. Las pseudo-etiquetas PLANET aciertan solo el 77 % (casi todos los errores son FP tomados por planeta): el modelo se autoconfirma justo donde falla. Pseudo-etiquetar no añade información sobre la frontera PLANET/FP, que es el problema de TESS. Con más candidatos sin etiquetar el mecanismo sería el mismo, y además los candidatos son señales ambiguas, más difíciles todavía.
+
+## Balance de la adaptación a TESS
+
+| Prueba | Efecto en TESS | Conclusión |
+|---|---|---|
+| AdaBN | −0,024 | no es un cambio de escala |
+| Recortar Kepler/K2 a un sector | −0,011 | el modelo ya veía pocos tránsitos |
+| Pseudo-etiquetas | −0,001 | se autoconfirma en los casos fáciles |
+| **2 sectores (mismas estrellas)** | **+0,034** [+0,018, +0,048] | **falta información por estrella** |
+
+Lo único que mejora TESS es darle más datos de TESS. Siguiente palanca, si se quiere: curvas FFI con todos los sectores.

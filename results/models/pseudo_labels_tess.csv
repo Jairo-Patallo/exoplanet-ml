@@ -1,0 +1,5 @@
+modelo,n,pr_auc_macro,pr_auc_PLANET,pr_auc_FALSE_POSITIVE,pr_auc_NO_SIGNAL,macro_f1,f1_PLANET,f1_FALSE_POSITIVE,f1_NO_SIGNAL,dif_pr_auc_ic95,mitad,n_mitad,n_pseudo,acierto_pseudo,pseudo_PLANET,pseudo_FALSE_POSITIVE,pseudo_NO_SIGNAL,pseudo_PLANET_acierto,pseudo_FALSE_POSITIVE_acierto,pseudo_NO_SIGNAL_acierto
+LOMO,2634.0,0.7639,0.6914,0.6732,0.9272,0.6909,0.6533,0.5379,0.8813,,,,,,,,,,,
+LOMO + pseudo-etiquetas,2634.0,0.7626,0.6838,0.6707,0.9332,0.6921,0.6573,0.5347,0.8844,"[-0.007, +0.004]",,,,,,,,,,
+,,,,,,,,,,,0.0,1317.0,644.0,0.8898,151.0,79.0,414.0,0.7881,0.8354,0.9372
+,,,,,,,,,,,1.0,1317.0,631.0,0.8827,159.0,67.0,405.0,0.7547,0.8806,0.9333
