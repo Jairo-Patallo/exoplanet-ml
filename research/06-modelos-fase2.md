@@ -250,3 +250,29 @@ En Kepler (conjunta, semilla 0): F1 de FP 0,853 → **0,888** y de PLANET 0,804 
 3. **Aun así, la curva capta parte de los invisibles** (66 %): muchas coincidencias de efemérides copian la señal de una binaria vecina, cuya forma (V, secundario) sigue delatándola.
 4. **El otro error grande: FP "no parece tránsito" tomados por NO_SIGNAL (22 %).** No es un fallo del modelo sino de la definición de las clases: un FP de tipo nt es ruido o un artefacto instrumental, y para el modelo se parece a "no hay señal". Unir esa frontera (o tratar nt como NO_SIGNAL) es una decisión de etiquetado, no de modelo.
 5. Los errores mejorables están en las binarias (ss, 88 % de acierto) y en esa frontera nt/NO_SIGNAL. Más datos de la misma estrella (más trimestres, resolución mayor) ayudarían en ss; la frontera nt es conceptual.
+
+## Intentos de subir la CNN solo curva: par/impar, híbrida y ensemble (2026-11-04)
+
+Antes se corrigieron los datos:
+- **42 negativos de TESS** eran estrellas del dataset o candidatos de otra misión, con otro número de catálogo. `build_negatives.py` excluye ahora todo lo que esté a menos de 2″ de cualquier estrella del dataset, TOI o candidato K2.
+- Como el sorteo de candidatos por sector cambia, la lista reproducible nueva **cambia 1 031 negativos de TESS**. Se replegaron (19 sin curva en MAST) y se recalcularon sus centroides. K2 no cambia.
+
+**Diagnósticos con ventana ajustada** (`exoplanet.features`, que sustituye a `legacy/features.py`). En la global, la ventana del tránsito y del secundario se ajusta a duty·201 bins, en vez de 11 fijos. AUC FP vs PLANET en val: odd_even_z 0,52 → 0,56 y secondary_z 0,56 → 0,64. Sin `duty` reproduce exactamente la versión antigua.
+
+**Variantes de la CNN** (GPU, bf16, entrenamiento conjunto, mismo protocolo; `cnn.py --odd-even --features`). Macro-F1 en val:
+
+| Variante | Kepler | K2 | TESS | **Media (ensemble de 3)** [IC 95 %] | PR-AUC | Media de 3 semillas |
+|---|---|---|---|---|---|---|
+| Base (solo curva) | 0,866 | 0,904 | 0,779 | **0,850** [0,82–0,88] | 0,911 | 0,833 |
+| + par/impar (canales globales) | 0,860 | 0,873 | 0,760 | 0,831 [0,80–0,86] | 0,900 | 0,825 |
+| + diagnósticos (híbrida) | 0,871 | 0,887 | 0,762 | 0,840 [0,80–0,87] | 0,903 | 0,831 |
+| + ambas | 0,876 | 0,907 | 0,773 | 0,852 [0,82–0,88] | 0,913 | 0,827 |
+
+**Lectura.**
+- **La única mejora real es el ensemble:** promediar las probabilidades de 3 semillas sube la base de 0,833 (media de semillas) a **0,850**, sobre todo en TESS (0,752 → 0,779).
+- **Par/impar en la vista global no aporta:** un tránsito ocupa 2–3 de los 201 bins, así que los canales extra son casi solo ruido, y K2/TESS lo sobreajustan. Haría falta una vista par/impar local, que exige replegar todo.
+- **Los diagnósticos tampoco aportan** (0,831 frente a 0,833): la CNN ya extrae esa información de las mismas vistas. Solo Kepler mejora un poco en FP (0,837 → 0,845).
+- "+ ambas" empata con la base (0,852 frente a 0,850 en ensemble; 0,827 frente a 0,833 en semillas): diferencias dentro del ruido.
+- Confirma la conclusión anterior: con estas vistas, la CNN solo curva está en su techo (~0,85 con ensemble). Las ganancias que quedan requieren **otra información**, como el centroide en Kepler, o **vistas nuevas**: par/impar local y vista del secundario, a costa de replegar todo (~5 h).
+
+**Nota de versión de datos.** Los resultados de logreg, kNN, boosting, MLP, MOMENT, la CNN en CPU (`cnn_val.csv`) y la CNN con centroide (`cnn_centroid_gpu_*`) se calcularon antes de regenerar 1 031 negativos de TESS (2026-11-04). Las variantes de esta sección (`cnn_gpu_*`, `cnn_oddeven_*`, `cnn_feats_*`, `cnn_oddeven_feats_*`) usan ya los datos corregidos. La base salió casi igual (0,843 frente a 0,848), así que las conclusiones no cambian, pero las comparaciones finas deben hacerse dentro de la misma versión.

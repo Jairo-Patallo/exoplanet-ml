@@ -1,0 +1,10 @@
+entrenamiento,mision,semilla,epoca_parada,macro_f1
+conjunta,kepler,0,25,0.8654
+conjunta,k2,0,25,0.8697
+conjunta,tess,0,25,0.7758
+conjunta,kepler,1,5,0.8609
+conjunta,k2,1,5,0.8462
+conjunta,tess,1,5,0.7265
+conjunta,kepler,2,15,0.872
+conjunta,k2,2,15,0.8728
+conjunta,tess,2,15,0.7579

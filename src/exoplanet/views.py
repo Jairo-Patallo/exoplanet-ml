@@ -1,4 +1,4 @@
-"""Vistas plegadas de la muestra A: carga y normalización por estrella (fase 2).
+"""Vistas plegadas de la muestra: carga y normalización por estrella (fase 2).
 
 Lo usan igual los modelos de sklearn (scripts/models/sklearn_models.py) y el dataset de PyTorch (exoplanet.dataset),
 para que todos los modelos vean exactamente la misma entrada.
@@ -13,7 +13,7 @@ QC = "results/sample/qc.csv"
 
 
 def load_sample(splits=("train", "val")) -> pd.DataFrame:
-    """Estrellas de la muestra A con vista válida en esos splits (por defecto sin test), una fila por estrella."""
+    """Estrellas de la muestra con vista válida en esos splits (por defecto sin test), una fila por estrella."""
     qc = pd.read_csv(QC)
     return qc[qc["valid"].eq(True) & qc.split.isin(splits)].reset_index(drop=True)   # NaN (error de descarga) = no válida
 

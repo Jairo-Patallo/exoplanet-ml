@@ -18,7 +18,10 @@ LR, BATCH, MAX_EPOCHS, PATIENCE = 1e-3, 64, 300, 20
 
 
 def inputs(ds: ViewDataset) -> dict[str, torch.Tensor]:
-    return {"local": ds.local, "glob": ds.glob, "log_depth": ds.log_depth}
+    x = {"local": ds.local, "glob": ds.glob, "log_depth": ds.log_depth}
+    if hasattr(ds, "feats"):
+        x["feats"] = ds.feats
+    return x
 
 
 def take(x: dict[str, torch.Tensor], idx) -> dict[str, torch.Tensor]:

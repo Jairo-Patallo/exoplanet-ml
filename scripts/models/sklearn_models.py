@@ -1,7 +1,7 @@
 """Modelos de sklearn de 3 clases dentro de cada misión (fase 2): regresión logística y kNN, con las métricas de #51.
 
 Dos variantes de entrada (decisión 2026-11-02), las mismas para todos los modelos:
-  A · variables físicas de la curva (legacy/features.py): profundidad y SNR con signo (log con signo), ingress_frac,
+  A · variables físicas de la curva (exoplanet.features): profundidad y SNR con signo (log con signo), ingress_frac,
       odd_even_z y secondary_z. ingress_frac (sin caída) y odd_even_z (par/impar no válido) se imputan con la mediana
       de train, sin indicador de "faltaba" (delataría el número de tránsitos, un metadato del proceso).
   B · vistas local (81) y global (201) normalizadas por estrella al estilo AstroNet: se resta la mediana y se divide
@@ -15,7 +15,7 @@ Un modelo por misión; imputación y StandardScaler ajustados solo en train; hip
           datos ya imputados, así no puede usar el patrón de NaN (número de tránsitos) como atajo.
 El test no se toca. Solo estrellas con vista válida.
 
-Uso:  python scripts/models/sklearn_models.py [--models logreg knn]   (PYTHONPATH="src;legacy" en Windows)
+Uso:  python scripts/models/sklearn_models.py [--models logreg knn]   (PYTHONPATH=src)
 Salida en results/models/, por modelo: <modelo>_val.csv (métricas en val con IC 95 %), <modelo>_grid.csv (macro-F1 por
       hiperparámetro) y <modelo>_val_confusion.csv; además logreg_coef_A.csv (coeficientes estandarizados de A).
 """
@@ -35,7 +35,7 @@ from sklearn.preprocessing import StandardScaler
 from exoplanet.data import CLASSES, MISSIONS
 from exoplanet.evaluation import evaluate_by_mission, point_metrics
 from exoplanet.views import load_sample, load_views, normalize
-from features import curve_features
+from exoplanet.features import curve_features
 
 OUT = Path("results/models")
 SEED = 0

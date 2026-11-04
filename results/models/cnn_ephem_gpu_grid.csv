@@ -1,0 +1,5 @@
+entrenamiento,modelo,base,dropout,epoca_parada,macro_f1_val,segundos
+conjunta,todas,8,0.3,18,0.8363,217
+conjunta,todas,8,0.5,12,0.8185,156
+conjunta,todas,16,0.3,4,0.8156,174
+conjunta,todas,16,0.5,14,0.8177,241

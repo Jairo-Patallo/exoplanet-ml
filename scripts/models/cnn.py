@@ -5,12 +5,14 @@ filtros. Rama local: 2 bloques (base, 2·base). Se aplanan, se unen con log10 de
 y pasan por 2 capas densas de 256 con dropout. Misma entrada y protocolo que el resto (exoplanet.training): pesos de clase,
 parada temprana con un 15 % de train, selección en val por macro-F1, 3 semillas. Aumento por reflexión en el tiempo.
 
+Ensemble: además de la semilla 0 se informa la media de las probabilidades de las 3 semillas ("<modo>_ensemble").
 Dos formas de entrenar (decisión de Jairo, 2026-11-02):
   por_mision: una CNN por misión, comparable con los modelos anteriores.
   conjunta:   una sola CNN con el train de las tres misiones (~3 veces más datos), evaluada en el val de cada misión;
               la configuración se elige por el macro-F1 medio de las misiones. Sigue siendo dentro de dominio (no LOMO).
 
-Uso (WSL):  PYTHONPATH=src ~/venvs/exoplanet/bin/python scripts/models/cnn.py [--centroid] [--amp]
+Uso (WSL):  PYTHONPATH=src ~/venvs/exoplanet/bin/python scripts/models/cnn.py [--centroid] [--odd-even] [--features] [--ephem]
+                 [--modes por_mision conjunta] [--amp]
             (--amp en GPU: ~/venvs/exoplanet-rocm y HSA_ENABLE_DXG_DETECTION=1)
 Salida: results/models/cnn_val.csv, cnn_grid.csv, cnn_seeds.csv, cnn_val_confusion.csv; pesos en data/models/cnn_*.pt.
 """
@@ -22,7 +24,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from exoplanet.cnn import AstroCNN
+from exoplanet.cnn import AstroCNN, feat_stats
 from exoplanet.data import CLASSES, DATA, MISSIONS
 from exoplanet.dataset import ViewDataset
 from exoplanet.evaluation import evaluate_by_mission, point_metrics
@@ -34,13 +36,14 @@ WEIGHTS = DATA / "models"
 GRID = [{"base": b, "dropout": d} for b in (8, 16) for d in (0.3, 0.5)]
 WEIGHT_DECAY = 1e-4
 SEEDS = (0, 1, 2)
-CENTROID, AMP, NAME = False, False, "cnn"   # se fijan en main() con --centroid y --amp
+CENTROID, ODD_EVEN, FEATURES, EPHEM, AMP, NAME = False, False, False, False, False, "cnn"   # se fijan en main() con las opciones
 
 
 def train(x: dict, y: torch.Tensor, cfg: dict, seed: int, amp: bool = False):
     def make(xf):
         return AstroCNN(cfg["base"], cfg["dropout"], xf["log_depth"].mean(0), xf["log_depth"].std(0) + 1e-6,
-                        channels=xf["local"].shape[1])
+                        channels=xf["local"].shape[1], glob_channels=xf["glob"].shape[1],
+                        feat_stats=feat_stats(xf["feats"]) if "feats" in xf else None)
     return fit(make, x, y, WEIGHT_DECAY, seed, augment=True, amp=amp)
 
 
@@ -51,10 +54,12 @@ def per_mission_f1(p: np.ndarray, val: pd.DataFrame) -> dict[str, float]:
 
 def run(mode: str, groups: list[tuple[str, pd.DataFrame, pd.DataFrame]], grid: list, seeds: list) -> tuple[np.ndarray, pd.DataFrame, dict]:
     """groups: (nombre, estrellas de train, estrellas de val). Devuelve probabilidades en val (semilla 0) y su tabla."""
-    p_all, val_all, chosen = [], [], {}
+    p_all, val_all, chosen, ensembles = [], [], {}, []
     for name, tr, va in groups:
-        ds_tr = ViewDataset(tr, centroid=CENTROID)
-        xtr, ytr, xva = inputs(ds_tr), ds_tr.y, inputs(ViewDataset(va, centroid=CENTROID))
+        opts = dict(centroid=CENTROID, odd_even=ODD_EVEN, features=FEATURES, ephem=EPHEM)
+        ds_tr = ViewDataset(tr, **opts)
+        xtr, ytr, xva = inputs(ds_tr), ds_tr.y, inputs(ViewDataset(va, **opts))
+        p_seeds = []
         scores = []
         for cfg in GRID:
             t = time.perf_counter()
@@ -69,6 +74,7 @@ def run(mode: str, groups: list[tuple[str, pd.DataFrame, pd.DataFrame]], grid: l
         for seed in SEEDS:
             model, epoch = train(xtr, ytr, cfg, seed, AMP)
             p = predict(model, xva, amp=AMP)
+            p_seeds.append(p)
             seeds += [{"entrenamiento": mode, "mision": m, "semilla": seed, "epoca_parada": epoch, "macro_f1": f}
                       for m, f in per_mission_f1(p, va).items() if mode == "conjunta" or m == name]
             if seed == SEEDS[0]:
@@ -78,32 +84,39 @@ def run(mode: str, groups: list[tuple[str, pd.DataFrame, pd.DataFrame]], grid: l
                 torch.save({"state_dict": model.state_dict(), "config": cfg, "weight_decay": WEIGHT_DECAY,
                             "classes": CLASSES, "seed": seed, "lr": LR, "batch": BATCH, "augment": "reflexion"},
                            WEIGHTS / f"{NAME}_{mode}_{name}.pt")
+        ensembles.append(np.mean(p_seeds, axis=0))     # media de las probabilidades de las semillas
         print(f"cnn {mode} {name}: {chosen[name]}", flush=True)
-    return np.vstack(p_all), pd.concat(val_all, ignore_index=True), chosen
+    return np.vstack(p_all), pd.concat(val_all, ignore_index=True), chosen, np.vstack(ensembles)
 
 
 def main() -> None:
-    global CENTROID, AMP, NAME
+    global CENTROID, ODD_EVEN, FEATURES, EPHEM, AMP, NAME
     ap = argparse.ArgumentParser()
-    ap.add_argument("--centroid", action="store_true", help="segundo canal con el centroide (variante curva + centroide)")
+    ap.add_argument("--centroid", action="store_true", help="canal con el centroide (variante curva + centroide)")
+    ap.add_argument("--odd-even", action="store_true", help="canales par e impar en la rama global")
+    ap.add_argument("--features", action="store_true", help="diagnósticos físicos en la cabeza (CNN híbrida)")
+    ap.add_argument("--ephem", action="store_true", help="log(duración/periodo) y log(periodo) en la cabeza")
+    ap.add_argument("--modes", nargs="+", default=["por_mision", "conjunta"], choices=["por_mision", "conjunta"])
     ap.add_argument("--amp", action="store_true", help="bf16 en GPU")
     args = ap.parse_args()
-    CENTROID, AMP = args.centroid, args.amp
-    NAME = "cnn" + ("_centroid" if CENTROID else "") + ("_gpu" if AMP else "")
+    CENTROID, ODD_EVEN, FEATURES, EPHEM, AMP = args.centroid, args.odd_even, args.features, args.ephem, args.amp
+    NAME = ("cnn" + ("_centroid" if CENTROID else "") + ("_oddeven" if ODD_EVEN else "") + ("_feats" if FEATURES else "") + ("_ephem" if EPHEM else "")
+            + ("_gpu" if AMP else ""))
     print(f"dispositivo: {DEVICE}, hilos: {torch.get_num_threads()}", flush=True)
     stars = load_sample()
     train_s, val_s = stars[stars.split == "train"], stars[stars.split == "val"]
     grid, seeds, tables, confs = [], [], [], {}
     plans = {"por_mision": [(m, train_s[train_s.mission == m], val_s[val_s.mission == m].reset_index(drop=True)) for m in MISSIONS],
              "conjunta": [("todas", train_s, val_s.reset_index(drop=True))]}
-    for mode, groups in plans.items():
-        p, val, chosen = run(mode, groups, grid, seeds)
-        table, conf = evaluate_by_mission(val.mission.to_numpy(), val.disposition.to_numpy(), p)
+    for mode in args.modes:
+        p, val, chosen, p_ens = run(mode, plans[mode], grid, seeds)
         cfg_of = (lambda m: chosen.get(m, "-")) if mode == "por_mision" else (lambda m: chosen["todas"])
-        table.insert(0, "entrenamiento", mode)
-        table.insert(2, "hiperparametros", table.mision.map(cfg_of))
-        tables.append(table)
-        confs.update({(mode, m): c for m, c in conf.items()})
+        for label, probs in ((mode, p), (f"{mode}_ensemble", p_ens)):
+            table, conf = evaluate_by_mission(val.mission.to_numpy(), val.disposition.to_numpy(), probs)
+            table.insert(0, "entrenamiento", label)
+            table.insert(2, "hiperparametros", table.mision.map(cfg_of))
+            tables.append(table)
+            confs.update({(label, m): c for m, c in conf.items()})
 
     OUT.mkdir(parents=True, exist_ok=True)
     out = pd.concat(tables, ignore_index=True)
