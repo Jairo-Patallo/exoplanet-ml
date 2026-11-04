@@ -10,18 +10,22 @@ import torch
 from torch.utils.data import Dataset
 
 from exoplanet.data import CLASSES, MISSIONS
-from exoplanet.views import load_views, normalize
+from exoplanet.views import load_centroid, load_views, normalize
 
 
 class ViewDataset(Dataset):
     """Una muestra = una estrella: {"local": (1, 81), "glob": (1, 201), "log_depth": (1,), "y": clase, "mission": misión}.
     `stars` es una tabla con star_id, mission y disposition (p. ej. exoplanet.views.load_sample filtrada por split)."""
 
-    def __init__(self, stars: pd.DataFrame):
+    def __init__(self, stars: pd.DataFrame, centroid: bool = False):
         v = load_views(stars.star_id)
         local, glob, log_depth = normalize(v["local"], v["glob"])
-        self.local = torch.as_tensor(local, dtype=torch.float32).unsqueeze(1)   # canal único para la CNN 1D
-        self.glob = torch.as_tensor(glob, dtype=torch.float32).unsqueeze(1)
+        channels = [(local, glob)]
+        if centroid:              # segundo canal: desplazamiento del centroide alineado con el flujo (variante 2026-11-03)
+            c = load_centroid(stars.star_id)
+            channels.append((c["local"], c["glob"]))
+        self.local = torch.as_tensor(np.stack([l for l, _ in channels], axis=1), dtype=torch.float32)   # (n, canales, 81)
+        self.glob = torch.as_tensor(np.stack([g for _, g in channels], axis=1), dtype=torch.float32)
         self.log_depth = torch.as_tensor(log_depth, dtype=torch.float32)
         self.y = torch.as_tensor(stars.disposition.map(CLASSES.index).to_numpy(), dtype=torch.long)
         self.mission = torch.as_tensor(stars.mission.map(MISSIONS.index).to_numpy(), dtype=torch.long)

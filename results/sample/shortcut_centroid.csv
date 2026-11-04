@@ -1,0 +1,7 @@
+mission,clase,n_train,auc_cv_centroide_sin_transito
+kepler,PLANET,5857,0.618
+kepler,FALSE_POSITIVE,7345,0.666
+k2,PLANET,439,0.683
+k2,FALSE_POSITIVE,430,0.613
+tess,PLANET,1610,0.517
+tess,FALSE_POSITIVE,1877,0.516

@@ -202,3 +202,30 @@ RX 9070 XT (gfx1201) funcionando con **ROCm 7.2.1** y **PyTorch 2.9.1+rocm7.2.1*
 **Lectura.** El fine-tuning **no supera a la CNN** ni al MOMENT congelado en macro-F1, aunque mejora la ordenación respecto al congelado (PR-AUC 0,88 frente a 0,84). En Kepler, con muchos datos, empata con la CNN (0,87). En TESS y K2 pierde: con 35 M de parámetros sobreajusta enseguida (para en las épocas 6–16).
 
 **Conclusión de la fase 2 con la entrada "solo curva":** seis familias de modelos (lineal, kNN, boosting, MLP, CNN y un modelo preentrenado de 35–341 M de parámetros) se quedan en 0,81–0,84 con la muestra completa. El límite está en la información de la entrada, no en el modelo. Siguiente paso propuesto: añadir la vista de centroide, normalizada por estrella para que sea comparable entre telescopios, como variante "curva + centroide", y mantener "solo curva" como versión 100 % portable (CoRoT).
+
+## Variante curva + centroide (2026-11-04)
+
+**Vista de centroide** (`curves.read_centroid`, `folding.fold_centroid`, `scripts/data/build_centroid.py`): centroide (MOM_CENTR1/2) de los mismos segmentos que el flujo, sin la deriva lenta del apuntado. Se pliega cada eje como el flujo y se calcula r = √(dx² + dy²) por bin en **unidades de su ruido** fuera del tránsito, para que sea comparable entre píxeles de 4″ (Kepler) y 21″ (TESS). El modelo recibe sign·log(1+|z|). Se construyó con los FITS en caché: segmentos iguales que el flujo en el 100 % y comprobación del flujo reproducida en 286 estrellas al azar. Entra en la CNN como **segundo canal** de cada vista (`ViewDataset(centroid=True)`, `cnn.py --centroid`).
+
+**Arreglos hechos por el camino.**
+- `curves.mast_sequence` convertía también los sectores 100–107 de TESS en el 10. 47 negativos de TESS (2,9 %) se habían emparejado con el sector equivocado. Corregido (solo K2 tiene mitades de campaña), con un test nuevo, y esos 47 se regeneraron.
+- Al limpiar se borraron por error 6 607 vistas de negativos; se replegaron, y `qc.csv` coincide con git en n_points, valid y frac_empty de los 8 535 negativos comunes.
+- MAST se colgó una vez durante el replegado; se añadió un vigilante que relanza.
+
+**Test de atajo del centroide** (vista sin el 20 % central, CV en train; `scripts/checks/shortcut_centroid.py`): PLANET vs NO_SIGNAL Kepler 0,62, K2 0,68, TESS 0,52; FP vs NO_SIGNAL 0,67 / 0,61 / 0,52. Parecido al del flujo (0,60 / 0,59 / 0,55), salvo un atajo moderado en K2 (apuntado inestable).
+
+**CNN en GPU (bf16), con y sin centroide; mismas semillas y protocolo.** Macro-F1 en val, media de 3 semillas:
+
+| | Kepler | K2 | TESS | Media |
+|---|---|---|---|---|
+| Solo curva, por misión | 0,871 | 0,861 | 0,763 | 0,832 |
+| **Curva + centroide, por misión** | **0,896** | 0,743 | 0,683 | 0,774 |
+| Solo curva, conjunta | 0,865 | 0,892 | 0,772 | 0,843 |
+| **Curva + centroide, conjunta** | **0,893** | 0,851 | 0,737 | 0,827 |
+
+En Kepler (conjunta, semilla 0): F1 de FP 0,853 → **0,888** y de PLANET 0,804 → **0,846**, con NO_SIGNAL igual (0,95). Los FP confundidos con PLANET pasan de 39 a 31 y con NO_SIGNAL de 42 a 31; PR-AUC 0,927 → 0,947.
+
+**Lectura.**
+- **En Kepler el centroide ayuda de verdad:** +0,03 en macro-F1, consistente en las 3 semillas y en las dos formas de entrenar. La mejora está en separar FP de PLANET, no en NO_SIGNAL, así que es física (binarias de fondo) y no el atajo.
+- **En K2 y TESS empeora:** −0,04 a −0,12. En TESS los píxeles son 5 veces mayores, el centroide se diluye entre estrellas vecinas y apenas aporta señal; en K2 el apuntado es inestable y hay un atajo moderado. Con poca información útil, el canal extra es ruido que el modelo sobreajusta.
+- **Implicación para la portabilidad:** el valor del centroide depende del telescopio (de su escala de píxel). No sirve como entrada universal tal cual. Opciones: usarlo solo donde la escala de píxel lo permite, o un modelo con centroide opcional ("dropout" del canal). Se evaluará en la fase 3.

@@ -83,3 +83,22 @@ def fold_views(time: np.ndarray, flux: np.ndarray, period: float, t0: float, dur
         views["odd"] = views["even"] = np.full(N_GLOBAL, np.nan)
     return Views(views["local"].astype(np.float32), views["glob"].astype(np.float32),
                  views["odd"].astype(np.float32), views["even"].astype(np.float32), qc)
+
+
+LOC_OUT = np.r_[5:25, 56:76]          # bins de la local a más de 1,5 duraciones del tránsito
+GLB_OUT = np.r_[20:70, 131:181]       # bins de la global lejos del tránsito y de la fase 0,5
+
+
+def fold_centroid(time: np.ndarray, dx: np.ndarray, dy: np.ndarray, period: float, t0: float,
+                  duration: float) -> tuple[np.ndarray, np.ndarray, bool]:
+    """Vistas local y global del desplazamiento del centroide en unidades de su ruido (comparables entre telescopios
+    con píxeles de distinto tamaño). Se pliega cada eje como el flujo, r = sqrt(dx² + dy²) por bin, y se resta la mediana
+    de r fuera del tránsito y se divide por su dispersión robusta. Devuelve (local, global, válida)."""
+    vx, vy = fold_views(time, dx, period, t0, duration), fold_views(time, dy, period, t0, duration)
+    out = []
+    for key, bins in (("local", LOC_OUT), ("glob", GLB_OUT)):
+        r = np.hypot(getattr(vx, key).astype(float), getattr(vy, key).astype(float))
+        base = r[bins]
+        sigma = 1.4826 * np.median(np.abs(base - np.median(base))) or 1e-9
+        out.append(((r - np.median(base)) / sigma).astype(np.float32))
+    return out[0], out[1], bool(vx.qc["valid"] and vy.qc["valid"])

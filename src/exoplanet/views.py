@@ -28,6 +28,23 @@ def load_views(star_ids, keys=("local", "glob")) -> dict[str, np.ndarray]:
     return {k: np.stack(v) for k, v in out.items()}
 
 
+SAMPLE_CENTROID = DATA / "sample" / "centroid"
+
+
+def load_centroid(star_ids) -> dict[str, np.ndarray]:
+    """Vistas de centroide (scripts/data/build_centroid.py), ya en unidades de su ruido, comprimidas con
+    sign·log(1 + |z|) porque las binarias de fondo dan desplazamientos de cientos de sigmas. Sin archivo -> ceros."""
+    out = {"local": [], "glob": []}
+    for s in star_ids:
+        path = SAMPLE_CENTROID / f"{s}.npz"
+        if path.exists():
+            with np.load(path) as f:
+                out["local"].append(f["local"]), out["glob"].append(f["glob"])
+        else:
+            out["local"].append(np.zeros(81, np.float32)), out["glob"].append(np.zeros(201, np.float32))
+    return {k: np.sign(v) * np.log1p(np.abs(v)) for k, v in ((k, np.nan_to_num(np.stack(v))) for k, v in out.items())}
+
+
 def normalize(local: np.ndarray, glob: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Normalización por estrella al estilo AstroNet (decisión 2026-11-02): se resta la mediana de cada vista y se divide
     por la profundidad de la local (mediana - mínimo), así la caída vale ~-1 y el modelo ve la forma. Devuelve también

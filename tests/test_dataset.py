@@ -39,3 +39,12 @@ def test_class_weights_like_sklearn_balanced():
     ds = ViewDataset(load_sample(["train"]))
     y = ds.y.numpy()
     assert np.allclose(ds.class_weights().numpy(), compute_class_weight("balanced", classes=np.arange(3), y=y))
+
+
+def test_dataset_centroid_adds_second_channel():
+    from exoplanet.dataset import ViewDataset
+    stars = load_sample(["val"]).head(30)
+    plain, both = ViewDataset(stars), ViewDataset(stars, centroid=True)
+    assert both.local.shape == (30, 2, 81) and both.glob.shape == (30, 2, 201)
+    assert torch.equal(both.local[:, :1], plain.local), "el primer canal debe ser el flujo de siempre"
+    assert torch.isfinite(both.local).all() and torch.isfinite(both.glob).all()
