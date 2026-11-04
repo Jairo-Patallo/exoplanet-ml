@@ -14,10 +14,13 @@ Uso (WSL, GPU):  export HSA_ENABLE_DXG_DETECTION=1
   --eval-splits train val      evalúa M sin su test (para iterar sin gastarlo; decisión pendiente del usuario)
   --smoke                      prueba rápida con pocas estrellas, sin guardar resultados
   --only tess                  solo el fold de esa misión excluida
+  --fixed                      sin selección interna: la configuración que eligió la CNN base (lomo_cnn.csv)
+  --no-depth                   ablación #43: log10 de la profundidad anulado (constante 0), solo la forma
 Salida: results/models/lomo_<modelo>.csv (métricas por misión excluida), lomo_<modelo>_inner.csv (selección) y
         lomo_<modelo>_pred.csv (probabilidades por estrella).
 """
 import argparse
+import ast
 from pathlib import Path
 
 import numpy as np
@@ -72,6 +75,8 @@ def main() -> None:
     ap.add_argument("--amp", action="store_true")
     ap.add_argument("--eval-splits", nargs="+", default=list(SPLITS), choices=list(SPLITS))
     ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--fixed", action="store_true")
+    ap.add_argument("--no-depth", action="store_true")
     ap.add_argument("--only", choices=["kepler", "k2", "tess"])
     args = ap.parse_args()
     grid, seeds = (GRID[:1], SEEDS[:1]) if args.smoke else (GRID, SEEDS)
@@ -82,8 +87,9 @@ def main() -> None:
         meta = meta.reset_index(drop=True)
     folds = nested_folds(meta, shared_stars(meta), eval_splits=tuple(args.eval_splits))
     y_all = meta.disposition.to_numpy()
-    name = f"lomo_{args.model}" + ("_centroid" if args.centroid else "") + ("_ephem" if args.ephem else "")
+    name = f"lomo_{args.model}" + ("_centroid" if args.centroid else "") + ("_ephem" if args.ephem else "") + ("_nodepth" if args.no_depth else "") + ("_fixed" if args.fixed else "")
     rows, inner_rows, preds = [], [], []
+    fixed = {r.excluida: ast.literal_eval(r.config) for r in pd.read_csv(OUT / "lomo_cnn.csv").itertuples()} if args.fixed else {}
     if args.only:
         folds = [f for f in folds if f.held_out == args.only]
         name += f"_{args.only}"
@@ -109,19 +115,20 @@ def main() -> None:
             print(f"   {f.held_out}: PR-AUC macro {rows[-1]['pr_auc_macro']:.3f}, macro-F1 {rows[-1]['macro_f1']:.3f}", flush=True)
             continue
         ds = lambda idx: ViewDataset(meta.iloc[idx], centroid=args.centroid, ephem=args.ephem)
+        inputs_ = lambda d: {**inputs(d), "log_depth": torch.zeros_like(d.log_depth)} if args.no_depth else inputs(d)
         scores = []
-        for cfg in grid:
+        for cfg in ([] if args.fixed else grid):
             s = []
             for fit_idx, val_idx in f.inner:
                 d_fit, d_val = ds(fit_idx), ds(val_idx)
-                model = train_cnn(inputs(d_fit), d_fit.y, cfg, seeds[0], args.amp)
-                s.append(point_metrics(y_all[val_idx], predict(model, inputs(d_val), amp=args.amp))["pr_auc_macro"])
+                model = train_cnn(inputs_(d_fit), d_fit.y, cfg, seeds[0], args.amp)
+                s.append(point_metrics(y_all[val_idx], predict(model, inputs_(d_val), amp=args.amp))["pr_auc_macro"])
             scores.append(np.mean(s))
             inner_rows.append({"excluida": f.held_out, **cfg, "pr_auc_interno_A_B": s[0], "pr_auc_interno_B_A": s[1], "media": scores[-1]})
             print(f"   {cfg}: PR-AUC interno {s[0]:.3f} / {s[1]:.3f}", flush=True)
-        cfg = grid[int(np.argmax(scores))]
+        cfg = fixed[f.held_out] if args.fixed else grid[int(np.argmax(scores))]
         d_fit, d_eval = ds(f.fit_idx), ds(f.eval_idx)
-        probas = [predict(train_cnn(inputs(d_fit), d_fit.y, cfg, seed, args.amp), inputs(d_eval), amp=args.amp) for seed in seeds]
+        probas = [predict(train_cnn(inputs_(d_fit), d_fit.y, cfg, seed, args.amp), inputs_(d_eval), amp=args.amp) for seed in seeds]
         proba = np.mean(probas, axis=0)
         res = {"excluida": f.held_out, "n_eval": len(f.eval_idx), "config": str(cfg), **metrics(y_eval, proba)}
         preds.append(meta.iloc[f.eval_idx][["star_id", "mission", "disposition"]].assign(**dict(zip([f"p_{c}" for c in CLASSES], proba.T))))

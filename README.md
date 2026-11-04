@@ -6,7 +6,7 @@ Clasificador de señales de tránsito en tres clases (**PLANET**, **FALSE_POSITI
 
 - **Fase 1, datos (cerrada):** curvas propias descargadas de MAST y plegadas con el mismo código en las tres misiones; negativos NO_SIGNAL fabricados con estrellas reales sin candidato, emparejadas por sector y brillo; tests de atajo y de fuga. Muestra completa: 17 164 estrellas (~14 700 con vista válida).
 - **Fase 2, modelos dentro de cada misión (casi cerrada):** dummy, regresión logística, kNN, gradient boosting, MLP, CNN 1D de dos ramas (AstroNet) y MOMENT (modelo preentrenado de Hugging Face). Mejor modelo solo curva: **CNN con ensemble de 3 semillas, macro-F1 0,85 en val** (Kepler 0,87, K2 0,90, TESS 0,78). Con el centroide como canal extra, Kepler sube a 0,89. El análisis de errores muestra que el techo lo ponen falsos positivos invisibles en la curva (luz de estrellas vecinas).
-- **Fase 3, transferencia entre telescopios (LOMO):** preparada, sin ejecutar.
+- **Fase 3, transferencia entre telescopios (LOMO):** entrenar con dos telescopios y evaluar en el tercero sin haberlo visto. PR-AUC Kepler 0,894, K2 0,927, TESS 0,764 (media 0,862 frente a 0,911 dentro de misión): el modelo solo curva es portable. TESS es el difícil por falta de información por estrella: con 2 sectores sube +0,034 (IC [+0,018, +0,048]); AdaBN, recortar Kepler/K2 y pseudo-etiquetas no ayudan. Regla de decisión en un telescopio nuevo: argmax sin corregir el prior. Detalle en [`research/07-fase3-lomo.md`](research/07-fase3-lomo.md).
 
 Detalle y decisiones razonadas en [`research/`](research/); resumen en [`research/06-modelos-fase2.md`](research/06-modelos-fase2.md).
 

@@ -1,6 +1,6 @@
 # Contexto del proyecto exoplanet-ml (para continuar en otro chat)
 
-Actualizado el 2026-11-04 (tarde). Lee también `CLAUDE.md` (reglas de trabajo), `README.md` (estructura y cómo reproducir) y `research/` (decisiones razonadas, sobre todo `05-negativos-no-signal.md` y `06-modelos-fase2.md`).
+Actualizado el 2026-11-04 (noche). Lee también `CLAUDE.md` (reglas de trabajo), `README.md` (estructura y cómo reproducir) y `research/` (decisiones razonadas, sobre todo `05-negativos-no-signal.md` y `06-modelos-fase2.md`).
 
 ## 1. Objetivo
 
@@ -86,7 +86,7 @@ Scripts en `scripts/data`, `scripts/checks` y `scripts/models` (no se importan e
 - Fases:
   1. Datos: Hecho.
   2. Modelos por misión: casi cerrada.
-  3. LOMO: preparada.
+  3. LOMO: hecha salvo decisiones pendientes (sección 9).
   4. Modelo portable (BLS, test único, CoRoT).
   5. Web y documentación.
 
@@ -102,16 +102,18 @@ Scripts en `scripts/data`, `scripts/checks` y `scripts/models` (no se importan e
 - **Curva de aprendizaje** (`scripts/models/learning_curve.py`): con 46–234 estrellas de TESS etiquetadas, +0,02–0,03 de macro-F1; solo con todo el train de TESS se llega a 0,836 / 0,785. Pendiente: dar más peso a TESS o hacer ajuste fino.
 - **Descartado:** CNN con log(duración/periodo) + log(periodo) (`--ephem`): empata dentro de misión, porque la duración/periodo ya está implícita en la vista global. El LOMO con efeméride se canceló.
 - **Gráfico de variables candidatas:** `results/eda/feature_candidates.png`.
+- **Adaptación a TESS (2026-11-04, `research/07`):**
+  - AdaBN (`adabn.py`): 0,764 → 0,740. Descartado: no es un cambio de escala.
+  - **2 sectores en las mismas 1 278 estrellas** (`build_tess_2sectors.py`, `tess_sectors.py`): 0,780 → 0,814, IC [+0,018, +0,048]. Única mejora: falta información por estrella. Siguiente palanca: curvas FFI con todos los sectores (sin el sesgo de los TOI en 2 min).
+  - Recortar Kepler/K2 a 27,4 d como aumento (`build_cropped.py`, `lomo_crop.py`): 0,753. Descartado.
+  - Pseudo-etiquetas en mitades de TESS (`pseudo_labels.py`): 0,763, IC [−0,007, +0,004]. Descartado; la versión grande con candidatos no se hizo.
+  - Todas estas variantes se midieron en TESS train + val: la cifra final debe salir del test.
+- **Ablación #43** (`lomo.py --fixed --no-depth`): sin log10 de la profundidad, −0,003 de media. El modelo no depende de ella.
+- **Calibración** (`calibration.py`): argmax es la mejor regla (la corrección EM de prior empeora el macro-F1 en las tres misiones). TESS es demasiado confiado; con precisión 0,9 solo recupera el 12 % de planetas.
 
 ## 9. Qué sigue (decisiones pendientes del usuario)
 
-1. **TESS con más sectores** (acordado hacer después de la curva). Problema: los PLANET de TESS tienen mediana de 7 sectores disponibles, los FP 3 y los NO_SIGNAL 2 (sesgo de selección; `data/sample/tess_sector_counts.csv`). Dar todos los sectores crearía un atajo. Opciones:
-   - (a) hasta 2 sectores para todas, con test de atajo de control (recomendada; ~5 GB, ~1,5 h);
-   - (b) solo estrellas con ≥ 2 sectores, todas con 2;
-   - (c) aparcarlo.
-
-   Los negativos deben igualar el número de sectores con su pareja.
-2. **Adaptación con curvas de TESS sin etiquetar** (propuesta del usuario): AdaBN (recalibrar las BatchNorm con curvas de TESS, minutos) y pseudo-etiquetas con los ~3 700 TOI PC (descarga de ~7 GB). Documentarlo como "adaptación no supervisada" (variante d del protocolo).
-3. Fase 3 restante: ablación #43 (profundidad/SNR), LOMO con centroide, calibración del umbral.
-4. Cerrar formalmente la fase 2 en Notion (#12, #13, #29 y #16 tienen un criterio antiguo de LOMO). Etiquetado pendiente: FP "no parece tránsito" frente a NO_SIGNAL.
-5. Fase 4: BLS (no depender de la efeméride del catálogo) y evaluación única en test.
+1. **#43:** mantener log10 de la profundidad (+0,003) o quitarla por robustez ante CoRoT.
+2. **Tareas abiertas de la fase 3** por decidir (descartar o pasar a la fase 4): #9 (block bootstrap par/impar), #17 (híbrido CNN + tabulares), #42 (inyección de tránsitos), #45 (transferencia a K2, ya cubierta por el fold K2 del LOMO), #52 (curvas de aprendizaje LOMO), #67 (ruido tipo TESS, dependía del recorte).
+3. Cerrar formalmente la fase 2 en Notion (#12, #13, #29 y #16 tienen un criterio antiguo de LOMO). Etiquetado pendiente: FP "no parece tránsito" frente a NO_SIGNAL.
+4. **Fase 4:** curvas FFI de TESS con todos los sectores, BLS (no depender de la efeméride del catálogo) y evaluación única en test con la receta fijada antes.

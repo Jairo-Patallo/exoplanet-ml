@@ -154,3 +154,31 @@ Variante d del protocolo (adaptación sin etiquetas). `scripts/models/pseudo_lab
 | **2 sectores (mismas estrellas)** | **+0,034** [+0,018, +0,048] | **falta información por estrella** |
 
 Lo único que mejora TESS es darle más datos de TESS. Siguiente palanca, si se quiere: curvas FFI con todos los sectores.
+
+## Ablación #43: LOMO sin la profundidad (2026-11-04)
+
+`lomo.py --fixed [--no-depth]`: misma configuración por fold que la CNN base (sin repetir la selección interna), 3 semillas. `--no-depth` deja log10 de la profundidad constante: el modelo solo ve la forma normalizada. La base con `--fixed` reproduce exactamente el LOMO original (`lomo_cnn_fixed.csv`). `results/models/lomo_cnn_nodepth_fixed.csv`.
+
+| Misión excluida | Con profundidad | Sin profundidad | Diferencia |
+|---|---|---|---|
+| Kepler | 0,894 | 0,891 | −0,003 |
+| K2 | 0,927 | 0,923 | −0,004 |
+| TESS | 0,764 | 0,761 | −0,003 |
+
+La profundidad apenas aporta (−0,003 de media, dentro del ruido entre semillas): el modelo no se apoya en la variable que más delata la misión. La SNR no es una entrada (las vistas se normalizan por estrella); queda implícita en el ruido de la vista y no se puede quitar sin cambiar la normalización. **Decisión pendiente de Jairo:** mantener la profundidad (+0,003) o quitarla por robustez ante telescopios con otra distribución de profundidades (CoRoT).
+
+## Calibración y cambio de prior (#37, 2026-11-04)
+
+`scripts/models/calibration.py` sobre las predicciones LOMO (`lomo_cnn_fixed_pred.csv`); `results/models/calibration_lomo.csv` y `.png`. La CNN entrena con pesos "balanced", así que sus probabilidades suponen clases equiprobables. Se compara argmax con la corrección EM de Saerens et al. (2002), que estima sin etiquetas la mezcla de clases del telescopio nuevo, y con un oráculo que usa la mezcla real.
+
+| Misión excluida | Macro-F1 argmax | EM | Oráculo | ECE argmax | Recall a precisión 0,9 (PLANET / FP) |
+|---|---|---|---|---|---|
+| Kepler | **0,828** | 0,752 | 0,806 | 0,066 | 0,35 / 0,71 |
+| K2 | **0,894** | 0,823 | 0,896 | 0,074 | 0,84 / 0,86 |
+| TESS | **0,691** | 0,665 | 0,711 | 0,091 | 0,12 / 0,07 |
+
+**Lectura.**
+- **Regla para un telescopio sin etiquetas: argmax tal cual.** La corrección de prior está pensada para maximizar el acierto global, no el macro-F1: empeora las tres misiones con EM (−0,03 a −0,08) y, aun con la mezcla real, solo ayuda en TESS (+0,02). EM además estima mal la mezcla de TESS (16 % de FP frente a 31 % real) porque el modelo no reconoce sus FP.
+- **Fiabilidad:** en Kepler y K2 el modelo es algo prudente (acierta más de lo que dice); en **TESS es demasiado confiado** (con confianza 0,75 acierta el 60 %). En un telescopio nuevo, la probabilidad no debe presentarse como certeza: la web debe decirlo.
+- **Catálogo de alta pureza:** con precisión 0,9 se recupera el 84–86 % en K2 pero solo el 12 % de planetas y el 7 % de FP en TESS. En un telescopio difícil el modelo sirve para priorizar candidatos, no para confirmarlos.
+- Limitación: la mezcla de clases de la muestra es artificial (NO_SIGNAL 1:1). En un telescopio real casi todas las estrellas no tienen señal; esto se trata en la fase 4 con BLS.
