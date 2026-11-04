@@ -21,8 +21,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-from torch import nn
 
+from exoplanet.cnn import AstroCNN
 from exoplanet.data import CLASSES, DATA, MISSIONS
 from exoplanet.dataset import ViewDataset
 from exoplanet.evaluation import evaluate_by_mission, point_metrics
@@ -32,35 +32,9 @@ from exoplanet.views import load_sample
 OUT = Path("results/models")
 WEIGHTS = DATA / "models"
 GRID = [{"base": b, "dropout": d} for b in (8, 16) for d in (0.3, 0.5)]
-WEIGHT_DECAY, FC = 1e-4, 256
+WEIGHT_DECAY = 1e-4
 SEEDS = (0, 1, 2)
 CENTROID, AMP, NAME = False, False, "cnn"   # se fijan en main() con --centroid y --amp
-
-
-def conv_column(n_blocks: int, base: int, c_in: int = 1) -> nn.Sequential:
-    layers = []
-    for i in range(n_blocks):
-        c_out = base * 2 ** i
-        layers += [nn.Conv1d(c_in, c_out, 5, padding=2), nn.BatchNorm1d(c_out), nn.ReLU(),
-                   nn.Conv1d(c_out, c_out, 5, padding=2), nn.BatchNorm1d(c_out), nn.ReLU(), nn.MaxPool1d(2)]
-        c_in = c_out
-    return nn.Sequential(*layers, nn.Flatten())
-
-
-class AstroCNN(nn.Module):
-    def __init__(self, base: int, dropout: float, depth_mean: torch.Tensor, depth_std: torch.Tensor, channels: int = 1):
-        super().__init__()
-        self.register_buffer("depth_mean", depth_mean)
-        self.register_buffer("depth_std", depth_std)
-        self.glob = conv_column(5, base, channels)     # 201 -> 6 posiciones x 16·base canales
-        self.local = conv_column(2, base, channels)    # 81 -> 20 posiciones x 2·base canales
-        n_flat = 6 * 16 * base + 20 * 2 * base + 1
-        self.head = nn.Sequential(nn.Dropout(dropout), nn.Linear(n_flat, FC), nn.ReLU(), nn.Dropout(dropout),
-                                  nn.Linear(FC, FC), nn.ReLU(), nn.Dropout(dropout), nn.Linear(FC, len(CLASSES)))
-
-    def forward(self, local: torch.Tensor, glob: torch.Tensor, log_depth: torch.Tensor) -> torch.Tensor:
-        d = (log_depth - self.depth_mean) / self.depth_std
-        return self.head(torch.cat([self.glob(glob), self.local(local), d], dim=1))
 
 
 def train(x: dict, y: torch.Tensor, cfg: dict, seed: int, amp: bool = False):
@@ -101,7 +75,7 @@ def run(mode: str, groups: list[tuple[str, pd.DataFrame, pd.DataFrame]], grid: l
                 p_all.append(p)
                 val_all.append(va)
                 WEIGHTS.mkdir(parents=True, exist_ok=True)
-                torch.save({"state_dict": model.state_dict(), "config": cfg, "fc": FC, "weight_decay": WEIGHT_DECAY,
+                torch.save({"state_dict": model.state_dict(), "config": cfg, "weight_decay": WEIGHT_DECAY,
                             "classes": CLASSES, "seed": seed, "lr": LR, "batch": BATCH, "augment": "reflexion"},
                            WEIGHTS / f"{NAME}_{mode}_{name}.pt")
         print(f"cnn {mode} {name}: {chosen[name]}", flush=True)

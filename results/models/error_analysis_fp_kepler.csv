@@ -1,0 +1,15 @@
+motivo,modelo,n,acierta_FP,como_PLANET,como_NO_SIGNAL
+nt (no tránsito),solo_curva,79,0.734,0.051,0.215
+nt (no tránsito),curva_centroide,79,0.722,0.076,0.203
+ss (binaria),solo_curva,209,0.88,0.091,0.029
+ss (binaria),curva_centroide,209,0.919,0.057,0.024
+co (centroide),solo_curva,172,0.762,0.163,0.076
+co (centroide),curva_centroide,172,0.866,0.081,0.052
+ec (efemérides),solo_curva,107,0.822,0.075,0.103
+ec (efemérides),curva_centroide,107,0.879,0.047,0.075
+solo co/ec (invisibles en la curva),solo_curva,91,0.659,0.242,0.099
+solo co/ec (invisibles en la curva),curva_centroide,91,0.802,0.121,0.077
+algún nt/ss (visibles),solo_curva,288,0.84,0.08,0.08
+algún nt/ss (visibles),curva_centroide,288,0.865,0.062,0.073
+todos,solo_curva,384,0.789,0.12,0.091
+todos,curva_centroide,384,0.841,0.078,0.081

@@ -4,6 +4,9 @@ Uso:  python scripts/data/fetch_labels.py   (desde la raíz del repo)
 Salida (data/labels/, ignorado por git; son tablas pequeñas):
   toi.csv      -> tid, toi, tfopwg_disp (CP, KP, PC, APC, FP, FA), pl_orbper, ra, dec
   k2pandc.csv  -> epic_hostname, k2_name, disposition (CONFIRMED, CANDIDATE, FALSE POSITIVE, REFUTED), ra, dec
+  koi.csv      -> kepid, kepoi_name, koi_disposition, koi_pdisposition, koi_period y los motivos de falso positivo del
+                  Robovetter: koi_fpflag_nt (no parece tránsito), _ss (eclipse estelar), _co (centroide desplazado),
+                  _ec (coincidencia de efemérides con otra estrella). Para el análisis de errores (2026-11-04).
 """
 from pathlib import Path
 from urllib.parse import quote
@@ -15,6 +18,8 @@ TAP = "https://exoplanetarchive.ipac.caltech.edu/TAP/sync?format=csv&query="
 QUERIES = {
     "toi": "select tid,toi,tfopwg_disp,pl_orbper,ra,dec from toi",
     "k2pandc": "select epic_hostname,k2_name,disposition,pl_orbper,ra,dec from k2pandc",
+    "koi": "select kepid,kepoi_name,koi_disposition,koi_pdisposition,koi_period,"
+           "koi_fpflag_nt,koi_fpflag_ss,koi_fpflag_co,koi_fpflag_ec from cumulative",
 }
 
 

@@ -229,3 +229,24 @@ En Kepler (conjunta, semilla 0): F1 de FP 0,853 → **0,888** y de PLANET 0,804 
 - **En Kepler el centroide ayuda de verdad:** +0,03 en macro-F1, consistente en las 3 semillas y en las dos formas de entrenar. La mejora está en separar FP de PLANET, no en NO_SIGNAL, así que es física (binarias de fondo) y no el atajo.
 - **En K2 y TESS empeora:** −0,04 a −0,12. En TESS los píxeles son 5 veces mayores, el centroide se diluye entre estrellas vecinas y apenas aporta señal; en K2 el apuntado es inestable y hay un atajo moderado. Con poca información útil, el canal extra es ruido que el modelo sobreajusta.
 - **Implicación para la portabilidad:** el valor del centroide depende del telescopio (de su escala de píxel). No sirve como entrada universal tal cual. Opciones: usarlo solo donde la escala de píxel lo permite, o un modelo con centroide opcional ("dropout" del canal). Se evaluará en la fase 3.
+
+## Análisis de errores por tipo de falso positivo (Kepler, 2026-11-04)
+
+`scripts/checks/error_analysis_fp.py`. Usa las CNN conjuntas guardadas (semilla 0); las predicciones reproducen las métricas (0,848 y 0,831). Cada FP de Kepler en val (384) se cruzó con su KOI (tabla cumulative, `fetch_labels.py`) por kepid y periodo más cercano; todos encontrados. Un FP puede tener varios motivos. Resultados: `results/models/error_analysis_fp_kepler.csv` y predicciones estrella a estrella en `error_analysis_val_predictions.csv`.
+
+| Motivo del Robovetter | n | Acierta FP (solo curva → con centroide) | Lo toma por PLANET | Lo toma por NO_SIGNAL |
+|---|---|---|---|---|
+| nt: no parece tránsito | 79 | 73 % → 72 % | 5 % → 8 % | **22 % → 20 %** |
+| ss: binaria eclipsante | 209 | 88 % → **92 %** | 9 % → 6 % | 3 % → 2 % |
+| co: centroide desplazado | 172 | 76 % → **87 %** | 16 % → 8 % | 8 % → 5 % |
+| ec: coincidencia de efemérides | 107 | 82 % → **88 %** | 8 % → 5 % | 10 % → 8 % |
+| **Solo co/ec** (invisibles en la curva) | 91 | **66 % → 80 %** | **24 % → 12 %** | 10 % → 8 % |
+| Algún nt/ss (visibles) | 288 | 84 % → 87 % | 8 % → 6 % | 8 % → 7 % |
+| Todos | 384 | 79 % → 84 % | 12 % → 8 % | 9 % → 8 % |
+
+**Lectura.**
+1. **El centroide hace justo lo que debía.** En los FP "invisibles" (solo centroide o efemérides, 24 % de los FP) el acierto sube de 66 % a 80 % y los tomados por planeta bajan a la mitad (24 % → 12 %). Es la prueba directa de que su mejora en Kepler es física y no un atajo.
+2. **Casi la mitad de los FP que la CNN solo curva toma por planeta son de tipo invisible** (~22 de ~46). Ese es el **techo físico del enfoque solo curva**: esos errores no se pueden arreglar sin información de fuera de la curva.
+3. **Aun así, la curva capta parte de los invisibles** (66 %): muchas coincidencias de efemérides copian la señal de una binaria vecina, cuya forma (V, secundario) sigue delatándola.
+4. **El otro error grande: FP "no parece tránsito" tomados por NO_SIGNAL (22 %).** No es un fallo del modelo sino de la definición de las clases: un FP de tipo nt es ruido o un artefacto instrumental, y para el modelo se parece a "no hay señal". Unir esa frontera (o tratar nt como NO_SIGNAL) es una decisión de etiquetado, no de modelo.
+5. Los errores mejorables están en las binarias (ss, 88 % de acierto) y en esa frontera nt/NO_SIGNAL. Más datos de la misma estrella (más trimestres, resolución mayor) ayudarían en ss; la frontera nt es conceptual.
