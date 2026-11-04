@@ -1,0 +1,4 @@
+evaluacion,n,pr_auc_macro,pr_auc_PLANET,pr_auc_FALSE_POSITIVE,pr_auc_NO_SIGNAL,macro_f1,f1_PLANET,f1_FALSE_POSITIVE,f1_NO_SIGNAL
+"TESS train+val, 1 sector",2634,0.753,0.6825,0.6613,0.9151,0.6659,0.6321,0.489,0.8766
+parejas 2 sectores: vista de 1 sector,1278,0.7721,0.739,0.6587,0.9185,0.6926,0.6787,0.5176,0.8817
+parejas 2 sectores: vista de 2 sectores,1278,0.8085,0.7855,0.6984,0.9416,0.7186,0.6955,0.557,0.9032

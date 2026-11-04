@@ -93,3 +93,40 @@ Referencia: la CNN conjunta (entrenada con las tres misiones) da 0,840 / 0,779 e
 - La razón probable es el **desequilibrio**: 234 estrellas de TESS frente a ~10 000 de Kepler y K2 pesan muy poco en el entrenamiento, y el modelo apenas las tiene en cuenta.
 - Formas estándar de aprovechar mejor pocas etiquetas, sin probar todavía: **dar más peso** a las estrellas de TESS en la pérdida, o **ajuste fino** (preentrenar con Kepler + K2 y reentrenar solo con las pocas de TESS).
 - El acierto en planetas de P < 2 d en val (11 estrellas) oscila entre 64 % y 82 % sin tendencia: la muestra es demasiado pequeña para concluir.
+
+## Adaptación sin etiquetas: AdaBN (2026-11-04)
+
+`scripts/models/adabn.py`, `results/models/adabn_tess.csv`. TESS como telescopio nuevo sin etiquetas: el modelo LOMO (Kepler + K2, base 16, dropout 0,5, 3 semillas) recalcula las estadísticas de sus BatchNorm con las curvas de TESS evaluadas (transductivo, sin etiquetas); los pesos no cambian. Kepler y K2 no se tocan.
+
+| Variante | PR-AUC macro | Macro-F1 | F1 PLANET / FP / NO_SIGNAL |
+|---|---|---|---|
+| LOMO base (reproduce el resultado anterior) | **0,764** | **0,691** | 0,65 / 0,54 / 0,88 |
+| AdaBN | 0,740 | 0,651 | 0,61 / 0,45 / 0,89 |
+| AdaBN + profundidad estandarizada con TESS | 0,741 | 0,651 | 0,61 / 0,45 / 0,89 |
+
+**Lectura.** AdaBN empeora (−0,024 de PR-AUC, −0,09 de F1 de FP). Las vistas ya se normalizan por estrella, así que el "aspecto" de las curvas de TESS no es el problema; las estadísticas de TESS mezclan clases en otra proporción y desplazan la frontera PLANET/FP. Confirma el diagnóstico: lo que falta en TESS es información (pocos tránsitos) y ejemplos de su población, no un cambio de escala. Descartado; se sigue con el aumento tipo TESS (recortar Kepler/K2 a un sector). Limitación: sin IC bootstrap, pero todas las métricas empeoran a la vez.
+
+## TESS con 2 sectores: mismas estrellas, 1 frente a 2 (2026-11-04)
+
+Decisión de Jairo: medir el efecto de más tránsitos sin abrir el atajo de sectores (los PLANET de TESS tienen más sectores de 2 min que los FP porque TESS reapunta a los TOI). `scripts/data/build_tess_2sectors.py` añade un segundo sector a las 639 parejas (positivo, negativo) de train + val en las que las dos estrellas tienen ≥ 2 sectores (359 FP, 280 PLANET; 1 278 estrellas, todas válidas). El negativo usa el mismo segundo sector que su pareja cuando lo tiene. `scripts/models/tess_sectors.py` evalúa el mismo modelo LOMO (sin TESS) con las dos vistas; IC 95 % por bootstrap pareado por pareja. `results/models/tess_sectors.csv`.
+
+| Vista | Tránsitos (mediana P / FP / NS) | PR-AUC macro | Macro-F1 | Acierto PLANET / FP |
+|---|---|---|---|---|
+| 1 sector | 5 / 9 / 8 | 0,780 | 0,721 | 77 % / 48 % |
+| 2 sectores | 10 / 18 / 15 | **0,814** | **0,749** | 81 % / 52 % |
+
+**Diferencia de PR-AUC +0,034, IC 95 % [+0,018, +0,048].** Más tránsitos mejoran TESS en las tres clases. No hay atajo posible: TESS no entrena y son las mismas estrellas. Es la primera mejora clara: la información por estrella es un cuello de botella. Vía para explotarlo: curvas FFI (todas las estrellas con los sectores de su posición en el cielo, sin el sesgo de los TOI).
+
+## Aumento "tipo TESS": Kepler y K2 recortados a 27,4 d (2026-11-04)
+
+`scripts/data/build_cropped.py`: por estrella de Kepler/K2, un trimestre o campaña al azar y una ventana de 27,4 d con algún tránsito; 7 543 copias válidas (los planetas de periodo largo quedan con 1 tránsito y se descartan). `scripts/models/lomo_crop.py`: LOMO de TESS con originales + copias (la parada temprana aparta juntas las copias de cada estrella; `training.fit(groups=...)`). `results/models/lomo_crop_tess.csv`.
+
+| Evaluación | Base LOMO | + copias recortadas |
+|---|---|---|
+| TESS train + val (1 sector, 2 634) | 0,764 | 0,753 |
+| Parejas, vista de 1 sector | 0,780 | 0,772 |
+| Parejas, vista de 2 sectores | 0,814 | 0,809 |
+
+**No ayuda** (ligeramente peor en todo, sin IC). El modelo ya veía curvas con pocos tránsitos en Kepler/K2; lo que falta en TESS es información en sus propias curvas, no ejemplos con pocos tránsitos. Además, el recorte no imita el ruido ni los píxeles de TESS. Descartado; el paso de ruido y dilución, que dependía de este, no se hace.
+
+**Aviso de selección.** AdaBN, 2 sectores y recorte se han evaluado sobre el mismo TESS train + val. La cifra final de portabilidad debe salir del test de TESS (sin tocar) con la receta fijada antes de mirarlo, indicando cuántas variantes se probaron.

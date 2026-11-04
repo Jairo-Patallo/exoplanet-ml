@@ -7,7 +7,7 @@ tiempo a las vistas local y global (un tránsito es simétrico, así que sigue s
 """
 import numpy as np
 import torch
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedGroupKFold, train_test_split
 from torch import nn
 
 from exoplanet.data import CLASSES
@@ -38,12 +38,18 @@ def reflect(x: dict[str, torch.Tensor], gen: torch.Generator) -> dict[str, torch
 
 
 def fit(make_model, x: dict[str, torch.Tensor], y: torch.Tensor, weight_decay: float, seed: int,
-        augment: bool = False, lr: float = LR, amp: bool = False, patience: int = PATIENCE) -> tuple[nn.Module, int]:
+        augment: bool = False, lr: float = LR, amp: bool = False, patience: int = PATIENCE,
+        groups: np.ndarray | None = None) -> tuple[nn.Module, int]:
     """Entrena el modelo que devuelve make_model(x_ajuste) con parada temprana; devuelve el de menor pérdida y su época.
     make_model recibe los datos de ajuste para fijar con ellos la estandarización (nunca con val).
-    Si el modelo define param_groups(lr), se usan (p. ej. lr menor para un modelo preentrenado). amp: bf16 en GPU."""
+    Si el modelo define param_groups(lr), se usan (p. ej. lr menor para un modelo preentrenado). amp: bf16 en GPU.
+    groups: si hay varias copias de una estrella (aumento), todas van al mismo lado del 15 % de parada (~1/7)."""
     torch.manual_seed(seed)
-    idx_fit, idx_stop = train_test_split(np.arange(len(y)), test_size=0.15, stratify=y.numpy(), random_state=seed)
+    if groups is None:
+        idx_fit, idx_stop = train_test_split(np.arange(len(y)), test_size=0.15, stratify=y.numpy(), random_state=seed)
+    else:
+        cv = StratifiedGroupKFold(n_splits=7, shuffle=True, random_state=seed)
+        idx_fit, idx_stop = next(cv.split(np.zeros(len(y)), y.numpy(), groups))
     xf, yf = {k: v.to(DEVICE) for k, v in take(x, idx_fit).items()}, y[idx_fit].to(DEVICE)
     xs, ys = {k: v.to(DEVICE) for k, v in take(x, idx_stop).items()}, y[idx_stop].to(DEVICE)
     weights = len(yf) / (len(CLASSES) * torch.bincount(yf, minlength=len(CLASSES)).float())
