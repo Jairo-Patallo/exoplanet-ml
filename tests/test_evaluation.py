@@ -108,3 +108,11 @@ def test_evaluate_by_mission_mean_and_ci():
     assert np.isclose(t.loc["media", "macro_f1"], t.loc[list(MISSIONS), "macro_f1"].mean()), "la media pesa igual cada misión"
     assert (t.macro_f1_lo <= t.macro_f1).all() and (t.macro_f1 <= t.macro_f1_hi).all()
     assert all(c.to_numpy().sum() == 100 for c in conf.values())
+
+
+def test_nested_folds_can_leave_test_out_of_the_held_out_mission():
+    meta = fake_meta()
+    for f in nested_folds(meta, eval_splits=("train", "val")):
+        held = meta.iloc[f.eval_idx]
+        assert set(held.mission) == {f.held_out} and "test" not in set(held.split)
+        assert len(f.eval_idx) == ((meta.mission == f.held_out) & meta.split.isin(["train", "val"])).sum()

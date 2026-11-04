@@ -29,6 +29,17 @@ def load_meta() -> pd.DataFrame:
     return pd.concat([load_split(s, columns=cols).assign(split=s) for s in SPLITS], ignore_index=True)
 
 
+def sample_meta(splits=SPLITS) -> pd.DataFrame:
+    """La muestra de la fase 2 (estrellas con vista válida) con coordenadas, para los folds LOMO: ra/dec del dataset de
+    partida (positivos y NO_SIGNAL de Kepler) y de negatives.csv (negativos de K2 y TESS)."""
+    from exoplanet.views import load_sample     # import local: views no depende de evaluation
+    stars = load_sample(splits)
+    hf = pd.concat([load_split(s, columns=["star_id", "ra", "dec"]) for s in SPLITS])
+    neg = pd.read_csv("results/sample/negatives.csv", usecols=["star_id", "ra", "dec"])
+    coords = pd.concat([hf, neg]).drop_duplicates("star_id")
+    return stars.merge(coords, on="star_id", how="left")
+
+
 def shared_stars(meta: pd.DataFrame, radius_arcsec: float = 2.0) -> dict[str, set[str]]:
     """Por misión excluida M: star_id de las otras misiones a menos de `radius_arcsec` de alguna estrella de M.
     Es la misma estrella física observada por dos misiones (p. ej. TESS reobserva campos de Kepler y K2)."""
@@ -51,16 +62,17 @@ def _rows(meta: pd.DataFrame, missions, splits, exclude=frozenset()) -> np.ndarr
     return np.flatnonzero(mask.to_numpy())
 
 
-def nested_folds(meta: pd.DataFrame, shared: dict[str, set[str]] | None = None) -> list[Fold]:
+def nested_folds(meta: pd.DataFrame, shared: dict[str, set[str]] | None = None, eval_splits=SPLITS) -> list[Fold]:
     """Un fold externo por misión excluida. `shared` (salida de `shared_stars`) quita de los conjuntos de ajuste,
-    no de la evaluación, las estrellas que la misión excluida también observa."""
+    no de la evaluación, las estrellas que la misión excluida también observa. `eval_splits`: splits de la misión
+    excluida que se evalúan (el protocolo dice todos; sin "test" se puede iterar sin gastar el test)."""
     folds = []
     for held_out in MISSIONS:
         exclude = (shared or {}).get(held_out, frozenset())
         a, b = (m for m in MISSIONS if m != held_out)
         inner = [(_rows(meta, [x], ["train"], exclude), _rows(meta, [y], ["val"], exclude)) for x, y in ((a, b), (b, a))]
         folds.append(Fold(held_out, (a, b), _rows(meta, [a, b], ["train", "val"], exclude),
-                          _rows(meta, [held_out], SPLITS), inner))
+                          _rows(meta, [held_out], eval_splits), inner))
     return folds
 
 

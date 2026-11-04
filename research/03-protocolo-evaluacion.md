@@ -109,3 +109,11 @@ El prior de falsos positivos cambia mucho entre misiones (Kepler 0,71, K2 0,41, 
 ## Pendiente
 
 - **Utilidad de folds** (`lomo_folds`) y baseline dummy: el trabajo registrado en la tarea #27 no existe en el repo, hay que rehacerlo.
+
+## Preparación de la fase 3 (2026-11-04)
+
+- `evaluation.sample_meta()` carga la muestra actual con coordenadas y `nested_folds(..., eval_splits=...)` crea los folds. Script: `scripts/models/lomo.py` (dummy y CNN solo curva, opcionalmente con centroide). Probado con `--smoke`, sin ejecutar todavía.
+- Estrellas compartidas entre misiones (< 2″) que se quitan del ajuste: 4 si se excluye Kepler, 3 si K2, 7 si TESS.
+- Tamaños: excluida Kepler → ajuste 3 280 (K2 + TESS) y evaluación 9 935; excluida K2 → 12 566 / 650; excluida TESS → 10 579 / 2 634 (evaluación sin el split de test).
+- **Decisión pendiente (usuario): ¿la misión excluida se evalúa entera, con su test?** El protocolo dice "entera, una sola vez", pero la fase 3 comparará varias variantes (ablación, centroide, calibración). Cada una miraría el test de la misión excluida, que además es el que se reserva para la evaluación final (fase 4). Propuesta: evaluar las variantes de la fase 3 con train + val de la misión excluida (`--eval-splits train val`, sigue sin participar en ninguna decisión de ajuste) y dejar su test para una sola evaluación final del modelo elegido.
+- **Decidido (Jairo, 2026-11-04): sin test.** Las variantes de la fase 3 se evalúan con train + val de la misión excluida (`--eval-splits train val`). El test de las tres misiones queda reservado para una única evaluación final del modelo elegido (fase 4).

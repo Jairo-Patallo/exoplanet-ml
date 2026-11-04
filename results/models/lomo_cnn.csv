@@ -1,0 +1,4 @@
+excluida,n_eval,config,pr_auc_macro,pr_auc_PLANET,pr_auc_FALSE_POSITIVE,pr_auc_NO_SIGNAL,macro_f1,f1_PLANET,f1_FALSE_POSITIVE,f1_NO_SIGNAL
+kepler,9935,"{'base': 8, 'dropout': 0.3}",0.8942,0.831,0.8904,0.9613,0.8278,0.7645,0.7851,0.9338
+k2,650,"{'base': 8, 'dropout': 0.5}",0.927,0.926,0.9237,0.9312,0.8939,0.8662,0.8746,0.9408
+tess,2634,"{'base': 16, 'dropout': 0.5}",0.7639,0.6914,0.6732,0.9272,0.6909,0.6533,0.5379,0.8813
