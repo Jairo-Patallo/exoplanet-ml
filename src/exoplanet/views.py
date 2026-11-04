@@ -18,11 +18,12 @@ def load_sample(splits=("train", "val")) -> pd.DataFrame:
     return qc[qc["valid"].eq(True) & qc.split.isin(splits)].reset_index(drop=True)   # NaN (error de descarga) = no válida
 
 
-def load_views(star_ids, keys=("local", "glob")) -> dict[str, np.ndarray]:
-    """Vistas apiladas por clave: {"local": (n, 81), "glob": (n, 201), ...} en el orden de star_ids."""
+def load_views(star_ids, keys=("local", "glob"), views_dir=SAMPLE_VIEWS) -> dict[str, np.ndarray]:
+    """Vistas apiladas por clave: {"local": (n, 81), "glob": (n, 201), ...} en el orden de star_ids.
+    `views_dir`: otra carpeta de vistas (p. ej. data/sample/views_tess2, TESS con 2 sectores)."""
     out = {k: [] for k in keys}
     for s in star_ids:
-        with np.load(SAMPLE_VIEWS / f"{s}.npz") as f:   # cerrar cada archivo: con ~15 000 abiertos a la vez el SO falla
+        with np.load(views_dir / f"{s}.npz") as f:   # cerrar cada archivo: con ~15 000 abiertos a la vez el SO falla
             for k in keys:
                 out[k].append(f[k])
     return {k: np.stack(v) for k, v in out.items()}

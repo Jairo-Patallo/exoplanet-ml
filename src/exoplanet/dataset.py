@@ -11,7 +11,7 @@ from torch.utils.data import Dataset
 
 from exoplanet.data import CLASSES, MISSIONS
 from exoplanet.features import curve_features
-from exoplanet.views import load_centroid, load_views, normalize
+from exoplanet.views import SAMPLE_VIEWS, load_centroid, load_views, normalize
 
 
 class ViewDataset(Dataset):
@@ -19,8 +19,8 @@ class ViewDataset(Dataset):
     `stars` es una tabla con star_id, mission y disposition (p. ej. exoplanet.views.load_sample filtrada por split)."""
 
     def __init__(self, stars: pd.DataFrame, centroid: bool = False, odd_even: bool = False, features: bool = False,
-                 ephem: bool = False):
-        v = load_views(stars.star_id, ("local", "glob", "odd", "even"))
+                 ephem: bool = False, views_dir=SAMPLE_VIEWS):
+        v = load_views(stars.star_id, ("local", "glob", "odd", "even"), views_dir)
         local, glob, log_depth = normalize(v["local"], v["glob"])
         locs, globs = [local], [glob]
         if centroid:              # canal del desplazamiento del centroide, alineado con el flujo (variante 2026-11-03)

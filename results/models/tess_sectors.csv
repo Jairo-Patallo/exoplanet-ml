@@ -1,0 +1,3 @@
+version,n,pr_auc_macro,pr_auc_PLANET,pr_auc_FALSE_POSITIVE,pr_auc_NO_SIGNAL,macro_f1,f1_PLANET,f1_FALSE_POSITIVE,f1_NO_SIGNAL,acierto_PLANET,acierto_FALSE_POSITIVE,acierto_NO_SIGNAL,transitos_med_PLANET,transitos_med_FALSE_POSITIVE,transitos_med_NO_SIGNAL,dif_pr_auc_ic95
+1_sector,1278,0.7804,0.7411,0.6705,0.9295,0.7211,0.7002,0.5797,0.8836,0.7714,0.4763,0.9327,5.0,9.0,8.0,
+2_sectores,1278,0.8141,0.7844,0.7094,0.9486,0.7491,0.722,0.6205,0.9048,0.8071,0.5237,0.9374,10.0,18.0,15.0,"[+0.018, +0.048]"
