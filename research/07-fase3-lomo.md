@@ -165,7 +165,7 @@ Lo único que mejora TESS es darle más datos de TESS. Siguiente palanca, si se 
 | K2 | 0,927 | 0,923 | −0,004 |
 | TESS | 0,764 | 0,761 | −0,003 |
 
-La profundidad apenas aporta (−0,003 de media, dentro del ruido entre semillas): el modelo no se apoya en la variable que más delata la misión. La SNR no es una entrada (las vistas se normalizan por estrella); queda implícita en el ruido de la vista y no se puede quitar sin cambiar la normalización. **Decisión pendiente de Jairo:** mantener la profundidad (+0,003) o quitarla por robustez ante telescopios con otra distribución de profundidades (CoRoT).
+La profundidad apenas aporta (−0,003 de media, dentro del ruido entre semillas): el modelo no se apoya en la variable que más delata la misión. La SNR no es una entrada (las vistas se normalizan por estrella); queda implícita en el ruido de la vista y no se puede quitar sin cambiar la normalización. **Decisión de Jairo (2026-11-04): se quita.** El modelo final (fase 4) usará solo la forma normalizada, más robusto ante telescopios con otra distribución de profundidades (CoRoT).
 
 ## Calibración y cambio de prior (#37, 2026-11-04)
 
@@ -182,3 +182,12 @@ La profundidad apenas aporta (−0,003 de media, dentro del ruido entre semillas
 - **Fiabilidad:** en Kepler y K2 el modelo es algo prudente (acierta más de lo que dice); en **TESS es demasiado confiado** (con confianza 0,75 acierta el 60 %). En un telescopio nuevo, la probabilidad no debe presentarse como certeza: la web debe decirlo.
 - **Catálogo de alta pureza:** con precisión 0,9 se recupera el 84–86 % en K2 pero solo el 12 % de planetas y el 7 % de FP en TESS. En un telescopio difícil el modelo sirve para priorizar candidatos, no para confirmarlos.
 - Limitación: la mezcla de clases de la muestra es artificial (NO_SIGNAL 1:1). En un telescopio real casi todas las estrellas no tienen señal; esto se trata en la fase 4 con BLS.
+
+## Tareas descartadas al cerrar la fase (2026-11-05)
+
+- **#67, aumento con ruido y dilución tipo TESS.** Ruido de las vistas normalizadas (SNR por bin, mediana de planetas / FP): Kepler 12,2 / 12,0; Kepler recortado 5,6 / 4,8; TESS 11,7 / 7,6. TESS no es más ruidoso que Kepler una vez normalizado, y el recorte ya es más ruidoso que TESS: añadir ruido alejaría las copias de TESS. Además, el paso del que dependía (recorte) no ayudó.
+- **#45, transferencia directa a K2 (Kepler, TESS, Kepler + TESS → K2).** El caso Kepler + TESS → K2 es el fold K2 del LOMO (0,927). Los otros dos solo dirían qué telescopio por separado transfiere mejor, lo que no cambia ninguna decisión: el modelo final se entrena con los tres. La tarea venía de antes del LOMO (transferencia con variables del catálogo).
+
+## Cierre de la fase 3 (2026-11-05)
+
+El modelo solo curva es portable (LOMO medio 0,862 frente a 0,911 dentro de misión). TESS es el telescopio difícil y su límite está en los datos (pocos tránsitos por sector), no en el modelo: solo darle más sectores lo mejora. Regla en un telescopio sin etiquetas: argmax. El modelo final no usará la profundidad. Pasan a la fase 4: #9, #17, #42 y #52.
