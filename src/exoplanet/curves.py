@@ -72,10 +72,10 @@ def target_name(star_id: str) -> str:
     return star_id.replace("_", " ")
 
 
-def mast_sequence(segment: int) -> int:
+def mast_sequence(segment: int, mission: str) -> int:
     """Campaña/sector como lo numera MAST: las mitades de las campañas 10 y 11 de K2 (archivos c101/c102, c111/c112)
-    van como 10 y 11."""
-    return segment // 10 if segment >= 100 else segment
+    van como 10 y 11. Solo en K2: TESS tiene sectores >= 100 de verdad (antes se convertían en 10; corregido 2026-11-03)."""
+    return segment // 10 if mission == "k2" and segment >= 100 else segment
 
 
 def download_star(star_id: str, mission: str, period: float, t0: float, max_days: float = MAX_DAYS,
@@ -84,7 +84,7 @@ def download_star(star_id: str, mission: str, period: float, t0: float, max_days
     `segment` si se da (negativos emparejados, #32). Lista vacía si MAST no tiene curvas."""
     res = lk.search_lightcurve(target_name(star_id), **SEARCH[mission])
     if segment is not None:
-        res = res[np.asarray(res.table["sequence_number"]) == mast_sequence(segment)]
+        res = res[np.asarray(res.table["sequence_number"]) == mast_sequence(segment, mission)]
     if len(res) == 0:
         return []
     chosen = select_segments(product_spans(res.table, mission), period, t0, max_days, MAX_SEGMENTS.get(mission))
@@ -109,6 +109,32 @@ def prepare(lc: "lk.LightCurve", period: float, t0: float, duration: float) -> t
     t, y = flat.time.value, flat.flux.value
     out = ~flat.create_transit_mask(period=period, transit_time=t0, duration=width)
     return t, y / np.median(y[out])
+
+
+def prepare_centroid(lc: "lk.LightCurve", period: float, t0: float, duration: float) -> tuple[np.ndarray, ...]:
+    """Un segmento -> (tiempo, dx, dy): centroide (columna, fila, en píxeles) menos su tendencia lenta (deriva del
+    apuntado), estimada con una mediana móvil de la misma ventana que el aplanado del flujo y con el tránsito tapado."""
+    t = lc.time.value
+    cx, cy = np.asarray(lc.centroid_col.value, float), np.asarray(lc.centroid_row.value, float)
+    ok = np.isfinite(t) & np.isfinite(cx) & np.isfinite(cy)
+    t, cx, cy = t[ok], cx[ok], cy[ok]
+    phase = ((t - t0 + 0.5 * period) % period) - 0.5 * period
+    out = np.abs(phase) >= 0.5 * mask_width(period, duration)
+    window = max(MASK_WIDTH * duration, MIN_WINDOW_DAYS)
+    idx = pd.to_datetime(t, unit="D")
+    res = []
+    for c in (cx, cy):
+        trend = pd.Series(np.where(out, c, np.nan), index=idx).rolling(pd.Timedelta(days=window), center=True,
+                                                                         min_periods=1).median()
+        trend = trend.interpolate(limit_direction="both").to_numpy()
+        res.append(c - trend)
+    return t, res[0], res[1]
+
+
+def read_centroid(paths: list[Path], period: float, t0: float, duration: float) -> tuple[np.ndarray, ...]:
+    """Centroide sin tendencia de los segmentos (misma calidad que el flujo), concatenado: (tiempo, dx, dy)."""
+    parts = [prepare_centroid(lk.read(p, quality_bitmask="default"), period, t0, duration) for p in paths]
+    return tuple(np.concatenate([p[i] for p in parts]) for i in range(3))
 
 
 def read_prepare(paths: list[Path], period: float, t0: float, duration: float) -> tuple[np.ndarray, np.ndarray]:

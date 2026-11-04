@@ -66,4 +66,8 @@ def test_prepare_works_with_wide_eclipses():
 
 
 def test_mast_sequence_maps_k2_half_campaigns():
-    assert mast_sequence(102) == 10 and mast_sequence(111) == 11 and mast_sequence(5) == 5
+    assert mast_sequence(102, "k2") == 10 and mast_sequence(111, "k2") == 11 and mast_sequence(5, "k2") == 5
+
+
+def test_mast_sequence_keeps_tess_sectors_above_100():
+    assert mast_sequence(106, "tess") == 106 and mast_sequence(10, "tess") == 10

@@ -33,7 +33,7 @@ MAST_QUERY = {"k2": dict(obs_collection="K2", provenance_name="K2", t_exptime=18
 
 def mast_pool(mission: str, segment: int) -> pd.DataFrame:
     """Todas las estrellas con curva de cadencia larga (K2) o de 2 min (TESS) en una campaña/sector."""
-    t = Observations.query_criteria(dataproduct_type="timeseries", sequence_number=mast_sequence(segment),
+    t = Observations.query_criteria(dataproduct_type="timeseries", sequence_number=mast_sequence(segment, mission),
                                    **MAST_QUERY[mission])
     ids = [int(str(n).replace("ktwo", "")) for n in t["target_name"]]
     prefix = "EPIC_" if mission == "k2" else "TIC_"
