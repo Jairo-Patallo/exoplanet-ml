@@ -1,6 +1,6 @@
 # Contexto del proyecto exoplanet-ml (para continuar en otro chat)
 
-Actualizado el 2026-11-04. Lee también `CLAUDE.md` (reglas de trabajo), `README.md` (estructura y cómo reproducir) y `research/` (decisiones razonadas, sobre todo `05-negativos-no-signal.md` y `06-modelos-fase2.md`).
+Actualizado el 2026-11-04 (tarde). Lee también `CLAUDE.md` (reglas de trabajo), `README.md` (estructura y cómo reproducir) y `research/` (decisiones razonadas, sobre todo `05-negativos-no-signal.md` y `06-modelos-fase2.md`).
 
 ## 1. Objetivo
 
@@ -90,11 +90,28 @@ Scripts en `scripts/data`, `scripts/checks` y `scripts/models` (no se importan e
   4. Modelo portable (BLS, test único, CoRoT).
   5. Web y documentación.
 
-## 8. Qué sigue
+## 8. Fase 3 (LOMO) y estado actual
 
-1. Fase 3: ejecutar LOMO con el script `scripts/models/lomo.py` (dummy y CNN solo curva; después la ablación #43, la calibración y la variante con centroide).
-2. Decisiones abiertas para el usuario:
-   - cerrar la fase 2 (las tareas #12, #13, #29 y #16 tienen un criterio antiguo de LOMO);
-   - cómo tratar los FP "no parece tránsito" frente a NO_SIGNAL;
-   - si replegar con vistas par/impar locales y del secundario (~5 h, ganancia esperada pequeña).
-3. Fase 4: BLS para no depender de la efeméride del catálogo; evaluación única en test.
+- **Decidido:** la misión excluida se evalúa con train + val, sin su test, que queda para la evaluación final. Script `scripts/models/lomo.py` (dummy, logreg y CNN; `--only`; guarda predicciones por estrella).
+- **CNN solo curva en LOMO** (PR-AUC macro; dummy 0,333): Kepler 0,894, K2 0,927, TESS 0,764, media 0,862, frente a 0,911 dentro de misión. Macro-F1 media 0,804. El modelo solo curva es portable; **TESS es el difícil**.
+- **Diagnóstico de TESS** (`scripts/checks/tess_errors.py`):
+  - los FP de TESS solo se aciertan el 42 %;
+  - causa 1, pocos tránsitos con un solo sector: mediana 5–8 frente a 17–54 en Kepler y K2; con ≤ 8 tránsitos el acierto de FP es ~30 %, con más de 8 es 55–60 %;
+  - causa 2, población distinta: TESS tiene el doble de planetas con P < 2 d, y en Kepler y K2 eso es sobre todo binarias;
+  - la logística en LOMO TESS da 0,716 y la CNN 0,764: la complejidad ayuda, pero no cierra la brecha.
+- **Curva de aprendizaje** (`scripts/models/learning_curve.py`): con 46–234 estrellas de TESS etiquetadas, +0,02–0,03 de macro-F1; solo con todo el train de TESS se llega a 0,836 / 0,785. Pendiente: dar más peso a TESS o hacer ajuste fino.
+- **Descartado:** CNN con log(duración/periodo) + log(periodo) (`--ephem`): empata dentro de misión, porque la duración/periodo ya está implícita en la vista global. El LOMO con efeméride se canceló.
+- **Gráfico de variables candidatas:** `results/eda/feature_candidates.png`.
+
+## 9. Qué sigue (decisiones pendientes del usuario)
+
+1. **TESS con más sectores** (acordado hacer después de la curva). Problema: los PLANET de TESS tienen mediana de 7 sectores disponibles, los FP 3 y los NO_SIGNAL 2 (sesgo de selección; `data/sample/tess_sector_counts.csv`). Dar todos los sectores crearía un atajo. Opciones:
+   - (a) hasta 2 sectores para todas, con test de atajo de control (recomendada; ~5 GB, ~1,5 h);
+   - (b) solo estrellas con ≥ 2 sectores, todas con 2;
+   - (c) aparcarlo.
+
+   Los negativos deben igualar el número de sectores con su pareja.
+2. **Adaptación con curvas de TESS sin etiquetar** (propuesta del usuario): AdaBN (recalibrar las BatchNorm con curvas de TESS, minutos) y pseudo-etiquetas con los ~3 700 TOI PC (descarga de ~7 GB). Documentarlo como "adaptación no supervisada" (variante d del protocolo).
+3. Fase 3 restante: ablación #43 (profundidad/SNR), LOMO con centroide, calibración del umbral.
+4. Cerrar formalmente la fase 2 en Notion (#12, #13, #29 y #16 tienen un criterio antiguo de LOMO). Etiquetado pendiente: FP "no parece tránsito" frente a NO_SIGNAL.
+5. Fase 4: BLS (no depender de la efeméride del catálogo) y evaluación única en test.

@@ -6,13 +6,16 @@ Por cada misión excluida M (fold externo), las otras dos (A, B) son las únicas
   2. Reentrenamiento con train + val de A y B (sin las estrellas que M también observa: evaluation.shared_stars),
      3 semillas, ensemble de sus probabilidades.
   3. Evaluación en M, una sola vez: PR-AUC por clase y macro (principal en LOMO) y macro-F1 con argmax (referencia).
-Modelos: dummy (clase más frecuente en A + B) y CNN solo curva (la de la fase 2), opcionalmente con centroide.
+Modelos: dummy (clase más frecuente en A + B), regresión logística sobre las vistas normalizadas (C por PR-AUC interno)
+y CNN solo curva (la de la fase 2), opcionalmente con centroide. Guarda también la predicción de cada estrella evaluada.
 
 Uso (WSL, GPU):  export HSA_ENABLE_DXG_DETECTION=1
   PYTHONPATH=src ~/venvs/exoplanet-rocm/bin/python scripts/models/lomo.py --model cnn --amp [--centroid] [--ephem]
   --eval-splits train val      evalúa M sin su test (para iterar sin gastarlo; decisión pendiente del usuario)
   --smoke                      prueba rápida con pocas estrellas, sin guardar resultados
-Salida: results/models/lomo_<modelo>.csv (métricas por misión excluida) y lomo_<modelo>_inner.csv (selección).
+  --only tess                  solo el fold de esa misión excluida
+Salida: results/models/lomo_<modelo>.csv (métricas por misión excluida), lomo_<modelo>_inner.csv (selección) y
+        lomo_<modelo>_pred.csv (probabilidades por estrella).
 """
 import argparse
 from pathlib import Path
@@ -20,16 +23,21 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 from exoplanet.cnn import AstroCNN, feat_stats
 from exoplanet.data import CLASSES, SPLITS
 from exoplanet.dataset import ViewDataset
 from exoplanet.evaluation import nested_folds, point_metrics, sample_meta, shared_stars
 from exoplanet.training import fit, inputs, predict
+from exoplanet.views import load_views, normalize
 
 OUT = Path("results/models")
 GRID = [{"base": b, "dropout": d} for b in (8, 16) for d in (0.3, 0.5)]
 WEIGHT_DECAY, SEEDS = 1e-4, (0, 1, 2)
+C_GRID = np.logspace(-4, 1, 6)
 
 
 def train_cnn(x: dict, y: torch.Tensor, cfg: dict, seed: int, amp: bool):
@@ -40,6 +48,17 @@ def train_cnn(x: dict, y: torch.Tensor, cfg: dict, seed: int, amp: bool):
     return fit(make, x, y, WEIGHT_DECAY, seed, augment=True, amp=amp)[0]
 
 
+def view_matrix(stars: pd.DataFrame) -> np.ndarray:
+    v = load_views(stars.star_id)
+    return np.hstack(normalize(v["local"], v["glob"]))
+
+
+def logreg_proba(X_fit, y_fit, X_eval, C: float) -> np.ndarray:
+    m = make_pipeline(StandardScaler(), LogisticRegression(C=C, class_weight="balanced", max_iter=5000, random_state=0))
+    m.fit(X_fit, y_fit)
+    return m.predict_proba(X_eval)[:, [list(m.classes_).index(c) for c in CLASSES]]
+
+
 def metrics(y: np.ndarray, proba: np.ndarray) -> dict[str, float]:
     m = point_metrics(y, proba)
     return {k: m[k] for k in ["pr_auc_macro", *[f"pr_auc_{c}" for c in CLASSES], "macro_f1", *[f"f1_{c}" for c in CLASSES]]}
@@ -47,12 +66,13 @@ def metrics(y: np.ndarray, proba: np.ndarray) -> dict[str, float]:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--model", choices=["dummy", "cnn"], default="cnn")
+    ap.add_argument("--model", choices=["dummy", "logreg", "cnn"], default="cnn")
     ap.add_argument("--centroid", action="store_true")
     ap.add_argument("--ephem", action="store_true", help="log(duración/periodo) y log(periodo) en la cabeza")
     ap.add_argument("--amp", action="store_true")
     ap.add_argument("--eval-splits", nargs="+", default=list(SPLITS), choices=list(SPLITS))
     ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--only", choices=["kepler", "k2", "tess"])
     args = ap.parse_args()
     grid, seeds = (GRID[:1], SEEDS[:1]) if args.smoke else (GRID, SEEDS)
 
@@ -63,7 +83,10 @@ def main() -> None:
     folds = nested_folds(meta, shared_stars(meta), eval_splits=tuple(args.eval_splits))
     y_all = meta.disposition.to_numpy()
     name = f"lomo_{args.model}" + ("_centroid" if args.centroid else "") + ("_ephem" if args.ephem else "")
-    rows, inner_rows = [], []
+    rows, inner_rows, preds = [], [], []
+    if args.only:
+        folds = [f for f in folds if f.held_out == args.only]
+        name += f"_{args.only}"
     for f in folds:
         print(f"== excluida {f.held_out}: ajuste {len(f.fit_idx)} ({'+'.join(f.fit_missions)}), evaluación {len(f.eval_idx)}", flush=True)
         y_eval = y_all[f.eval_idx]
@@ -71,6 +94,19 @@ def main() -> None:
             pred = pd.Series(y_all[f.fit_idx]).value_counts().idxmax()
             proba = np.tile([float(c == pred) for c in CLASSES], (len(f.eval_idx), 1))
             rows.append({"excluida": f.held_out, "n_eval": len(f.eval_idx), "config": f"predice {pred}", **metrics(y_eval, proba)})
+            continue
+        if args.model == "logreg":
+            X = lambda idx: view_matrix(meta.iloc[idx])
+            scores = []
+            for C in C_GRID:
+                s = [point_metrics(y_all[v], logreg_proba(X(a), y_all[a], X(v), C))["pr_auc_macro"] for a, v in f.inner]
+                scores.append(np.mean(s))
+                inner_rows.append({"excluida": f.held_out, "C": C, "pr_auc_interno_A_B": s[0], "pr_auc_interno_B_A": s[1], "media": scores[-1]})
+            C = C_GRID[int(np.argmax(scores))]
+            proba = logreg_proba(X(f.fit_idx), y_all[f.fit_idx], X(f.eval_idx), C)
+            rows.append({"excluida": f.held_out, "n_eval": len(f.eval_idx), "config": f"C={C:.3g}", **metrics(y_eval, proba)})
+            preds.append(meta.iloc[f.eval_idx][["star_id", "mission", "disposition"]].assign(**dict(zip([f"p_{c}" for c in CLASSES], proba.T))))
+            print(f"   {f.held_out}: PR-AUC macro {rows[-1]['pr_auc_macro']:.3f}, macro-F1 {rows[-1]['macro_f1']:.3f}", flush=True)
             continue
         ds = lambda idx: ViewDataset(meta.iloc[idx], centroid=args.centroid, ephem=args.ephem)
         scores = []
@@ -86,7 +122,9 @@ def main() -> None:
         cfg = grid[int(np.argmax(scores))]
         d_fit, d_eval = ds(f.fit_idx), ds(f.eval_idx)
         probas = [predict(train_cnn(inputs(d_fit), d_fit.y, cfg, seed, args.amp), inputs(d_eval), amp=args.amp) for seed in seeds]
-        res = {"excluida": f.held_out, "n_eval": len(f.eval_idx), "config": str(cfg), **metrics(y_eval, np.mean(probas, axis=0))}
+        proba = np.mean(probas, axis=0)
+        res = {"excluida": f.held_out, "n_eval": len(f.eval_idx), "config": str(cfg), **metrics(y_eval, proba)}
+        preds.append(meta.iloc[f.eval_idx][["star_id", "mission", "disposition"]].assign(**dict(zip([f"p_{c}" for c in CLASSES], proba.T))))
         rows.append(res)
         print(f"   {f.held_out}: PR-AUC macro {res['pr_auc_macro']:.3f}, macro-F1 {res['macro_f1']:.3f}", flush=True)
 
@@ -97,6 +135,8 @@ def main() -> None:
         return
     OUT.mkdir(parents=True, exist_ok=True)
     out.round(4).to_csv(OUT / f"{name}.csv", index=False, encoding="utf-8")
+    if preds:
+        pd.concat(preds).round(4).to_csv(OUT / f"{name}_pred.csv", index=False, encoding="utf-8")
     if inner_rows:
         pd.DataFrame(inner_rows).round(4).to_csv(OUT / f"{name}_inner.csv", index=False, encoding="utf-8")
 

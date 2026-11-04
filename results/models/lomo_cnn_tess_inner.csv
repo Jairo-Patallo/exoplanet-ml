@@ -1,0 +1,5 @@
+excluida,base,dropout,pr_auc_interno_A_B,pr_auc_interno_B_A,media
+tess,8,0.3,0.9249,0.8448,0.8849
+tess,8,0.5,0.9037,0.8208,0.8623
+tess,16,0.3,0.9107,0.8453,0.878
+tess,16,0.5,0.9145,0.858,0.8863
