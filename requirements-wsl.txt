@@ -1,0 +1,18 @@
+# Entornos de WSL2 (Ubuntu 24.04, Python 3.12) para las redes. Mismas versiones que requirements.txt más PyTorch.
+#
+# CPU (~/venvs/exoplanet):
+#   pip install torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r requirements-wsl.txt
+# GPU AMD RX 9070 XT con ROCm 7.2.1 (~/venvs/exoplanet-rocm; requiere export HSA_ENABLE_DXG_DETECTION=1):
+#   pip install "https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2.1/torch-2.9.1%2Brocm7.2.1.lw.gitff65f5bc-cp312-cp312-linux_x86_64.whl" -f https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2.1/
+#   pip install -r requirements-wsl.txt
+#   pip install momentfm==0.1.4 --no-deps && pip install transformers==4.57.6 einops==0.8.2 safetensors==0.8.0 huggingface_hub==0.36.2
+#   (momentfm fija numpy 1.25 y transformers 4.33, que no instalan en Python 3.12; funciona con estas versiones)
+numpy==2.5.4
+pandas==2.3.3
+pyarrow==26.0.0
+scikit-learn==1.9.1
+astropy==8.0.2
+lightkurve==2.6.0
+matplotlib==3.11.2
+pytest==9.2.0

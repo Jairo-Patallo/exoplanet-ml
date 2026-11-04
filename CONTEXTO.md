@@ -1,82 +1,100 @@
-# Contexto del proyecto exoplanet-ml (para pasárselo a otro chat)
+# Contexto del proyecto exoplanet-ml (para continuar en otro chat)
 
-Actualizado el 2026-10-30. Lee también `CLAUDE.md` (reglas de trabajo) y `research/` (decisiones razonadas). Este documento resume lo que otro chat necesita para continuar sin perder nada.
+Actualizado el 2026-11-04. Lee también `CLAUDE.md` (reglas de trabajo), `README.md` (estructura y cómo reproducir) y `research/` (decisiones razonadas, sobre todo `05-negativos-no-signal.md` y `06-modelos-fase2.md`).
 
 ## 1. Objetivo
 
-Un modelo que decide si un tránsito es **PLANET**, **FALSE_POSITIVE** o **NO_SIGNAL** usando **solo la curva de luz** (y, opcionalmente, variables derivadas de ella), **portable a telescopios nuevos**. Se valida entrenando con dos misiones y probando en la tercera (Kepler, K2, TESS); CoRoT sería una cuarta misión si se consiguen sus etiquetas. La web es un extra lejano (idea: BLS para obtener periodo y época a partir de una curva cruda).
+Un modelo que decide si una señal de tránsito es **PLANET**, **FALSE_POSITIVE** o **NO_SIGNAL** usando **solo la curva de luz** (y variables derivadas de ella), **portable a telescopios nuevos**. La portabilidad se mide entrenando con dos misiones y probando en la tercera (LOMO: Kepler, K2, TESS). CoRoT sería una cuarta misión si llegan sus etiquetas. Al final: modelo portable con BLS (fase 4) y web (fase 5).
 
-Escalera de modelos, todos con el mismo protocolo: reglas físicas → regresión logística → árboles (sklearn, sobre variables derivadas de la curva) → MLP → CNN 1D. Las variables de catálogo (`teff`, `logg`, `log_rp_implied`) solo sirven como comparación; `log_period` queda fuera del conjunto portable.
+## 2. Cómo se trabaja
 
-## 2. Cómo se trabaja (resumen de `CLAUDE.md` y de lo acordado)
-
-- Responder en español. El usuario dirige y Claude implementa; Claude evalúa cada instrucción (si está mal, lo dice y propone alternativa) y explica el código y los resultados.
-- Las decisiones importantes de ML (misión reservada para test, umbrales, armonización de etiquetas…) son del usuario: Claude propone con pros y contras y espera.
-- Las tareas viven en Notion. Estados: No empezado → En proceso → **Esperando decisión** → Hecho. Máximo 1-2 En proceso. Una tarea solo es Hecho si existe un artefacto verificable (commit, ruta o test que pasa).
-- **Autonomía acordada:** ejecutar tareas del tablero y dejar en Notion el estado, los archivos y las métricas. Descargas: hasta **50 GB acumulados** sin preguntar (llevan unos 70 MB en disco). Seguir preguntando antes de: decisiones de ML con alternativas reales, instalar paquetes, commits/push (salvo petición explícita), borrar tareas y cambiar prioridades de secciones existentes.
-- Notas del usuario: van en la columna "Nota de Jairo" de cada tarea y de cada bloque (ya no hay base de notas aparte). Antes de cada tarea y al empezar cada sesión, buscar filas con la nota rellena y "Nota revisada" sin marcar, también en tareas Hechas; responder en "Respuesta de Claude" y marcar la casilla.
-- Fases: el tablero se reorganizó en 5 fases el 2026-11-01. **El usuario decide qué fase se hace primero**; Claude solo recomienda y no empieza otra sin su visto bueno.
-- Explicar al usuario lo que se hace en cada paso.
+- Responder en español, con explicaciones sencillas. El usuario (Jairo) dirige; Claude implementa, evalúa cada instrucción y explica código y resultados.
+- Las decisiones importantes de ML son del usuario: proponer con pros y contras y esperar. No empezar una fase sin su visto bueno.
+- Tareas en Notion (sección 7). Una tarea es Hecho solo con un artefacto verificable. Revisar al empezar la columna "Nota de Jairo" (Tareas y Fases).
+- Pedir permiso para commit/push. Descargas: presupuesto de 50 GB acumulados (llevan ~23 GB en `data/raw_lc`).
+- **Antes de borrar datos:** imprimir cuántas filas o archivos se borran, comparar por `star_id` (único) y parar si no es lo esperado. En 2026-11-03 se borraron por error 6 607 vistas al comparar por una columna con vacíos.
+- Procesos largos: en segundo plano, con informes. MAST se cuelga a veces sin límite de tiempo; usar un vigilante que relance si el log no avanza en 10 min. `qc.csv` se escribe de forma atómica (un reinicio lo corrompió una vez).
 
 ## 3. Datos y entorno
 
-- Dataset de partida: Hugging Face `bingbangboom/exoplanet-transit-detection` en `data/{train,val,test}.parquet` (carpeta `data/` ignorada por git). 23 567 estrellas: Kepler 16 054 (7 840 NO_SIGNAL), K2 1 485, TESS 6 028. Splits por estrella. Trae vistas plegadas (`flux_local` 81, `flux_global`/`flux_odd`/`flux_even` 201) y `flux_raw` (20 000 puntos, **sin tiempo**).
-- `data/labels/` (tablas TOI y K2 del NASA Exoplanet Archive, `scripts/data/fetch_labels.py`), `data/raw_lc/` (curvas de MAST), `data/corot/` (`scripts/` con 16 scripts wget del NASA para 97 971 curvas de solo 10 de 23 runs, y `probe/` con 5 curvas de prueba).
-- **GPU** (2026-11-03): RX 9070 XT con ROCm 7.2.1 en WSL, entorno `~/venvs/exoplanet-rocm` (PyTorch 2.9.1+rocm7.2.1); exportar `HSA_ENABLE_DXG_DETECTION=1`; usar bf16 (fp32 va a ~1 TFLOPS). Entorno de MOMENT: `~/venvs/moment` (CPU).
-- **PyTorch solo en WSL2** (2026-11-02): en Windows, Control inteligente de aplicaciones bloquea `torch.dll`. Desde la raíz del repo en Ubuntu: `~/venvs/exoplanet/bin/python -m pytest -q` (PyTorch 2.15 CPU).
-- Windows 11, PowerShell. Python 3.14 con `py`. Para los scripts: `$env:PYTHONPATH='src'; py scripts/<data|checks|models>/xxx.py` desde la raíz; `py -m pytest -q` ya incluye `pythonpath = ["src"]`. Para salida con acentos: `$env:PYTHONIOENCODING='utf-8'`. Dependencias nuevas añadidas: `astropy`, `lightkurve`, `pytest`.
+- Dataset de partida: Hugging Face `bingbangboom/exoplanet-transit-detection` en `data/{train,val,test}.parquet`, con splits por estrella. Sus vistas plegadas no se usan: la global y la par/impar no están centradas y las de NO_SIGNAL son ceros.
+- **Muestra completa** (2026-11-03): todas las estrellas con etiqueta fuerte, es decir, positivos Kepler 6 560, TESS 1 624 y K2 398, más 8 582 NO_SIGNAL 1:1. Son 17 164 estrellas, ~14 700 con vista válida.
+  - Curvas en `data/raw_lc` (~23 GB) y vistas en `data/sample/views`.
+  - Centroide en `data/sample/centroid`.
+  - Calidad por estrella en `results/sample/qc.csv`; la muestra A antigua está en `qc_sampleA.csv`.
+- **Negativos** (`build_negatives.py`):
+  - Kepler: NO_SIGNAL del dataset en su split.
+  - K2 y TESS: estrellas sin candidato del mismo sector o campaña y brillo parecido al de su pareja, con efeméride de planetas de train del mismo segmento.
+  - Desde 2026-11-04 se excluye todo lo que esté a menos de 2″ de una estrella del dataset o de un candidato de cualquier misión.
+  - Reproducible byte a byte.
+- **Entornos:**
+  - Windows `.venv` (Python 3.12, `requirements.txt`): datos y sklearn.
+  - WSL2 Ubuntu 24.04 (`requirements-wsl.txt`): `~/venvs/exoplanet` (PyTorch 2.15 CPU) y `~/venvs/exoplanet-rocm` (GPU RX 9070 XT, ROCm 7.2.1, PyTorch 2.9.1, MOMENT).
+  - En la GPU: `export HSA_ENABLE_DXG_DETECTION=1` y entrenar con bf16 (`--amp`), porque fp32 va a ~1 TFLOPS.
+  - PyTorch no carga en Windows (Control inteligente de aplicaciones).
+  - Desde Git Bash, `wsl.exe ... bash -lc '...'` pierde las variables: lanzar scripts `.sh` con `MSYS_NO_PATHCONV=1`.
 
 ## 4. Código (`src/exoplanet/`)
 
 | Módulo | Qué hace |
 |---|---|
-| `data.py` | Carga por misión y split (`load_split`), reglas de limpieza de anomalías |
-| `evaluation.py` | Protocolo anidado: `nested_folds`, `in_domain_split`, `shared_stars` (cruce por coordenadas < 2") |
-| `labels.py` | Fuerza de cada etiqueta (fuerte / débil / excluida) según la disposición original |
-| `folding.py` | `fold_views(time, flux, period, t0, duration)`: función pura, sin catálogo ni misión. Vistas con el tránsito en el bin 40 (local) y 100 (global) más variables de calidad |
-| `curves.py` | Curvas de MAST: PDCSAP, aplanado con el tránsito enmascarado, normalización, tope de ~100 d por estrella eligiendo los segmentos con más tránsitos |
-| `kepler_quarters.csv` | Intervalo real (BKJD) de cada trimestre de Kepler, medido en cabeceras (MAST da el mismo intervalo a todos) |
+| `data.py` | Carga por misión y split, limpieza (RP_MAX = 22 R⊕ para PLANET) |
+| `labels.py` | Fuerza de etiqueta (fuerte / débil / excluida), `strong_stars`, `nearest_period` |
+| `curves.py` | MAST: selección de segmentos (1 en K2/TESS, ~100 d en Kepler), descarga, aplanado; `read_centroid`; `run_star` |
+| `folding.py` | `fold_views` (local 81, global/par/impar 201) y `fold_centroid` (desplazamiento en unidades de ruido) |
+| `negatives.py` | Emparejamiento de negativos y efemérides al azar |
+| `features.py` | Diagnósticos físicos (profundidad, SNR, forma, par/impar, secundario), con ventana ajustada a la duración (`duty`) |
+| `views.py` | Carga de la muestra, normalización por estrella (AstroNet) y del centroide |
+| `dataset.py` | `ViewDataset` de PyTorch (canales opcionales: centroide, par/impar; diagnósticos) |
+| `cnn.py` | CNN de dos ramas tipo AstroNet, con diagnósticos opcionales en la cabeza |
+| `training.py` | Entrenamiento común (parada temprana con el 15 % de train, pesos de clase, reflexión, lr por grupos, bf16) |
+| `evaluation.py` | Métricas de #51 (macro-F1, PR-AUC, IC bootstrap por misión) y folds del protocolo LOMO |
 
-Scripts (2026-11-02): `scripts/data/` (pipeline: `fetch_labels`, `build_kepler_quarters`, `pilot_fold`, `build_sample`, `build_negatives`), `scripts/checks/` (diagnósticos: `label_audit`, `check_view_edges`, `shortcut_negatives`, `mission_leak_views`, `recheck_z_features`) y `scripts/models/` (`baseline`). **`legacy/`** (2026-10-30): código del primer camino, con las vistas del dataset, que no es el pipeline actual: `features.py` (su `odd_even_z`/`secondary_z` usan la vista global del dataset, **no centrada**, ver §6), `eda.py`, `mission_leak.py`, `transfer_k2.py` (**solo referencia con catálogo, no portable**), `preprocess.py`, `app.py`. Ver `legacy/README.md`. **26 tests** en `tests/` (todos pasan).
-
-Documentos: `research/03-protocolo-evaluacion.md` (protocolo, ablación de variables y negativos NO_SIGNAL), `research/04-armonizacion-etiquetas.md` (mapeo de etiquetas), `research/02-eda.md`.
+Scripts en `scripts/data`, `scripts/checks` y `scripts/models` (no se importan entre sí). `legacy/` es el primer enfoque; solo dos comprobaciones antiguas lo usan. 41 tests (`python -m pytest -q`; los de PyTorch, en WSL).
 
 ## 5. Decisiones tomadas
 
-1. **Protocolo LOMO anidado** (`03-protocolo-evaluacion.md`): la misión excluida no participa en ninguna decisión y se evalúa una vez, entera; el fold interno es una transferencia entre las otras dos misiones, con PR-AUC como criterio. Pendiente: regla del umbral en una misión sin etiquetas.
-2. **Tres clases** con negativos reales: las vistas plegadas de NO_SIGNAL del dataset son relleno a cero. Negativos = estrellas sin candidato plegadas con periodo/época/duración al azar de la distribución de los positivos de su misión, **mismo método en las cuatro misiones**; test de atajo con variables de nuisance (puntos por bin, bins vacíos, ruido fuera del tránsito). El tránsito enmascarado queda como complemento opcional.
-3. **Preprocesado propio** (opción B): rehacer las vistas de todas las misiones con `folding`/`curves` a partir de curvas con tiempo de MAST. Diseño D1-D9 aprobado, con tope de ~4 meses por estrella.
-4. **Etiquetas:** evaluación solo con etiquetas **fuertes** (confirmados / FP claros); las débiles (candidatos) solo como variante de entrenamiento elegida en los folds internos. Mapeo y cifras en `04-armonizacion-etiquetas.md`.
-5. **Ablación de variables que delatan la misión** (profundidad, SNR): variantes (a) todas, (b) sin profundidad ni SNR, (c) invariantes a la escala (forma normalizada, par/impar, cociente secundario/primario; sin Rp/R★ ni log SNR), (d) estandarización por misión no supervisada (se informa aparte). Selección entre a, b y c por PR-AUC macro en los folds internos. Escrita en el protocolo antes de ejecutarla.
+1. **Métrica (#51):** macro-F1 de 3 clases por misión y media de misiones; PR-AUC one-vs-rest como secundaria; IC 95 % bootstrap; selección en val; el test no se ha tocado.
+2. **Etiquetas:** evaluación solo con etiquetas fuertes.
+3. **Entrada:** solo la curva y sus derivadas. Profundidad normalizada por estrella y log10 de la profundidad aparte. Nunca metadatos del proceso (n_points, data_days, cadence, n_transits, frac_empty, n_files).
+4. **Protocolo LOMO** (`research/03`): la misión excluida no participa en ninguna decisión y se evalúa una vez, entera; el fold interno es train de A → val de B; criterio PR-AUC; las estrellas compartidas entre misiones se quitan del ajuste.
+5. **Centroide:** variante aparte ("curva + centroide"); la versión solo curva es la portable (CoRoT no tiene centroide).
 
-## 6. Hallazgos que cambian cosas
+## 6. Resultados y hallazgos clave
 
-- Las vistas plegadas de NO_SIGNAL del dataset son relleno a cero (784 de 784 en Kepler val).
-- **La vista global y las de par/impar del dataset no están centradas en el tránsito** (el mínimo cae a ±3 bins del 100 en solo el 0 % de Kepler, 31 % de K2 y 10 % de TESS con planetas de > 3 000 ppm). La vista local sí está centrada y mi plegado la reproduce (profundidad central Kepler 0,98619 frente a 0,98633, TESS idéntica, K2 0,97785 frente a 0,97602). Las conclusiones del EDA que usan `odd_even_z`/`secondary_z` hay que revisarlas (tarea #46).
-- **La misión se adivina** a partir de las variables de la curva (balanced accuracy ~0,70, azar 0,33; AUC 0,86-0,93), también dentro de cada clase; lo delatan `depth_local_ppm` y `snr_local`. Parte es física y de selección real.
-- **Etiquetas muy desiguales:** PLANET fuerte vs débil: Kepler 1 943 / 1 631, TESS 674 / 3 802 (+438 APC excluidos), K2 346 / 899. La prevalencia de FP al quedarse con fuertes: Kepler 0,57→0,71, K2 0,16→0,41, TESS 0,18→0,59. Test fuerte dentro de dominio: Kepler 656, TESS 167, **K2 solo 62** estrellas (para K2 usar el fold externo).
-- **Estrellas compartidas entre misiones:** 14 (Kepler-TESS) y 50 (K2-TESS); se excluyen del ajuste.
-- Dummy (clase más frecuente), vetting con etiquetas fuertes, fold externo, macro-F1 / PR-AUC de FP: excluida Kepler 0,413 / 0,705; K2 0,291 / 0,410; TESS 0,371 / 0,590. Todo en `results/baseline/dummy.csv`.
-- Errores propios ya corregidos (que otro chat no debe repetir): conversión MJD→BKJD con 400 días de error; usar `t_min/t_max` de MAST para los trimestres de Kepler (son los de toda la misión); la tarea #27 figuraba Hecha sin existir en el repo.
-- Con el tope de 4 meses, los planetas de periodo largo (~200 d) quedan con 2 tránsitos y la vista global no es válida; es el coste aceptado.
-- **CoRoT está bloqueado:** el catálogo de etiquetas (VizieR `J/A+A/619/A97`, Deleuil et al. 2018) solo está en el CDS, que no responde; probados CfA/Harvard, IUCAA, NAO, CADC, China-VO e INASAN. El usuario escribió al CDS/EDP Sciences. Las curvas existen en el NASA Exoplanet Archive (`EN2_STAR_CHR_*` y `EN2_STAR_MON_*`; los `AN2_*` son asterosismología).
+- **Fase 2** (val, muestra completa, macro-F1 media de misiones): dummy 0,22; regresión logística 0,78; kNN + PCA 0,80; boosting 0,82; MLP 0,78; MOMENT congelado 0,82 y con fine-tuning 0,815.
+  - **CNN 0,833 de media de semillas y 0,850 con ensemble de 3** (Kepler 0,87, K2 0,90, TESS 0,78).
+  - Con centroide, Kepler sube a 0,89, pero K2 y TESS empeoran.
+  - Par/impar global y diagnósticos en la CNN no aportan.
+- **Análisis de errores (Kepler):** casi la mitad de los FP que la CNN toma por planeta son de tipo centroide o coincidencia de efemérides, invisibles en la curva: es el techo físico. El centroide sube su acierto del 66 % al 80 %. El 22 % de los FP "no parece tránsito" se predicen como NO_SIGNAL, porque la frontera entre esas clases es difusa (decisión de etiquetado pendiente).
+- **Atajos:** sin mirar el tránsito, PLANET vs NO_SIGNAL da 0,55–0,60 (sesgo de detección aceptado). El centroide tiene un atajo moderado en K2 (0,68).
+- **La misión se adivina** a partir de las vistas (AUC 0,73–0,92): a estudiar en la fase 3 (ablación #43).
+- **Estrellas en dos misiones:** 29 físicas (26 Kepler–TESS y 3 K2–TESS), 16 con splits distintos. Se excluyen del ajuste en LOMO (`evaluation.shared_stars`).
+- **Errores corregidos que no hay que repetir:**
+  - conversión MJD→BKJD (400 días de error);
+  - `mast_sequence` convertía los sectores ≥ 100 de TESS en el 10 (solo K2 tiene mitades de campaña);
+  - el `.gitignore` ignoraba `scripts/data/`;
+  - `load_views` abría todos los archivos a la vez;
+  - la ventana fija de 11 bins diluía par/impar y secundario;
+  - los negativos de TESS incluían estrellas con candidato en Kepler o K2 (ahora se excluyen por coordenadas).
+- **CoRoT bloqueado:** el catálogo de etiquetas (Deleuil et al. 2018, VizieR `J/A+A/619/A97`) solo está en el CDS, que no responde.
 
 ## 7. Notion
 
 - Página principal: https://app.notion.com/p/40715f33376c81ea9534c0e8bd2b267d
-- Tareas: `collection://cf064316-c55a-46e0-a764-9985c623078f` · Fases: `collection://a3702b25-45cb-47e0-860f-5837c94448bb` (la columna de relación sigue llamándose `Bloque`)
-- **5 fases** (reestructuración del 2026-11-01; sustituye a los 7 bloques del 2026-10-30): 1 · Preprocesado y primeros tests (24 tareas, en curso); 2 · Detección por misión, 3 clases, solo con la curva y sus derivadas: reglas → LR → GB → MLP → CNN (9); 3 · Transferencia LOMO: ablación, calibración, híbrido, curvas de aprendizaje (8); 4 · Modelo portable final: BLS + modelo, test único, errores, CoRoT (6); 5 · Web y documentación (6). Nuevas: descarga de la muestra completa (F1), métrica de 3 clases (F2), curvas de aprendizaje (F3), detección BLS (F4).
-- Tablero: 53 tareas; #49 Esperando decisión (muestra y vistas no válidas), bloquea la fase 1.
-- Limpieza hecha el 2026-10-30 con confirmación del usuario: se borraron (a la papelera de Notion, restaurables) la base «Notas de Jairo», 4 bloques viejos vacíos y 13 vistas enlazadas de la página principal, que ahora muestra la tabla de Bloques y la de Tareas abiertas.
+- Tareas: `collection://cf064316-c55a-46e0-a764-9985c623078f` · Fases: `collection://a3702b25-45cb-47e0-860f-5837c94448bb` (la relación se llama `Bloque`).
+- Fases:
+  1. Datos: Hecho.
+  2. Modelos por misión: casi cerrada.
+  3. LOMO: preparada.
+  4. Modelo portable (BLS, test único, CoRoT).
+  5. Web y documentación.
 
-## 8. Qué sigue (orden recomendado)
+## 8. Qué sigue
 
-1. **#47 Piloto de descarga y plegado** (~100 estrellas con etiqueta fuerte por misión, estratificado por clase): medir tamaño real, tiempo y porcentaje de vistas válidas. La estimación del techo (~57 GB para las 15 330 estrellas con efemérides, sobre todo TESS) es una extrapolación de solo 3 productos, no una medida a escala. Decidir con eso el tamaño de la muestra.
-2. **#32 Negativos NO_SIGNAL** con el método único de las cuatro misiones (necesita bajar estrellas sin candidato de las mismas campañas y sectores).
-3. **#44** repetir `mission_leak.py` sobre las vistas propias y **#46** revisar el EDA y las variables que dependían de la vista global.
-4. **#43** ejecutar la ablación; luego modelos: Escalones 2-4 (sklearn, #11-#13), dataset PyTorch (#15), MLP (#29), CNN (#16), con métricas de #37 y evaluación final (#18).
-5. Abiertos para el usuario: regla del umbral sin etiquetas; si bajar CoRoT a P3; la Fase 4 está en P1 pero sus tareas (#15, #16, #29) son P0; revisar si la tarea #10 (recortar bins de borde de `flux_local`) sigue haciendo falta con el preprocesado propio.
-
-## 9. Trabajo previo útil
-
-`transfer_k2.py` (experimentos A/B/C hacia K2) dio PR-AUC en K2: dummy 0,184, K2 solo 0,717, Kepler→K2 0,602, TESS→K2 0,324, Kepler+TESS→K2 0,478, pero usa variables de catálogo y vistas del dataset: es **referencia, no resultado portable** (`results/catalog_reference/`).
+1. Fase 3: ejecutar LOMO con el script `scripts/models/lomo.py` (dummy y CNN solo curva; después la ablación #43, la calibración y la variante con centroide).
+2. Decisiones abiertas para el usuario:
+   - cerrar la fase 2 (las tareas #12, #13, #29 y #16 tienen un criterio antiguo de LOMO);
+   - cómo tratar los FP "no parece tránsito" frente a NO_SIGNAL;
+   - si replegar con vistas par/impar locales y del secundario (~5 h, ganancia esperada pequeña).
+3. Fase 4: BLS para no depender de la efeméride del catálogo; evaluación única en test.

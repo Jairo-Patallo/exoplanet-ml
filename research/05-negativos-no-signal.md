@@ -18,7 +18,7 @@ Las vistas NO_SIGNAL del dataset de Hugging Face son ceros, así que los negativ
 
 Época uniforme en [0, P). Cada negativo de K2/TESS hereda el split de su pareja. Diferencia de magnitud con la pareja: mediana 0,00, p90 ≤ 0,01.
 
-**Reproducible** (2026-11-01): un generador por misión (`MISSION_SEED`) y orden fijo de estrellas y candidatos (ni MAST ni las descargas en paralelo lo garantizan). Dos ejecuciones seguidas de `build_negatives.py` dan el mismo CSV byte a byte. La versión anterior (979 en Kepler, de una muestra previa) queda en `negatives_before_reproducible.csv`.
+**Reproducible** (2026-11-01): un generador por misión (`MISSION_SEED`) y orden fijo de estrellas y candidatos (ni MAST ni las descargas en paralelo lo garantizan). Dos ejecuciones seguidas de `build_negatives.py` dan el mismo CSV byte a byte. La versión anterior (979 en Kepler, de una muestra previa) queda en `results/sample/history/negatives_before_reproducible.csv`.
 
 ## Cómo se llegó aquí (ROC-AUC NO_SIGNAL vs positivos sin mirar el tránsito, boosting)
 
@@ -55,7 +55,7 @@ Con el sorteo anterior de negativos (no reproducible) PLANET daba 0,51 / 0,56 / 
 - No se emparejó por ruido medido (CDPP): quitaría el sesgo de detección pero haría los negativos menos representativos (decisión 2026-11-01).
 - Con 1 sector, el % de vistas válidas de PLANET en TESS baja de 96,3 % a 87,8 % (planetas de periodo largo con pocos tránsitos).
 
-Resultados: `results/sample/shortcut_negatives.csv` (final) y `*_multisegment.csv`, `*_matched_v1.csv` (pasos intermedios).
+Resultados: `results/sample/shortcut_negatives.csv` (final) y, en `results/sample/history/`, `*_multisegment.csv`, `*_matched_v1.csv` y demás pasos intermedios.
 
 ## Muestra completa (2026-11-03)
 

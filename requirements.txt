@@ -1,10 +1,14 @@
+# Entorno principal (Windows, .venv, Python 3.12): pipeline de datos, comprobaciones y modelos de sklearn.
+# PyTorch NO va aquí: en Windows lo bloquea Control inteligente de aplicaciones (ver README, "Entornos").
+numpy==2.5.4
+pandas==2.3.3
+pyarrow==26.0.0
+scikit-learn==1.9.1
+astropy==8.0.2
+astroquery
+lightkurve==2.6.0
+matplotlib==3.11.2
+huggingface_hub==2.2.0
+requests
+pytest==9.2.0
 streamlit
-pandas
-numpy
-matplotlib
-pyarrow
-huggingface_hub
-scikit-learn
-astropy
-lightkurve
-pytest
