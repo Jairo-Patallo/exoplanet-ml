@@ -11,9 +11,11 @@ con  python scripts/data/build_sample.py --negatives
 import argparse
 from io import StringIO
 
+import astropy.units as u
 import numpy as np
 import pandas as pd
 import requests
+from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astroquery.mast import Catalogs, Observations
 
@@ -25,6 +27,7 @@ from exoplanet.negatives import match_negatives, random_ephemerides, segment_eph
 OUT = "results/sample/negatives.csv"
 SEED = 0
 MISSION_SEED = {"kepler": 0, "k2": 1, "tess": 2}   # un generador por misión: rehacer una no cambia las otras
+MATCH_ARCSEC = 2.0          # misma estrella física en dos catálogos
 TESS_CANDIDATES = 3000      # por sector se consulta el Tmag de este número de candidatos al azar (el TIC va por lotes)
 K2_SEARCH = "https://archive.stsci.edu/k2/data_search/search.php"
 MAST_QUERY = {"k2": dict(obs_collection="K2", provenance_name="K2", t_exptime=1800),
@@ -39,6 +42,22 @@ def mast_pool(mission: str, segment: int) -> pd.DataFrame:
     prefix = "EPIC_" if mission == "k2" else "TIC_"
     return pd.DataFrame({"star_id": [f"{prefix}{i}" for i in ids], "segment": segment,
                          "ra": np.asarray(t["s_ra"], float), "dec": np.asarray(t["s_dec"], float)})
+
+
+def known_coords():
+    """Posiciones de todas las estrellas del dataset (las tres misiones) y de todos los TOI y candidatos K2. La misma
+    estrella tiene un número distinto en cada misión (KIC, EPIC, TIC), así que excluir por nombre no basta: un planeta de
+    Kepler llegó a ser negativo de TESS (auditoría 2026-11-04). Se excluye todo lo que esté a menos de MATCH_ARCSEC."""
+    hf = pd.concat([load_split(s, columns=["ra", "dec"]) for s in SPLITS])
+    cat = pd.concat([hf, pd.read_csv(DATA / "labels" / "toi.csv")[["ra", "dec"]],
+                     pd.read_csv(DATA / "labels" / "k2pandc.csv")[["ra", "dec"]]]).dropna()
+    return SkyCoord(cat.ra.to_numpy() * u.deg, cat.dec.to_numpy() * u.deg)
+
+
+def far_from(pool: pd.DataFrame, coords) -> pd.DataFrame:
+    """Filas del pool a más de MATCH_ARCSEC de cualquier posición de `coords`."""
+    _, sep, _ = SkyCoord(pool.ra.to_numpy() * u.deg, pool.dec.to_numpy() * u.deg).match_to_catalog_sky(coords)
+    return pool[sep.arcsec > MATCH_ARCSEC]
 
 
 def known_candidates() -> set[str]:
@@ -84,13 +103,13 @@ def positive_segments(pos: pd.DataFrame, mission: str) -> pd.Series:
     return pd.Series(seg)
 
 
-def matched_negatives(pos: pd.DataFrame, mission: str, exclude: set[str], rng: np.random.Generator) -> pd.DataFrame:
+def matched_negatives(pos: pd.DataFrame, mission: str, exclude: set[str], coords, rng: np.random.Generator) -> pd.DataFrame:
     """Negativos de K2/TESS emparejados por segmento y magnitud (exoplanet.negatives.match_negatives)."""
     pos = pos.assign(segment=pos.star_id.map(positive_segments(pos, mission))).dropna(subset=["segment"])
     pools, pos_mags = [], []
     for seg in sorted(pos.segment.astype(int).unique()):
         pool = mast_pool(mission, seg)
-        pool = (pool[~pool.star_id.isin(exclude)].sort_values(["star_id", "ra", "dec"])   # MAST no garantiza el orden
+        pool = (far_from(pool[~pool.star_id.isin(exclude)], coords).sort_values(["star_id", "ra", "dec"])   # MAST no garantiza el orden
                 .drop_duplicates("star_id", ignore_index=True))
         if mission == "k2":
             mags = k2_magnitudes(seg)
@@ -116,7 +135,7 @@ def main() -> None:
     pos = (qc[qc.disposition != "NO_SIGNAL"].merge(universe[["star_id", "epoch_bjd"]], on="star_id")
            .sort_values("star_id", ignore_index=True))   # qc.csv sale en el orden en que acabaron las descargas
     train_pos = universe.query("split == 'train'")
-    exclude = known_candidates()
+    exclude, coords = known_candidates(), known_coords()
     parts = [pd.read_csv(OUT, float_precision="round_trip").query("mission not in @args.missions")] if args.missions != ap.get_default("missions") else []
     for mission in args.missions:
         g = pos[pos.mission == mission]
@@ -128,7 +147,7 @@ def main() -> None:
                                .sample(n_split[s], random_state=SEED).assign(split=s) for s in SPLITS], ignore_index=True)
             eph = random_ephemerides(train_pos[train_pos.mission == mission], len(stars), eph_rng)
         else:
-            stars = matched_negatives(g, mission, exclude, rng)
+            stars = matched_negatives(g, mission, exclude, coords, rng)
             print(f"  {mission}: |dmag| mediana {stars.dmag.median():.2f}, p90 {stars.dmag.quantile(0.9):.2f}", flush=True)
             tp = g[g.split == "train"]
             eph = segment_ephemerides(stars, tp.assign(segment=tp.star_id.map(positive_segments(tp, mission))), eph_rng)

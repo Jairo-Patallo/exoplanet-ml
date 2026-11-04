@@ -1,4 +1,4 @@
 mission,n_tried,n_downloaded,pct_no_curves_or_error,pct_valid_of_downloaded,pct_valid_of_tried,pct_odd_even_valid,mb_per_star_mean,mb_per_star_median,s_per_star_median,n_strong_stars_total,est_gb_full,est_hours_full
 kepler,13120,13120,0.0,84.1,84.1,83.0,0.99,1.01,6.4,6560,6.5,14.4
 k2,796,796,0.0,91.8,91.8,95.9,0.41,0.42,1.9,398,0.2,0.3
-tess,3248,3237,0.3,90.3,90.0,75.0,2.14,2.03,6.3,1624,3.5,3.4
+tess,3248,3229,0.6,90.6,90.1,74.9,2.14,2.03,6.3,1624,3.5,3.4
