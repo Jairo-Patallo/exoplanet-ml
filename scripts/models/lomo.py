@@ -16,6 +16,7 @@ Uso (WSL, GPU):  export HSA_ENABLE_DXG_DETECTION=1
   --only tess                  solo el fold de esa misión excluida
   --fixed                      sin selección interna: la configuración que eligió la CNN base (lomo_cnn.csv)
   --no-depth                   ablación #43: log10 de la profundidad anulado (constante 0), solo la forma
+  --seeds 5                    semillas del ensemble final (por defecto 3); --eval-splits test añade "_test" al nombre
 Salida: results/models/lomo_<modelo>.csv (métricas por misión excluida), lomo_<modelo>_inner.csv (selección) y
         lomo_<modelo>_pred.csv (probabilidades por estrella).
 """
@@ -77,9 +78,10 @@ def main() -> None:
     ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--fixed", action="store_true")
     ap.add_argument("--no-depth", action="store_true")
+    ap.add_argument("--seeds", type=int, default=len(SEEDS), help="semillas del ensemble final de cada fold")
     ap.add_argument("--only", choices=["kepler", "k2", "tess"])
     args = ap.parse_args()
-    grid, seeds = (GRID[:1], SEEDS[:1]) if args.smoke else (GRID, SEEDS)
+    grid, seeds = (GRID[:1], SEEDS[:1]) if args.smoke else (GRID, tuple(range(args.seeds)))
 
     meta = sample_meta()
     if args.smoke:
@@ -87,7 +89,7 @@ def main() -> None:
         meta = meta.reset_index(drop=True)
     folds = nested_folds(meta, shared_stars(meta), eval_splits=tuple(args.eval_splits))
     y_all = meta.disposition.to_numpy()
-    name = f"lomo_{args.model}" + ("_centroid" if args.centroid else "") + ("_ephem" if args.ephem else "") + ("_nodepth" if args.no_depth else "") + ("_fixed" if args.fixed else "")
+    name = f"lomo_{args.model}" + ("_centroid" if args.centroid else "") + ("_ephem" if args.ephem else "") + ("_nodepth" if args.no_depth else "") + ("_fixed" if args.fixed else "") + ("_test" if args.eval_splits == ["test"] else "")
     rows, inner_rows, preds = [], [], []
     fixed = {r.excluida: ast.literal_eval(r.config) for r in pd.read_csv(OUT / "lomo_cnn.csv").itertuples()} if args.fixed else {}
     if args.only:
