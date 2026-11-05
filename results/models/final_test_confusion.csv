@@ -1,0 +1,10 @@
+,,pred_PLANET,pred_FALSE_POSITIVE,pred_NO_SIGNAL
+kepler,real_PLANET,179,7,0
+kepler,real_FALSE_POSITIVE,49,287,39
+kepler,real_NO_SIGNAL,5,7,529
+k2,real_PLANET,17,2,1
+k2,real_FALSE_POSITIVE,0,18,1
+k2,real_NO_SIGNAL,0,1,41
+tess,real_PLANET,47,8,3
+tess,real_FALSE_POSITIVE,34,41,14
+tess,real_NO_SIGNAL,1,6,138
