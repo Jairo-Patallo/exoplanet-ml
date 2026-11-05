@@ -1,0 +1,52 @@
+mision,motivo,n,acierta_FP,como_PLANET,como_NO_SIGNAL,modelo,conjunto
+k2,sin motivo reconocido,19,0.947,0.053,0.0,final,val
+k2,todos,19,0.947,0.053,0.0,final,val
+kepler,binaria,209,0.88,0.091,0.029,final,val
+kepler,contaminación,195,0.738,0.174,0.087,final,val
+kepler,no tránsito,79,0.709,0.051,0.241,final,val
+kepler,solo contaminación (invisible),91,0.604,0.286,0.11,final,val
+kepler,algún binaria/no tránsito (visible),288,0.833,0.08,0.087,final,val
+kepler,sin motivo reconocido,5,0.2,0.2,0.6,final,val
+kepler,todos,384,0.771,0.13,0.099,final,val
+tess,binaria,26,0.615,0.308,0.077,final,val
+tess,contaminación,37,0.622,0.108,0.27,final,val
+tess,demasiado grande,3,0.667,0.333,0.0,final,val
+tess,no tránsito,2,0.0,0.0,1.0,final,val
+tess,solo contaminación (invisible),29,0.655,0.138,0.207,final,val
+tess,algún binaria/no tránsito (visible),28,0.571,0.286,0.143,final,val
+tess,sin motivo reconocido,32,0.531,0.188,0.281,final,val
+tess,todos,89,0.584,0.202,0.213,final,val
+k2,sin motivo reconocido,19,0.947,0.0,0.053,final,test
+k2,todos,19,0.947,0.0,0.053,final,test
+kepler,binaria,206,0.883,0.078,0.039,final,test
+kepler,contaminación,192,0.698,0.193,0.109,final,test
+kepler,no tránsito,80,0.688,0.138,0.175,final,test
+kepler,solo contaminación (invisible),86,0.581,0.256,0.163,final,test
+kepler,algún binaria/no tránsito (visible),286,0.829,0.094,0.077,final,test
+kepler,sin motivo reconocido,3,0.0,0.0,1.0,final,test
+kepler,todos,375,0.765,0.131,0.104,final,test
+tess,binaria,38,0.658,0.263,0.079,final,test
+tess,contaminación,49,0.469,0.408,0.122,final,test
+tess,demasiado grande,2,0.5,0.0,0.5,final,test
+tess,no tránsito,8,0.625,0.25,0.125,final,test
+tess,solo contaminación (invisible),32,0.375,0.469,0.156,final,test
+tess,algún binaria/no tránsito (visible),41,0.659,0.268,0.073,final,test
+tess,sin motivo reconocido,15,0.133,0.533,0.333,final,test
+tess,todos,89,0.461,0.382,0.157,final,test
+k2,sin motivo reconocido,19,0.737,0.053,0.211,hard,val
+k2,todos,19,0.737,0.053,0.211,hard,val
+kepler,binaria,209,0.837,0.091,0.072,hard,val
+kepler,contaminación,195,0.585,0.174,0.241,hard,val
+kepler,no tránsito,79,0.595,0.076,0.329,hard,val
+kepler,solo contaminación (invisible),91,0.451,0.264,0.286,hard,val
+kepler,algún binaria/no tránsito (visible),288,0.771,0.087,0.142,hard,val
+kepler,sin motivo reconocido,5,0.2,0.2,0.6,hard,val
+kepler,todos,384,0.688,0.13,0.182,hard,val
+tess,binaria,26,0.577,0.385,0.038,hard,val
+tess,contaminación,37,0.541,0.189,0.27,hard,val
+tess,demasiado grande,3,0.667,0.333,0.0,hard,val
+tess,no tránsito,2,0.0,0.0,1.0,hard,val
+tess,solo contaminación (invisible),29,0.552,0.207,0.241,hard,val
+tess,algún binaria/no tránsito (visible),28,0.536,0.357,0.107,hard,val
+tess,sin motivo reconocido,32,0.438,0.281,0.281,hard,val
+tess,todos,89,0.506,0.281,0.213,hard,val

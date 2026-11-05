@@ -5,6 +5,7 @@ Etapas (en este orden; el test solo se mira en la última, una vez):
           val, como la CNN conjunta de la fase 2 -> results/models/final_select.csv
   train   la configuración elegida, entrenada con train + val, 5 semillas -> data/models/final_seed*.pt
   test    ensemble de las 5 semillas en el test de cada misión, IC 95 % bootstrap -> results/models/final_test*.csv
+  val     análisis de errores: receta entrenada solo con train, predicha en val (catálogo y BLS) -> final_val*_pred.csv
 Sin profundidad: log10 de la profundidad constante (0), como lomo.py --no-depth (decisión #43).
 
 Uso (WSL, GPU):  PYTHONPATH=src ~/venvs/exoplanet-rocm/bin/python scripts/models/final_model.py {select,train,test}
@@ -17,7 +18,7 @@ import pandas as pd
 import torch
 
 from exoplanet.cnn import AstroCNN
-from exoplanet.data import CLASSES, MISSIONS
+from exoplanet.data import CLASSES, DATA, MISSIONS
 from exoplanet.dataset import ViewDataset
 from exoplanet.evaluation import evaluate_by_mission, point_metrics
 from exoplanet.training import DEVICE, fit, inputs, predict
@@ -89,7 +90,29 @@ def test() -> None:
         OUT / "final_test_pred.csv", index=False, encoding="utf-8")
 
 
+def val() -> None:
+    """Análisis de errores sin tocar test: la receta entrenada solo con train (5 semillas), predicha en val con las
+    vistas del catálogo y, para las estrellas con vista BLS válida, con la efeméride de BLS (negativos difíciles)."""
+    cfg, va = chosen(), load_sample(("val",))
+    x, y = x_nodepth(load_sample(("train",)))
+    q = pd.read_csv("results/sample/qc_bls.csv")
+    vb = q[q.error.isna() & q["valid"].eq(True) & (q.split == "val")].reset_index(drop=True)
+    db = ViewDataset(vb, views_dir=DATA / "sample" / "views_bls")
+    xb = {**inputs(db), "log_depth": torch.zeros_like(db.log_depth)}
+    xv, _ = x_nodepth(va)
+    pv, pb = [], []
+    for s in SEEDS:
+        model = fit(make(cfg), x, y, WEIGHT_DECAY, s, augment=True, amp=True)[0]
+        pv.append(predict(model, xv, amp=True))
+        pb.append(predict(model, xb, amp=True))
+        print(f"semilla {s}", flush=True)
+    for stars, p, name in ((va, pv, "final_val_pred.csv"), (vb, pb, "final_val_bls_pred.csv")):
+        p = np.mean(p, axis=0)
+        stars[["star_id", "mission", "disposition"]].assign(**{f"p_{c}": p[:, i] for i, c in enumerate(CLASSES)}).round(4).to_csv(
+            OUT / name, index=False, encoding="utf-8")
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("stage", choices=["select", "train", "test"])
-    {"select": select, "train": train, "test": test}[ap.parse_args().stage]()
+    ap.add_argument("stage", choices=["select", "train", "test", "val"])
+    {"select": select, "train": train, "test": test, "val": val}[ap.parse_args().stage]()

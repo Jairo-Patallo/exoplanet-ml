@@ -8,6 +8,7 @@ build_tess_2sectors.py, que aquí no se usa); Kepler, sus trimestres (si hay má
 curves.select_segments, que usa la efeméride del catálogo: es la misma selección de datos que la vista de catálogo).
 
 Uso:  PYTHONPATH=src python scripts/data/build_bls_views.py [--splits val] [--workers 4] [--limit N]   (reanudable)
+      negativos difíciles: --splits train --nosignal --kepler-sample 1500
 Salida: data/sample/views_bls/<star_id>.npz y results/sample/qc_bls.csv
 """
 import argparse
@@ -87,8 +88,15 @@ def main() -> None:
     ap.add_argument("--splits", nargs="+", default=["val"])
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--limit", type=int, default=None)
+    ap.add_argument("--nosignal", action="store_true", help="solo NO_SIGNAL (negativos difíciles para entrenar)")
+    ap.add_argument("--kepler-sample", type=int, default=None, help="como mucho N estrellas de Kepler (al azar, semilla 0)")
     args = ap.parse_args()
     rows = stars(args.splits)
+    if args.nosignal:
+        rows = rows[rows.disposition == "NO_SIGNAL"]
+    if args.kepler_sample:
+        kep = rows[rows.mission == "kepler"]
+        rows = pd.concat([rows[rows.mission != "kepler"], kep.sample(min(len(kep), args.kepler_sample), random_state=0)])
     done = pd.read_csv(QC) if QC.exists() else pd.DataFrame(columns=["star_id", "error"])
     done = done[done["error"].isna()] if len(done) else done
     todo = [SimpleNamespace(**r) for r in rows[~rows.star_id.isin(set(done.star_id))].to_dict("records")][:args.limit]

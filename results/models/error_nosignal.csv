@@ -1,0 +1,13 @@
+mision,vistas,n_planet,n_nosignal,planet_detectado,planet_como_NO_SIGNAL,nosignal_como_PLANET,nosignal_como_FP,roc_auc_planet_vs_ns,precision_planet_r1,precision_planet_r10,precision_planet_r100,modelo
+k2,catálogo,17,33,0.765,0.235,0.03,0.03,0.959,0.962,0.716,0.202,final
+kepler,catálogo,176,556,0.92,0.011,0.011,0.014,0.998,0.988,0.895,0.46,final
+tess,catálogo,59,154,0.814,0.068,0.013,0.026,0.976,0.984,0.862,0.385,final
+k2,BLS (negativos difíciles),15,21,0.6,0.0,0.429,0.524,0.673,0.583,0.123,0.014,final
+kepler,BLS (negativos difíciles),169,517,0.811,0.03,0.197,0.691,0.877,0.804,0.291,0.039,final
+tess,BLS (negativos difíciles),59,150,0.746,0.051,0.353,0.507,0.796,0.679,0.174,0.021,final
+k2,catálogo,17,33,0.824,0.176,0.0,0.03,0.964,1.0,1.0,1.0,hard
+kepler,catálogo,176,556,0.892,0.045,0.013,0.014,0.995,0.986,0.876,0.415,hard
+tess,catálogo,59,154,0.814,0.085,0.013,0.039,0.975,0.984,0.862,0.385,hard
+k2,BLS (negativos difíciles),15,21,0.467,0.467,0.238,0.143,0.632,0.662,0.164,0.019,hard
+kepler,BLS (negativos difíciles),169,517,0.704,0.254,0.077,0.029,0.896,0.901,0.476,0.083,hard
+tess,BLS (negativos difíciles),59,150,0.695,0.186,0.22,0.08,0.839,0.76,0.24,0.031,hard
