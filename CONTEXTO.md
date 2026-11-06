@@ -80,6 +80,12 @@ Scripts en `scripts/data`, `scripts/checks` y `scripts/models` (no se importan e
     - **Modo 3, «Busca en una estrella»** (experimental): CNN sin plegar + BLS + modelo con negativos difíciles, con la fiabilidad medida por SNR (`research/12`).
     - **Futuro, modo 4, «Analiza tu observación»:** curvas terrestres de aficionados.
     Antes de nada, mejorar TESS: todos los sectores, todas las etiquetas y binarias sintéticas. Posible colaboración: el grupo de exoplanetas e IA de la Universidad de Oviedo, donde estudia Jairo.
+12. **Reorganización tras revisar las herramientas existentes (`research/13`, decisión de Jairo 2026-11-06; sustituye a las 10 y 11).** El recomendador propio y la búsqueda como producto ya existen (TFOP, ExoClock, Tapir, ExoMiner++ y las tuberías oficiales). Las fases 1–5 quedan cerradas y el resto se ordena así:
+    - **Fase 6, Mejora del modelo en TESS:** todos los sectores, todas las etiquetas y la calibración.
+    - **Fase 7, Investigación:** validación prospectiva de los TOIs abiertos (nuestro modelo, ExoMiner++ y las prioridades del TFOP); detector por punto (U-Net) + LOMO; comparación con ExoMiner++; curvas simuladas de PLATO.
+    - **Fase 8, Herramienta:** informe didáctico de un candidato, explicabilidad, tipo probable de FP, informes en lote, integrador para aficionados y «Analiza tu observación».
+    - **Fase 9, Web, ingeniería y documentación:** todo lo previsto (API, Docker, demo, tests y CI, model card, deriva, MLflow o W&B, asistente con LLM, README y texto para la web).
+    Las tareas que no se van a hacer quedan en `Stand-by · Tareas aparcadas`, sin borrar.
 
 ## 6. Resultados y hallazgos clave
 
