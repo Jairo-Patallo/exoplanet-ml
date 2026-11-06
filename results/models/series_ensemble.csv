@@ -1,0 +1,22 @@
+variante,semillas,conjunto,n_candidato,n_sin_senal,roc_auc,recall_fpr1,recall_fpr5,ruido_a_recall90,ruido_a_recall95,ruido_a_recall99
+base,5.0,val completo,743,743,0.83,0.525,0.603,0.615,0.775,0.935
+base,1.0,val completo (una semilla),743,743,0.836,0.538,0.61,0.606,0.758,0.926
+base,1.0,val completo (una semilla),743,743,0.814,0.48,0.58,0.676,0.817,0.956
+base,1.0,val completo (una semilla),743,743,0.813,0.491,0.571,0.662,0.805,0.981
+base,1.0,val completo (una semilla),743,743,0.824,0.498,0.595,0.599,0.794,0.942
+base,1.0,val completo (una semilla),743,743,0.811,0.482,0.564,0.676,0.82,0.954
+SDE + CNN plegada (línea base),,estrellas BLS,715,688,0.877,0.473,0.662,0.464,0.67,0.952
+base,5.0,estrellas BLS,715,688,0.836,0.543,0.618,0.597,0.765,0.93
+base + SDE + CNN plegada,5.0,estrellas BLS,715,688,0.889,0.564,0.712,0.462,0.663,0.914
+weak,3.0,val completo,743,743,0.824,0.52,0.595,0.61,0.791,0.942
+weak,1.0,val completo (una semilla),743,743,0.815,0.524,0.595,0.688,0.856,0.948
+weak,1.0,val completo (una semilla),743,743,0.816,0.491,0.572,0.664,0.764,0.93
+weak,1.0,val completo (una semilla),743,743,0.821,0.483,0.602,0.659,0.798,0.926
+weak,3.0,estrellas BLS,715,688,0.829,0.543,0.603,0.596,0.782,0.939
+weak + SDE + CNN plegada,3.0,estrellas BLS,715,688,0.886,0.55,0.709,0.445,0.676,0.935
+wide,3.0,val completo,743,743,0.828,0.513,0.599,0.604,0.778,0.917
+wide,1.0,val completo (una semilla),743,743,0.822,0.497,0.587,0.643,0.779,0.958
+wide,1.0,val completo (una semilla),743,743,0.824,0.497,0.585,0.629,0.805,0.948
+wide,1.0,val completo (una semilla),743,743,0.817,0.491,0.6,0.666,0.793,0.937
+wide,3.0,estrellas BLS,715,688,0.832,0.526,0.614,0.593,0.767,0.911
+wide + SDE + CNN plegada,3.0,estrellas BLS,715,688,0.886,0.562,0.71,0.438,0.674,0.93

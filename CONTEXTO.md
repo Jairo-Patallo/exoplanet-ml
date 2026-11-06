@@ -4,7 +4,7 @@ Actualizado el 2026-11-05. Lee también `CLAUDE.md` (reglas de trabajo), `README
 
 ## 1. Objetivo
 
-Un modelo que decide si una señal de tránsito es **PLANET**, **FALSE_POSITIVE** o **NO_SIGNAL** usando **solo la curva de luz** (y variables derivadas de ella), **portable a telescopios nuevos**. La portabilidad se mide entrenando con dos misiones y probando en la tercera (LOMO: Kepler, K2, TESS). CoRoT sería una cuarta misión si llegan sus etiquetas. Al final: modelo portable con BLS (fase 4) y web (fase 5).
+Un modelo que decide si una señal de tránsito es **PLANET**, **FALSE_POSITIVE** o **NO_SIGNAL** usando **solo la curva de luz** (y variables derivadas de ella), **portable a telescopios nuevos**. La portabilidad se mide entrenando con dos misiones y probando en la tercera (LOMO: Kepler, K2, TESS). CoRoT sería una cuarta misión si llegan sus etiquetas. Fases finales: modelo portable con efeméride dada (fase 4), búsqueda sin efeméride para telescopios nuevos, como PLATO o el seguimiento terrestre en España (fase 5, desde 2026-11-06), y web (fase 6).
 
 ## 2. Cómo se trabaja
 
@@ -61,12 +61,19 @@ Scripts en `scripts/data`, `scripts/checks` y `scripts/models` (no se importan e
 5. **Centroide:** variante aparte ("curva + centroide"); la versión solo curva es la portable (CoRoT no tiene centroide).
 6. **Sin profundidad (#43, decisión de Jairo 2026-11-04):** el modelo final no usa log10 de la profundidad; solo la forma normalizada. En el LOMO aportaba +0,003 (dentro del ruido) y es la variable que más delata la misión. Se aplica al construir el modelo de la fase 4; los resultados de las fases 2 y 3 se quedan como están.
 7. **Alcance: clasificador de señales ya detectadas (#53, decisión de Jairo 2026-11-05).** Entrada: curva + periodo y época. Con la efeméride de BLS el macro-F1 cae de ~0,86 a ~0,50, sobre todo porque los NO_SIGNAL plegados con un pico de ruido parecen tránsitos (`research/09-bls.md`). NO_SIGNAL = "la efeméride dada no es un tránsito real".
-8. **Prioridad: triaje en modo búsqueda (decisión de Jairo 2026-11-06).** Lo que tiene que ser fiable es separar CANDIDATO (PLANET o FP) de SIN_SEÑAL (`NO_SIGNAL` en el código; los nombres nuevos son solo de presentación) sin efeméride. Objetivo: falsas alarmas ≤ 1 % al final de la cadena sin perder candidatos. Se mide con el recall de candidatos usando el umbral del 1 % de falsas alarmas en val, y por SNR. Cadena:
+8. **Prioridad: triaje en modo búsqueda (decisión de Jairo 2026-11-06).** Lo que tiene que ser fiable es separar CANDIDATO (PLANET o FP) de SIN_SEÑAL (`NO_SIGNAL` en el código; los nombres nuevos son solo de presentación) sin efeméride. Objetivo (fijado por Jairo 2026-11-06): **detectar el 95 % de los candidatos y que pase el mínimo posible de SIN_SEÑAL**. La métrica principal es la fracción de SIN_SEÑAL que pasa con el umbral que detecta el 95 % de los candidatos en val (menor es mejor); también se reporta el recall con 1 % de falsas alarmas y la detección por SNR. Cadena:
    1. CNN sobre la curva sin plegar como filtro rápido (`research/12`);
    2. BLS solo en las estrellas que pasan, para dar el periodo;
    3. puntuación combinada (SDE + CNN plegada + CNN sin plegar);
    4. planeta frente a FP: el modelo con negativos difíciles en búsqueda, y el modelo final (decisión 7) cuando el usuario da la efeméride.
    Si mejorar la CNN sin plegar (semillas, anchura, inyecciones débiles) no basta, se pasa a un Transformer sobre la misma entrada.
+9. **Destino de la fase 5: seguimiento terrestre, herramienta para aficionados (decisión de Jairo 2026-11-06).** Un aficionado observa una noche el tránsito de un TOI o planeta conocido, con la efeméride dada, y la herramienta le dice si el tránsito aparece en su curva. Es otro dominio: una sola noche, tránsitos parciales y ruido atmosférico; se reutiliza sobre todo la vista local. Primer paso: estudio de viabilidad de curvas terrestres públicas y etiquetadas. La búsqueda sin efeméride (`research/12`) se cierra y se documenta.
+10. **La fase 5 es un recomendador de observación para aficionados (decisión de Jairo 2026-11-06; sustituye el primer paso de la decisión 9).** La herramienta responde a «¿qué candidato observo esta noche?» para los ~4 800 TOIs de TESS en estado PC y los candidatos de K2 sin resolver. Combina:
+    - la probabilidad de planeta del modelo final, con la efeméride de ExoFOP y calibrada;
+    - la observabilidad desde la ubicación del aficionado;
+    - la detectabilidad con un telescopio pequeño;
+    - la incertidumbre de la efeméride.
+    Incluye una validación prospectiva: las predicciones se congelan y se comparan con las disposiciones futuras de TFOPWG. Kepler y K2 siguen siendo la base del entrenamiento. Analizar las curvas que suban los aficionados queda como trabajo futuro. Primera tarea: revisar las herramientas existentes para confirmar qué aporta la nuestra.
 
 ## 6. Resultados y hallazgos clave
 

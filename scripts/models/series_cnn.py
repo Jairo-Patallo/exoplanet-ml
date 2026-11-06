@@ -14,11 +14,17 @@ Evaluación en val (estrellas reales; nunca se inyecta para elegir nada): recall
 pasar el 1 % de los SIN_SEÑAL, comparado con SDE + CNN (triage_val.py, 0,47) en las mismas estrellas; y recall de
 tránsitos inyectados en las curvas SIN_SEÑAL de val por tramos de SNR, con ese mismo umbral.
 
-Uso (WSL, GPU):  PYTHONPATH=src ~/venvs/exoplanet-rocm/bin/python scripts/models/series_cnn.py [--seed 0] [--smoke]
-Salida: data/models/series_seed<s>.pt, results/models/series_val_pred.csv, series_val_snr.csv
+Variantes: --width 2 duplica los canales; --snr-min 3 entrena también con tránsitos más débiles. Las inyecciones de
+evaluación usan siempre la misma semilla (12345), así que los conjuntos de semillas se comparan con los mismos tránsitos.
+
+Uso (WSL, GPU):  PYTHONPATH=src ~/venvs/exoplanet-rocm/bin/python scripts/models/series_cnn.py [--seed 0] [--tag base]
+                 [--width 1] [--snr-min 5] [--smoke]
+Salida: data/models/series_<tag>_seed<s>.pt y results/models/series_runs/<tag>_seed<s>.csv (probabilidad de val) y
+        .npz (inyecciones de val: SNR y probabilidad). Conjuntos y combinaciones: scripts/checks/series_ensemble.py
 """
 import argparse
 import time
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -45,7 +51,7 @@ def load(stars: pd.DataFrame) -> np.ndarray:
     return x
 
 
-def inject(y: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, float]:
+def inject(y: np.ndarray, rng: np.random.Generator, snr_range=SNR_RANGE) -> tuple[np.ndarray, float]:
     """Inserta un tránsito periódico trapezoidal en una curva (flujo relativo); devuelve la curva y su SNR total."""
     valid = np.flatnonzero(np.isfinite(y))
     span = (valid[-1] - valid[0] + 1) * BIN_DAYS
@@ -57,7 +63,7 @@ def inject(y: np.ndarray, rng: np.random.Generator) -> tuple[np.ndarray, float]:
     shape = np.clip((dur / 2 - dt) / ingress, 0, 1)
     sigma = 1.4826 * np.nanmedian(np.abs(y - np.nanmedian(y)))
     n_in = max(np.nansum(np.isfinite(y) & (shape > 0.5)), 1)
-    snr = np.exp(rng.uniform(*np.log(SNR_RANGE)))
+    snr = np.exp(rng.uniform(*np.log(snr_range)))
     return y * (1 - snr * sigma / np.sqrt(n_in) * shape), snr
 
 
@@ -72,8 +78,9 @@ def features(y: np.ndarray) -> np.ndarray:
 
 
 class SeriesCNN(nn.Module):
-    def __init__(self, width=(16, 32, 64, 64, 128, 128, 128)):
+    def __init__(self, mult: int = 1, width=(16, 32, 64, 64, 128, 128, 128)):
         super().__init__()
+        width = [c * mult for c in width]
         layers, c_in = [], 2
         for c in width:                                   # 9 216 -> 72 bloques tras 7 reducciones por 2
             layers += [nn.Conv1d(c_in, c, 5, padding=2), nn.BatchNorm1d(c), nn.ReLU(),
@@ -108,6 +115,9 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--no-amp", action="store_true")
+    ap.add_argument("--tag", default="base")
+    ap.add_argument("--width", type=int, default=1)
+    ap.add_argument("--snr-min", type=float, default=SNR_RANGE[0])
     args = ap.parse_args()
     amp, rng = not args.no_amp, np.random.default_rng(args.seed)
     torch.manual_seed(args.seed)
@@ -122,7 +132,8 @@ def main() -> None:
     neg = fit_i[~y_tr[fit_i]]                              # curvas SIN_SEÑAL donde se inyecta
     print(f"train {len(fit_i)} (+{len(neg)} inyectadas por época), parada {len(stop_i)}, val {len(va)}", flush=True)
 
-    model = SeriesCNN().to(DEVICE)
+    model = SeriesCNN(args.width).to(DEVICE)
+    train_snr = (args.snr_min, SNR_RANGE[1])
     opt = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WD)
     best, best_state, waited = np.inf, None, 0
     for epoch in range(2 if args.smoke else MAX_EPOCHS):
@@ -139,7 +150,7 @@ def main() -> None:
                 if i >= 0:
                     ys.append(x_tr[i]), yb.append(y_tr[i])
                 else:
-                    ys.append(inject(x_tr[neg[-1 - i]], rng)[0]), yb.append(True)
+                    ys.append(inject(x_tr[neg[-1 - i]], rng, train_snr)[0]), yb.append(True)
             xb = features(np.stack(ys))
             flip = rng.random(len(xb)) < 0.5                     # aumento: inversión temporal
             xb[flip] = xb[flip, :, ::-1]
@@ -176,16 +187,20 @@ def main() -> None:
           base[(base.puntuacion == "SDE + CNN (negativos difíciles)") & (base.mision == "todas")][["roc_auc", "recall_fpr1"]].to_dict("records"))
 
     # sensibilidad: tránsitos inyectados en las curvas SIN_SEÑAL de val, con el umbral del 1 % de falsas alarmas
-    neg_va = np.flatnonzero(~y_va)
-    inj, snr = zip(*[inject(x_va[i], rng) for i in np.repeat(neg_va, 1 if args.smoke else 5)])
+    neg_va, rng_va = np.flatnonzero(~y_va), np.random.default_rng(12345)
+    inj, snr = zip(*[inject(x_va[i], rng_va, (3.0, 50.0)) for i in np.repeat(neg_va, 1 if args.smoke else 5)])
     p_inj, snr = predict(model, np.stack(inj), amp), np.array(snr)
-    by_snr = pd.DataFrame({"snr": pd.cut(snr, SNR_BINS), "detectado": p_inj > thr}).groupby("snr", observed=True).detectado.agg(["size", "mean"])
+    by_snr = pd.DataFrame({"snr": pd.cut(snr, [3] + SNR_BINS), "detectado": p_inj > thr}).groupby("snr", observed=True).detectado.agg(["size", "mean"])
     print("\ntránsitos inyectados en val, detectados con el umbral del 1 %:\n" + by_snr.round(3).to_string())
     if args.smoke:
         return
-    torch.save({"state_dict": model.state_dict(), "seed": args.seed}, MODELS / f"series_seed{args.seed}.pt")
-    va[["star_id", "mission", "disposition"]].assign(p_candidato=p_va.round(5)).to_csv(f"{OUT}/series_val_pred.csv", index=False, encoding="utf-8")
-    by_snr.reset_index().astype({"snr": str}).to_csv(f"{OUT}/series_val_snr.csv", index=False, encoding="utf-8")
+    name = f"{args.tag}_seed{args.seed}"
+    torch.save({"state_dict": model.state_dict(), "seed": args.seed, "width": args.width, "snr_min": args.snr_min},
+               MODELS / f"series_{name}.pt")
+    runs = Path(OUT) / "series_runs"
+    runs.mkdir(exist_ok=True)
+    va[["star_id", "mission", "disposition"]].assign(p_candidato=p_va.round(5)).to_csv(runs / f"{name}.csv", index=False, encoding="utf-8")
+    np.savez_compressed(runs / f"{name}.npz", snr=snr, p=p_inj)
 
 
 if __name__ == "__main__":
