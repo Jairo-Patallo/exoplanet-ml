@@ -114,7 +114,7 @@ Act as a practical Machine Learning and Deep Learning coding assistant. Prioriti
 
 \- Tasks live in Notion, page "Exoplanet ML — Gestión del proyecto": https://app.notion.com/p/40715f33376c81ea9534c0e8bd2b267d
 
-\- Databases: `Fases` (collection://a3702b25-45cb-47e0-860f-5837c94448bb) and `Tareas` (collection://cf064316-c55a-46e0-a764-9985c623078f). The project is split into 6 phases (since 2026-11-06): 1 Preprocesado y primeros tests, 2 Detección por misión (3 clases), 3 Transferencia LOMO, 4 Modelo portable final, 5 Búsqueda sin efeméride (telescopios nuevos), 6 Web y documentación. Each task belongs to one phase (the relation column is still named `Bloque`, as is the title column of Fases). All models use only the curve and curve-derived features; catalog features only as a comparison reference.
+\- Databases: `Fases` (collection://a3702b25-45cb-47e0-860f-5837c94448bb) and `Tareas` (collection://cf064316-c55a-46e0-a764-9985c623078f). The project is split into 6 phases (since 2026-11-06): 1 Preprocesado y primeros tests, 2 Detección por misión (3 clases), 3 Transferencia LOMO, 4 Modelo portable final, 5 Herramienta para aficionados y astrónomos (3 modos), 6 Web y documentación. Each task belongs to one phase (the relation column is still named `Bloque`, as is the title column of Fases). All models use only the curve and curve-derived features; catalog features only as a comparison reference.
 
 \- Priority (phases and tasks): P0 · Crítica, P1 · Alta, P2 · Media, P3 · Baja.
 

@@ -74,6 +74,12 @@ Scripts en `scripts/data`, `scripts/checks` y `scripts/models` (no se importan e
     - la detectabilidad con un telescopio pequeño;
     - la incertidumbre de la efeméride.
     Incluye una validación prospectiva: las predicciones se congelan y se comparan con las disposiciones futuras de TFOPWG. Kepler y K2 siguen siendo la base del entrenamiento. Analizar las curvas que suban los aficionados queda como trabajo futuro. Primera tarea: revisar las herramientas existentes para confirmar qué aporta la nuestra.
+11. **La fase 5 es una herramienta de 3 modos que aprovecha todo el trabajo (decisión de Jairo 2026-11-06; amplía la 10):**
+    - **Modo 1, «¿Qué observo esta noche?»:** el recomendador de la decisión 10.
+    - **Modo 2, «Informe de un candidato»:** las 3 probabilidades calibradas, las vistas, par/impar, el secundario, qué zona de la curva mira el modelo, el tipo probable de FP y los límites del techo físico; también en lote para astrónomos.
+    - **Modo 3, «Busca en una estrella»** (experimental): CNN sin plegar + BLS + modelo con negativos difíciles, con la fiabilidad medida por SNR (`research/12`).
+    - **Futuro, modo 4, «Analiza tu observación»:** curvas terrestres de aficionados.
+    Antes de nada, mejorar TESS: todos los sectores, todas las etiquetas y binarias sintéticas. Posible colaboración: el grupo de exoplanetas e IA de la Universidad de Oviedo, donde estudia Jairo.
 
 ## 6. Resultados y hallazgos clave
 
