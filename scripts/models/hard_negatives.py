@@ -6,18 +6,22 @@ ruido con forma de tránsito, como las falsas detecciones de una tubería real. 
 mismo lado de la parada temprana (groups). Pérdida con pesos por clase (training.fit): NO_SIGNAL no gana peso total.
 Se evalúa en val igual que la línea base (final_model.py val): vistas del catálogo y vistas BLS, 5 semillas.
 
-Uso (WSL, GPU):  PYTHONPATH=src ~/venvs/exoplanet-rocm/bin/python scripts/models/hard_negatives.py
-Salida: results/models/hard_val_pred.csv y hard_val_bls_pred.csv (mismo formato que final_val*_pred.csv).
+Uso (WSL, GPU):  PYTHONPATH=src ~/venvs/exoplanet-rocm/bin/python scripts/models/hard_negatives.py [train | peaks]
+Salida: train -> data/models/hard_seed*.pt, results/models/hard_val_pred.csv y hard_val_bls_pred.csv (formato de
+        final_val*_pred.csv); peaks -> hard_val_peaks_pred.csv (vistas de los K picos de BLS, build_bls_peaks.py).
 """
+import argparse
+
 import numpy as np
 import pandas as pd
 import torch
 
+from exoplanet.cnn import AstroCNN
 from exoplanet.data import CLASSES, DATA
 from exoplanet.dataset import ViewDataset
-from exoplanet.training import fit, inputs, predict
+from exoplanet.training import DEVICE, fit, inputs, predict
 from exoplanet.views import load_sample
-from final_model import OUT, SEEDS, WEIGHT_DECAY, chosen, make, x_nodepth
+from final_model import MODELS, OUT, SEEDS, WEIGHT_DECAY, chosen, make, x_nodepth
 
 BLS_VIEWS = DATA / "sample" / "views_bls"
 
@@ -51,6 +55,7 @@ def main() -> None:
     pv, pb = [], []
     for s in SEEDS:
         model, epoch = fit(make(cfg), x, y, WEIGHT_DECAY, s, augment=True, amp=True, groups=groups)
+        torch.save({"state_dict": model.state_dict(), "config": cfg, "seed": s}, MODELS / f"hard_seed{s}.pt")
         pv.append(predict(model, xv, amp=True))
         pb.append(predict(model, xb, amp=True))
         print(f"semilla {s}: época {epoch}", flush=True)
@@ -60,5 +65,25 @@ def main() -> None:
             OUT / name, index=False, encoding="utf-8")
 
 
+def peaks() -> None:
+    """Predice con los pesos guardados las vistas de los K picos de BLS (build_bls_peaks.py), una fila por estrella y pico."""
+    q = pd.read_csv("results/sample/qc_bls_peaks.csv")
+    q = q[q.error.isna() & q["valid"].eq(True)].reset_index(drop=True)
+    view = q.assign(star_id=q.star_id + "_p" + q.pico.astype(int).astype(str))   # nombre del archivo de la vista
+    d = ViewDataset(view, views_dir=DATA / "sample" / "views_bls_peaks")
+    x = {**inputs(d), "log_depth": torch.zeros_like(d.log_depth)}
+    probas = []
+    for s in SEEDS:
+        ck = torch.load(MODELS / f"hard_seed{s}.pt", map_location="cpu")
+        m = AstroCNN(ck["config"]["base"], ck["config"]["dropout"], torch.zeros(1), torch.ones(1))
+        m.load_state_dict(ck["state_dict"])
+        probas.append(predict(m.to(DEVICE).eval(), x, amp=True))
+    p = np.mean(probas, axis=0)
+    q[["star_id", "pico", "mission", "disposition", "bls_period", "bls_sde", "match"]].assign(
+        **{f"p_{c}": p[:, i] for i, c in enumerate(CLASSES)}).round(4).to_csv(OUT / "hard_val_peaks_pred.csv", index=False, encoding="utf-8")
+
+
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("stage", nargs="?", default="train", choices=["train", "peaks"])
+    {"train": main, "peaks": peaks}[ap.parse_args().stage]()

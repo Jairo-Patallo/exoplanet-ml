@@ -1,0 +1,21 @@
+puntuacion,mision,n_candidato,n_sin_senal,roc_auc,recall_fpr1,recall_fpr5
+SDE,kepler,535,517,0.862,0.224,0.51
+SDE,k2,33,21,0.909,0.697,0.727
+SDE,tess,147,150,0.827,0.061,0.245
+SDE,todas,715,688,0.855,0.255,0.476
+CNN (final),kepler,535,517,0.785,0.209,0.436
+CNN (final),k2,33,21,0.595,0.091,0.091
+CNN (final),tess,147,150,0.823,0.197,0.279
+CNN (final),todas,715,688,0.788,0.11,0.364
+CNN (negativos difíciles),kepler,535,517,0.819,0.344,0.503
+CNN (negativos difíciles),k2,33,21,0.554,0.152,0.242
+CNN (negativos difíciles),tess,147,150,0.855,0.49,0.619
+CNN (negativos difíciles),todas,715,688,0.809,0.312,0.471
+SDE + CNN (final),kepler,535,517,0.87,0.441,0.634
+SDE + CNN (final),k2,33,21,0.851,0.697,0.697
+SDE + CNN (final),tess,147,150,0.855,0.075,0.49
+SDE + CNN (final),todas,715,688,0.868,0.362,0.604
+SDE + CNN (negativos difíciles),kepler,535,517,0.88,0.479,0.662
+SDE + CNN (negativos difíciles),k2,33,21,0.827,0.727,0.727
+SDE + CNN (negativos difíciles),tess,147,150,0.875,0.408,0.707
+SDE + CNN (negativos difíciles),todas,715,688,0.877,0.473,0.662

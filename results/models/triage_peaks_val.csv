@@ -1,0 +1,21 @@
+puntuacion,mision,n_candidato,n_sin_senal,roc_auc,recall_fpr1,recall_fpr5
+SDE (pico 1),kepler,535,517,0.862,0.224,0.51
+SDE (pico 1),k2,33,21,0.909,0.697,0.727
+SDE (pico 1),tess,147,150,0.827,0.061,0.245
+SDE (pico 1),todas,715,688,0.855,0.255,0.476
+"CNN, pico 1",kepler,535,517,0.819,0.344,0.503
+"CNN, pico 1",k2,33,21,0.554,0.121,0.242
+"CNN, pico 1",tess,147,150,0.855,0.483,0.619
+"CNN, pico 1",todas,715,688,0.809,0.312,0.471
+"CNN, mejor de 3 picos",kepler,535,517,0.78,0.363,0.492
+"CNN, mejor de 3 picos",k2,33,21,0.55,0.121,0.152
+"CNN, mejor de 3 picos",tess,147,150,0.863,0.122,0.694
+"CNN, mejor de 3 picos",todas,715,688,0.781,0.368,0.503
+"SDE + CNN, pico 1",kepler,535,517,0.88,0.484,0.658
+"SDE + CNN, pico 1",k2,33,21,0.833,0.727,0.727
+"SDE + CNN, pico 1",tess,147,150,0.878,0.415,0.707
+"SDE + CNN, pico 1",todas,715,688,0.878,0.474,0.667
+"SDE + CNN, mejor de 3 picos",kepler,535,517,0.874,0.488,0.669
+"SDE + CNN, mejor de 3 picos",k2,33,21,0.864,0.727,0.727
+"SDE + CNN, mejor de 3 picos",tess,147,150,0.873,0.327,0.721
+"SDE + CNN, mejor de 3 picos",todas,715,688,0.873,0.47,0.68

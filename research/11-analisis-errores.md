@@ -75,3 +75,58 @@ Cualquier mejora se mide en val. La cifra de test de `research/10` sigue siendo 
 - Los NO_SIGNAL fáciles (catálogo) no cambian: 1,1–1,3 % → PLANET en los dos modelos.
 
 Decisión pendiente: adoptar, descartar o probar una fracción menor de negativos difíciles con un criterio fijado antes.
+
+## 4. Triaje en modo búsqueda: CANDIDATO frente a SIN_SEÑAL (2026-11-06)
+
+Prioridad fijada por Jairo: que sea fiable distinguir CANDIDATO (PLANET o FP: hay una señal real) de SIN_SEÑAL, solo con la curva.
+- Los nombres son solo de presentación; en el código sigue `NO_SIGNAL`.
+- Con la efeméride del catálogo ya es fiable: ROC-AUC 0,95–0,99.
+- El problema está en modo búsqueda.
+
+**Prueba barata** (`scripts/checks/triage_val.py` → `results/models/triage_val.csv`):
+- Estrellas: las 1 403 de val con vista BLS.
+- Puntuaciones comparadas: la SDE de BLS, la probabilidad de candidato de la CNN, y las dos combinadas con una regresión logística. La combinación se puntúa fuera de pliegue (5 folds).
+- Métrica: recall de candidatos con el umbral que deja pasar el 1 % de los SIN_SEÑAL.
+
+| Val, todas las misiones | ROC-AUC | Recall con 1 % de falsas alarmas | Recall con 5 % |
+|---|---|---|---|
+| SDE sola | 0,855 | 0,26 | 0,48 |
+| CNN final | 0,788 | 0,11 | 0,36 |
+| CNN con negativos difíciles | 0,809 | 0,31 | 0,47 |
+| SDE + CNN final | 0,868 | 0,36 | 0,60 |
+| **SDE + CNN con negativos difíciles** | **0,877** | **0,47** | **0,66** |
+
+Por misión, para la mejor combinación (recall con 1 %): Kepler 0,48, TESS 0,41, K2 0,73. K2 tiene solo 21 SIN_SEÑAL, así que su 1 % no es fiable.
+
+**Dónde está el límite:**
+- Si BLS encuentra el periodo correcto (68 % de los candidatos), el recall con 1 % de falsas alarmas es **0,65**.
+- Si BLS da otro periodo (32 %), baja a **0,11**.
+- El clasificador funciona razonablemente bien. **El cuello de botella es la detección de BLS.**
+
+## 5. Prueba: los 3 mejores picos de BLS (2026-11-06) — descartada
+
+**Qué se hizo:**
+- Cada estrella de val se pliega con sus 3 picos distintos de mayor SDE (`bls.find_ephemerides`, `scripts/data/build_bls_peaks.py`). El primer pico reproduce exactamente el BLS anterior.
+- La CNN con negativos difíciles (pesos ahora guardados en `data/models/hard_seed*.pt`; el reentrenamiento da las mismas predicciones) puntúa cada vista.
+- La regresión SDE + CNN se ajusta con el pico 1 de los otros folds y la estrella toma el máximo de sus picos.
+
+**Resultados:**
+- El periodo correcto aparece en el pico 1 en el 68 % de los candidatos y en alguno de los 3 en el 75 %.
+
+| Val, todas las misiones | ROC-AUC | Recall con 1 % de falsas alarmas | Recall con 5 % |
+|---|---|---|---|
+| SDE + CNN, pico 1 | 0,878 | 0,474 | 0,667 |
+| SDE + CNN, mejor de 3 picos | 0,873 | 0,470 | 0,680 |
+
+**Conclusión:** sin mejora.
+- Solo rescata un 7 % de periodos, y el ruido gana a la vez 3 oportunidades de parecer tránsito.
+- Para el 25 % de los candidatos, ningún pico de BLS tiene el periodo correcto. **BLS está en su límite con estas curvas**: el siguiente paso tiene que ser un detector que no dependa de BLS.
+
+**Recall de candidatos frente a ruido que pasa** (SDE + CNN, pico 1, val):
+
+| Candidatos detectados | 80 % | 90 % | 95 % | 99 % |
+|---|---|---|---|---|
+| Ruido que pasa, búsqueda (BLS) | 19 % | 46 % | 67 % | 95 % |
+| Ruido que pasa, periodo de catálogo (CNN final) | 0,1 % | 2,7 % | 11 % | 44 % |
+
+Objetivo de Jairo: falsas alarmas ≤ 1 % al final de la cadena (triaje + modelo final) sin perder candidatos. La fase 1 debe priorizar el recall.
