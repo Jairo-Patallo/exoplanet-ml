@@ -61,6 +61,12 @@ Scripts en `scripts/data`, `scripts/checks` y `scripts/models` (no se importan e
 5. **Centroide:** variante aparte ("curva + centroide"); la versión solo curva es la portable (CoRoT no tiene centroide).
 6. **Sin profundidad (#43, decisión de Jairo 2026-11-04):** el modelo final no usa log10 de la profundidad; solo la forma normalizada. En el LOMO aportaba +0,003 (dentro del ruido) y es la variable que más delata la misión. Se aplica al construir el modelo de la fase 4; los resultados de las fases 2 y 3 se quedan como están.
 7. **Alcance: clasificador de señales ya detectadas (#53, decisión de Jairo 2026-11-05).** Entrada: curva + periodo y época. Con la efeméride de BLS el macro-F1 cae de ~0,86 a ~0,50, sobre todo porque los NO_SIGNAL plegados con un pico de ruido parecen tránsitos (`research/09-bls.md`). NO_SIGNAL = "la efeméride dada no es un tránsito real".
+8. **Prioridad: triaje en modo búsqueda (decisión de Jairo 2026-11-06).** Lo que tiene que ser fiable es separar CANDIDATO (PLANET o FP) de SIN_SEÑAL (`NO_SIGNAL` en el código; los nombres nuevos son solo de presentación) sin efeméride. Objetivo: falsas alarmas ≤ 1 % al final de la cadena sin perder candidatos. Se mide con el recall de candidatos usando el umbral del 1 % de falsas alarmas en val, y por SNR. Cadena:
+   1. CNN sobre la curva sin plegar como filtro rápido (`research/12`);
+   2. BLS solo en las estrellas que pasan, para dar el periodo;
+   3. puntuación combinada (SDE + CNN plegada + CNN sin plegar);
+   4. planeta frente a FP: el modelo con negativos difíciles en búsqueda, y el modelo final (decisión 7) cuando el usuario da la efeméride.
+   Si mejorar la CNN sin plegar (semillas, anchura, inyecciones débiles) no basta, se pasa a un Transformer sobre la misma entrada.
 
 ## 6. Resultados y hallazgos clave
 
