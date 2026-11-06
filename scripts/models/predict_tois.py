@@ -89,8 +89,9 @@ def main() -> None:
     views = hashlib.sha256()
     for t in sorted(stars.toi):
         views.update((VIEWS / f"{t}.npz").read_bytes())
+    # core.autocrlf=true: desde WSL, el fin de línea CRLF del checkout de Windows no cuenta como cambio
     commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
-    dirty = bool(subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], capture_output=True, text=True).stdout.strip())
+    dirty = bool(subprocess.run(["git", "-c", "core.autocrlf=true", "status", "--porcelain", "--untracked-files=no"], capture_output=True, text=True).stdout.strip())
     manifest = {"version": args.version, "created_utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
                 "git_commit": commit, "git_dirty": dirty, "n_tois": len(out),
                 "model": "CNN dos ramas solo curva, sin profundidad, media de 5 semillas (research/10)",

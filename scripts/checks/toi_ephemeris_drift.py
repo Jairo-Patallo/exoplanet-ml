@@ -28,8 +28,9 @@ def main() -> None:
     qc = qc[qc["valid"].eq(True)]
     e = pd.read_csv(EXOFOP, comment="#", low_memory=False)
     e["toi"] = e["TOI"].map(lambda x: f"{x:.2f}")
-    qc = qc.merge(e[["toi", "Period (days) err", "Epoch (BJD) err"]].rename(
-        columns={"Period (days) err": "sigma_P", "Epoch (BJD) err": "sigma_t0"}), on="toi", how="left")
+    if "sigma_P" not in qc:       # el qc antiguo (results/toi/history/) no traía los errores de la efeméride
+        qc = qc.merge(e[["toi", "Period (days) err", "Epoch (BJD) err"]].rename(
+            columns={"Period (days) err": "sigma_P", "Epoch (BJD) err": "sigma_t0"}), on="toi", how="left")
     files: dict[str, list[Path]] = {}
     for p in (RAW / "mastDownload" / "TESS").glob("tess*/*_lc.fits"):
         files.setdefault(f"TIC_{int(p.name.split('-')[2])}", []).append(p)
