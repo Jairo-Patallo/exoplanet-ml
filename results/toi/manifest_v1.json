@@ -1,0 +1,30 @@
+{
+  "version": "v1",
+  "created_utc": "2026-11-06T23:20:26+00:00",
+  "git_commit": "c0839cc4ff40fd0d790c706cdf9e33c01b2bb73a",
+  "git_dirty": false,
+  "n_tois": 3536,
+  "model": "CNN dos ramas solo curva, sin profundidad, media de 5 semillas (research/10)",
+  "temperature_tess": 1.0720736079436113,
+  "sha256": {
+    "weights": {
+      "final_seed0.pt": "515530f9c99a35cd76b532ffe1e05c32201371e222ea8f8b27d1730d61f3dd6c",
+      "final_seed1.pt": "3e4b44432ef4ea2190d88514dc085333d8d82f671ff10e6e64c0f755fa5ca1a6",
+      "final_seed2.pt": "b47ffb098bd1326a4be7e17efdc38fe0c2a1d285029de229667fd999c3b5222c",
+      "final_seed3.pt": "e44826b28ee42eb7c5b662f50caf664b4f5b7a44ad89f00fd7e7af15fa007dc6",
+      "final_seed4.pt": "df91bf94c3b42da9aaaa99eb9f79a66e94218a90c9344a26b944985637b1d20a"
+    },
+    "temperature": "63e0aa6f71985ddcdeb277cf8e8568cca4b235cae2a0ebbaebbd4dbb797ece6f",
+    "views_concat": "a3310f372cf241082cfe728f16fab8e1f4de11a4ebb9523ed41826a62aa49058",
+    "qc": "1789489f279fbd9376935b9f823a1ca2b5f012123df7bdc98270935d3aacc161",
+    "exofop": "c103e6e09fe0cee1a4dcb6bd8f0c52951fde0f4830ce873a8b533a6bead9a3be",
+    "exominerpp": "e67f03cca05d46391fa391ce797df21672c78a15a33c20b82932642eef1e8792",
+    "predictions": "29eece7dd3c172c1c2101c5f845c3030e7bef9550414f3d94250b637ee4ebd23"
+  },
+  "pred_counts": {
+    "PLANET": 2665,
+    "FALSE_POSITIVE": 611,
+    "NO_SIGNAL": 260
+  },
+  "with_exominerpp": 2007
+}
