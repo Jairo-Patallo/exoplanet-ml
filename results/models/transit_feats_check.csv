@@ -1,0 +1,94 @@
+mission,source,subset,n,n_fp,metric,value,lo,hi
+k2,lomo,todas,329,161,auc_cnn,0.9549,0.9318,0.9725
+k2,lomo,todas,329,161,auc_abs_z_odd_even,0.5296,0.4631,0.5927
+k2,lomo,todas,329,161,auc_z_scatter,0.6592,0.5994,0.7168
+k2,lomo,todas,329,161,auc_z_max,0.6782,0.6189,0.7346
+k2,lomo,todas,329,161,auc_feats_logreg,0.6708,0.6081,0.7333
+k2,lomo,todas,329,161,auc_cnn_logreg,0.9525,0.93,0.9714
+k2,lomo,todas,329,161,auc_cnn_plus_feats,0.955,0.934,0.9741
+k2,lomo,todas,329,161,gain_auc,0.0026,-0.0049,0.0104
+k2,lomo,la CNN dice PLANET,143,10,auc_cnn,0.8008,0.6555,0.9143
+k2,lomo,la CNN dice PLANET,143,10,auc_abs_z_odd_even,0.5,0.3046,0.7
+k2,lomo,la CNN dice PLANET,143,10,auc_z_scatter,0.5383,0.3202,0.7698
+k2,lomo,la CNN dice PLANET,143,10,auc_z_max,0.5549,0.332,0.7658
+k2,lomo,la CNN dice PLANET,143,10,auc_feats_logreg,0.2519,0.1069,0.4155
+kepler,lomo,todas,4996,3346,auc_cnn,0.8968,0.8874,0.9051
+kepler,lomo,todas,4996,3346,auc_abs_z_odd_even,0.5475,0.5329,0.564
+kepler,lomo,todas,4996,3346,auc_z_scatter,0.6671,0.6528,0.6823
+kepler,lomo,todas,4996,3346,auc_z_max,0.6712,0.6552,0.6852
+kepler,lomo,todas,4996,3346,auc_feats_logreg,0.676,0.6606,0.6912
+kepler,lomo,todas,4996,3346,auc_cnn_logreg,0.8967,0.8879,0.9052
+kepler,lomo,todas,4996,3346,auc_cnn_plus_feats,0.8976,0.8886,0.9059
+kepler,lomo,todas,4996,3346,gain_auc,0.0009,-0.0002,0.002
+kepler,lomo,la CNN dice PLANET,1991,564,auc_cnn,0.6924,0.6653,0.718
+kepler,lomo,la CNN dice PLANET,1991,564,auc_abs_z_odd_even,0.5249,0.494,0.5562
+kepler,lomo,la CNN dice PLANET,1991,564,auc_z_scatter,0.6172,0.5902,0.6448
+kepler,lomo,la CNN dice PLANET,1991,564,auc_z_max,0.6044,0.5754,0.634
+kepler,lomo,la CNN dice PLANET,1991,564,auc_feats_logreg,0.615,0.5886,0.6448
+tess,lomo,todas,1325,811,auc_cnn,0.7801,0.755,0.8068
+tess,lomo,todas,1325,811,auc_abs_z_odd_even,0.5462,0.5151,0.5772
+tess,lomo,todas,1325,811,auc_z_scatter,0.5169,0.4838,0.5468
+tess,lomo,todas,1325,811,auc_z_max,0.5291,0.4985,0.5597
+tess,lomo,todas,1325,811,auc_feats_logreg,0.5452,0.5116,0.5759
+tess,lomo,todas,1325,811,auc_cnn_logreg,0.7796,0.755,0.8049
+tess,lomo,todas,1325,811,auc_cnn_plus_feats,0.7798,0.7552,0.8049
+tess,lomo,todas,1325,811,gain_auc,0.0002,-0.0047,0.0049
+tess,lomo,la CNN dice PLANET,702,305,auc_cnn,0.7272,0.6875,0.7638
+tess,lomo,la CNN dice PLANET,702,305,auc_abs_z_odd_even,0.5365,0.4926,0.5807
+tess,lomo,la CNN dice PLANET,702,305,auc_z_scatter,0.5076,0.462,0.5498
+tess,lomo,la CNN dice PLANET,702,305,auc_z_max,0.5071,0.4653,0.5493
+tess,lomo,la CNN dice PLANET,702,305,auc_feats_logreg,0.515,0.4722,0.5578
+tess,lomo,≤ 8 tránsitos,777,400,auc_cnn,0.7616,0.7294,0.7953
+tess,lomo,≤ 8 tránsitos,777,400,auc_abs_z_odd_even,0.5347,0.4926,0.5758
+tess,lomo,≤ 8 tránsitos,777,400,auc_z_scatter,0.5366,0.4979,0.5783
+tess,lomo,≤ 8 tránsitos,777,400,auc_z_max,0.525,0.4833,0.5653
+tess,lomo,≤ 8 tránsitos,777,400,auc_feats_logreg,0.5351,0.4931,0.5762
+tess,lomo,> 8 tránsitos,548,411,auc_cnn,0.7429,0.6887,0.7909
+tess,lomo,> 8 tránsitos,548,411,auc_abs_z_odd_even,0.5817,0.528,0.6355
+tess,lomo,> 8 tránsitos,548,411,auc_z_scatter,0.5035,0.4491,0.5608
+tess,lomo,> 8 tránsitos,548,411,auc_z_max,0.5179,0.4638,0.5708
+tess,lomo,> 8 tránsitos,548,411,auc_feats_logreg,0.5632,0.5064,0.6141
+k2,val,todas,36,19,auc_cnn,0.9721,0.9111,1.0
+k2,val,todas,36,19,auc_abs_z_odd_even,0.322,0.125,0.5312
+k2,val,todas,36,19,auc_z_scatter,0.5077,0.3047,0.6966
+k2,val,todas,36,19,auc_z_max,0.5356,0.3206,0.7281
+k2,val,todas,36,19,auc_feats_logreg,0.4613,0.2663,0.6625
+k2,val,todas,36,19,auc_cnn_logreg,0.9628,0.8947,1.0
+k2,val,todas,36,19,auc_cnn_plus_feats,0.9412,0.8528,1.0
+k2,val,todas,36,19,gain_auc,-0.0217,-0.0648,0.0062
+kepler,val,todas,560,384,auc_cnn,0.9526,0.9354,0.967
+kepler,val,todas,560,384,auc_abs_z_odd_even,0.5743,0.5273,0.6251
+kepler,val,todas,560,384,auc_z_scatter,0.6704,0.6273,0.7097
+kepler,val,todas,560,384,auc_z_max,0.672,0.6267,0.7101
+kepler,val,todas,560,384,auc_feats_logreg,0.6731,0.6278,0.7174
+kepler,val,todas,560,384,auc_cnn_logreg,0.9518,0.9352,0.9666
+kepler,val,todas,560,384,auc_cnn_plus_feats,0.9519,0.9351,0.967
+kepler,val,todas,560,384,gain_auc,0.0001,-0.0033,0.0034
+kepler,val,la CNN dice PLANET,212,50,auc_cnn,0.7337,0.6581,0.8036
+kepler,val,la CNN dice PLANET,212,50,auc_abs_z_odd_even,0.5465,0.4524,0.6418
+kepler,val,la CNN dice PLANET,212,50,auc_z_scatter,0.564,0.4606,0.6618
+kepler,val,la CNN dice PLANET,212,50,auc_z_max,0.5417,0.4425,0.6407
+kepler,val,la CNN dice PLANET,212,50,auc_feats_logreg,0.5343,0.4233,0.6483
+tess,val,todas,148,89,auc_cnn,0.8556,0.7848,0.9194
+tess,val,todas,148,89,auc_abs_z_odd_even,0.5277,0.4309,0.6226
+tess,val,todas,148,89,auc_z_scatter,0.4473,0.3583,0.5378
+tess,val,todas,148,89,auc_z_max,0.4605,0.3646,0.5472
+tess,val,todas,148,89,auc_feats_logreg,0.5183,0.4244,0.6158
+tess,val,todas,148,89,auc_cnn_logreg,0.8545,0.7868,0.918
+tess,val,todas,148,89,auc_cnn_plus_feats,0.8318,0.764,0.9015
+tess,val,todas,148,89,gain_auc,-0.0227,-0.0486,0.0008
+tess,val,la CNN dice PLANET,66,18,auc_cnn,0.7338,0.575,0.8719
+tess,val,la CNN dice PLANET,66,18,auc_abs_z_odd_even,0.4537,0.2947,0.6306
+tess,val,la CNN dice PLANET,66,18,auc_z_scatter,0.3785,0.2206,0.5576
+tess,val,la CNN dice PLANET,66,18,auc_z_max,0.36,0.2016,0.5336
+tess,val,la CNN dice PLANET,66,18,auc_feats_logreg,0.5463,0.3842,0.7098
+tess,val,≤ 8 tránsitos,85,42,auc_cnn,0.8311,0.7306,0.9189
+tess,val,≤ 8 tránsitos,85,42,auc_abs_z_odd_even,0.4911,0.3623,0.6148
+tess,val,≤ 8 tránsitos,85,42,auc_z_scatter,0.526,0.4046,0.6556
+tess,val,≤ 8 tránsitos,85,42,auc_z_max,0.4945,0.3673,0.6177
+tess,val,≤ 8 tránsitos,85,42,auc_feats_logreg,0.3447,0.2335,0.4674
+tess,val,> 8 tránsitos,63,47,auc_cnn,0.8364,0.6916,0.9693
+tess,val,> 8 tránsitos,63,47,auc_abs_z_odd_even,0.6237,0.4723,0.7803
+tess,val,> 8 tránsitos,63,47,auc_z_scatter,0.3059,0.1726,0.4361
+tess,val,> 8 tránsitos,63,47,auc_z_max,0.3311,0.1923,0.4821
+tess,val,> 8 tránsitos,63,47,auc_feats_logreg,0.6676,0.4956,0.8319

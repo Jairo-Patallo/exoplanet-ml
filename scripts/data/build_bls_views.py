@@ -34,8 +34,10 @@ def star_files(row) -> list[Path]:
     num = int(row.star_id.split("_")[1])
     if row.mission == "tess":
         return sorted((RAW / "mastDownload" / "TESS").glob(f"tess*-s{int(row.segment):04d}-{num:016d}-*/*_lc.fits"))
-    if row.mission == "k2":
-        return sorted((RAW / "mastDownload" / "K2").glob(f"ktwo{num}-c{int(row.segment):02d}*_lc/*_llc.fits"))
+    if row.mission == "k2":     # C10 se publica en mitades: carpeta ktwo...-c10_lc, archivo ...-c102_llc.fits (segmento 102)
+        seg = int(row.segment)
+        camp = seg // 10 if seg >= 100 else seg
+        return sorted((RAW / "mastDownload" / "K2").glob(f"ktwo{num}-c{camp:02d}*_lc/*-c{seg:02d}*_llc.fits"))
     files = sorted((RAW / "mastDownload" / "Kepler").glob(f"kplr{num:09d}_lc_*/*_llc.fits"))
     if len(files) > 2:
         spans = [(float(np.nanmin(t)), float(np.nanmax(t))) for t in (lk.read(f).time.value for f in files)]

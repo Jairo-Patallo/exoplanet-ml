@@ -45,3 +45,35 @@ def test_fold_centroid_detects_shift_in_transit():
     loc_shift, _, _ = fold_centroid(t, dx_shift, dy, period, t0, dur)
     assert ok
     assert loc_shift[40] > 10 and abs(loc_quiet[40]) < 5, "un desplazamiento en el tránsito debe dar muchos sigmas"
+
+
+def box_curve(odd_depth=2e-3, even_depth=2e-3, noise=1e-3, red=0.0, seed=0):
+    """Un sector de TESS sintético (27 d a 2 min) con tránsitos en caja; red > 0 añade ruido correlado de ~1 duración."""
+    rng = np.random.default_rng(seed)
+    t = np.arange(0, 27, 2 / 1440)
+    period, t0, dur = 2.3, 1.0, 0.12
+    y = 1 + rng.normal(0, noise, t.size)
+    if red:
+        k = int(dur / (2 / 1440))
+        y += np.convolve(rng.normal(0, red, t.size), np.ones(k) / np.sqrt(k), mode="same")
+    n = np.round((t - t0) / period)
+    inside = np.abs(t - t0 - n * period) < dur / 2
+    y[inside] -= np.where(n[inside] % 2 == 1, odd_depth, even_depth)
+    return t, y, period, t0, dur
+
+
+def test_transit_features_planet_is_calibrated():
+    from exoplanet.features import transit_features
+    f = transit_features(*box_curve())
+    assert f["n_transits"] >= 10 and 1.0 <= f["beta"] < 1.3
+    assert abs(f["z_odd_even"]) < 3 and f["z_scatter"] < 3 and f["z_max"] < 3
+
+
+def test_transit_features_finds_odd_even_binary():
+    from exoplanet.features import transit_features
+    assert transit_features(*box_curve(odd_depth=4e-3, even_depth=1e-3))["z_odd_even"] > 5
+
+
+def test_transit_features_red_noise_inflates_errors():
+    from exoplanet.features import transit_features
+    assert transit_features(*box_curve(red=1e-3))["beta"] > 1.5
