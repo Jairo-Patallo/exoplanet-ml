@@ -78,7 +78,8 @@ def main() -> None:
     temp_file = MODELS / "final_temperature.json"
     T = json.loads(temp_file.read_text())["temperatura_por_mision"]["tess"]
     p = temper(raw, T)
-    out = stars[["toi", "star_id", "period_days", "epoch_bjd", "duration_hrs", "tmag", "depth_ppm", "n_transits"]].assign(
+    out = stars[["toi", "star_id", "period_days", "epoch_bjd", "duration_hrs", "tmag", "depth_ppm", "n_transits", "drift",
+                 "efemeride_incierta"]].assign(
         **{f"p_{c}": p[:, i] for i, c in enumerate(CLASSES)},
         p_planet_given_signal=p[:, 0] / (p[:, 0] + p[:, 1]),
         pred=np.asarray(CLASSES)[p.argmax(axis=1)])

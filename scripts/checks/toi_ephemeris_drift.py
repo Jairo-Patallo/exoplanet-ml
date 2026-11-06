@@ -31,6 +31,9 @@ def main() -> None:
     if "sigma_P" not in qc:       # el qc antiguo (results/toi/history/) no traía los errores de la efeméride
         qc = qc.merge(e[["toi", "Period (days) err", "Epoch (BJD) err"]].rename(
             columns={"Period (days) err": "sigma_P", "Epoch (BJD) err": "sigma_t0"}), on="toi", how="left")
+    if "drift" in qc:             # qc nuevo: build_toi_views.py ya guarda la deriva del sector que usó de verdad
+        d = qc[["toi", "drift", "sigma_P", "sigma_t0", "duration_hrs"]].rename(columns={"drift": "sigma_over_dur"})
+        return report(d, args.pred)
     files: dict[str, list[Path]] = {}
     for p in (RAW / "mastDownload" / "TESS").glob("tess*/*_lc.fits"):
         files.setdefault(f"TIC_{int(p.name.split('-')[2])}", []).append(p)
@@ -45,16 +48,19 @@ def main() -> None:
         rows.append({"toi": r.toi, "n_orbits": n, "sigma_P": r.sigma_P, "sigma_t0": r.sigma_t0,
                      "duration_hrs": r.duration_hrs})
     d = pd.DataFrame(rows)
-    d["sigma_t_hrs"] = 24 * np.hypot(d.sigma_t0.fillna(0), d.n_orbits * d.sigma_P.fillna(0))
-    d["sigma_over_dur"] = d.sigma_t_hrs / d.duration_hrs
-    d["sin_error_publicado"] = d.sigma_P.isna()
+    d["sigma_over_dur"] = 24 * np.hypot(d.sigma_t0.fillna(0), d.n_orbits * d.sigma_P.fillna(0)) / d.duration_hrs
+    report(d, args.pred)
+
+
+def report(d: pd.DataFrame, pred: str | None) -> None:
+    d["sin_error_publicado"] = d.sigma_P.isna() | d.sigma_P.eq(0)
     OUT.parent.mkdir(parents=True, exist_ok=True)
     d.round(5).to_csv(OUT, index=False, encoding="utf-8")
     bins = pd.cut(d.sigma_over_dur, [-0.01, 0.1, 0.25, 0.5, 1, np.inf], labels=["≤ 0,1", "0,1–0,25", "0,25–0,5", "0,5–1", "> 1"])
     print(f"{len(d)} TOIs válidos; σ_t / duración: mediana {d.sigma_over_dur.median():.3f}; "
           f"sin error de periodo publicado: {d.sin_error_publicado.sum()}")
-    if args.pred and Path(args.pred).exists():
-        p = pd.read_csv(args.pred, dtype={"toi": str})[["toi", "pred", "exominerpp_score"]]
+    if pred and Path(pred).exists():
+        p = pd.read_csv(pred, dtype={"toi": str})[["toi", "pred", "exominerpp_score"]]
         d = d.assign(bin=bins).merge(p, on="toi")
         print(d.groupby("bin", observed=True).agg(n=("toi", "size"), frac_no_signal=("pred", lambda s: (s == "NO_SIGNAL").mean()),
                                                   frac_fp=("pred", lambda s: (s == "FALSE_POSITIVE").mean())).round(3).to_string())
