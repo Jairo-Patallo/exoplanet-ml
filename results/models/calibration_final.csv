@@ -1,0 +1,9 @@
+grupo,n,version,nll,brier,ece,confianza_media,acierto
+kepler,1116,sin calibrar,0.2898,0.1624,0.0393,0.8567,0.8961
+kepler,1116,T fuera de pliegue,0.2793,0.1596,0.0174,0.8937,0.8961
+k2,69,sin calibrar,0.3506,0.1798,0.0843,0.8142,0.8986
+k2,69,T fuera de pliegue,0.3427,0.171,0.0575,0.8797,0.8986
+tess,302,sin calibrar,0.5341,0.2831,0.0628,0.7907,0.8212
+tess,302,T fuera de pliegue,0.5398,0.2847,0.0563,0.7779,0.8212
+global,1487,sin calibrar,0.3422,0.1877,0.0396,0.8413,0.881
+global,1487,T fuera de pliegue,0.3345,0.1846,0.0196,0.8743,0.881

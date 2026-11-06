@@ -1,0 +1,7 @@
+grupo,n,macro_f1_1sector,macro_f1_multi,diferencia,ic_lo,ic_hi,f1_fp_1sector,f1_fp_multi
+kepler,1116,0.874,0.87,,,,,
+k2,69,0.891,0.907,,,,,
+tess,302,0.784,0.765,,,,,
+"tess, todas",302,0.784,0.765,-0.019,-0.059,0.018,0.684,0.641
+"tess, ganan sectores",134,0.823,0.81,-0.014,-0.093,0.063,0.727,0.686
+"tess, sin sectores nuevos",168,0.75,0.725,-0.025,-0.065,0.008,0.651,0.605
