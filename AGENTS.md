@@ -16,11 +16,13 @@ Clasificador de tránsitos como **PLANET / FALSE_POSITIVE / NO_SIGNAL** usando *
 - No lances ejecuciones largas o descargas grandes sin comprobar la configuración antes (presupuesto de descargas acumulado: 50 GB).
 - **El repositorio es público.** Nunca subas claves, tokens ni credenciales; el `.gitignore` ya cubre `.env`, `secrets.toml` y similares. `data/` está ignorado y no se sube. No hagas commit ni push sin que el usuario lo pida.
 
-## Estado (2026-11-04)
+## Estado (2026-11-06)
 
-Fase 1 (datos) cerrada; fase 2 (modelos dentro de cada misión) casi cerrada: mejor modelo solo curva = CNN con ensemble,
-macro-F1 0,85 en val. Fase 3 (LOMO: entrenar con dos misiones y probar en la tercera) preparada, sin ejecutar. Detalle en
-`CONTEXTO.md` y `research/06-modelos-fase2.md`.
+Fases 1–6 cerradas. Modelo final (fase 4): CNN de dos ramas solo curva, sin profundidad, Kepler + K2 + TESS, conjunto de
+5 semillas y temperatura por misión (`data/models/final_seed*.pt`, `final_temperature.json`). Test (gastado, una vez):
+macro-F1 Kepler 0,886, K2 0,928, TESS 0,720; LOMO en test PR-AUC 0,906 / 0,961 / 0,761. Fase 7 (investigación) en curso:
+el paso 1 del Transformer de tránsitos individuales no cumplió su criterio (`research/15`). Fases 8 (herramienta) y 9 (web)
+pendientes. Auditoría y propuestas: `docs/auditoria-y-propuestas-2026-11-06.pdf`. Detalle en `CONTEXTO.md` y `research/`.
 
 ## Estructura
 
@@ -54,7 +56,8 @@ PYTHONPATH=src ~/venvs/exoplanet-rocm/bin/python scripts/models/cnn.py --amp --m
 - La vista global y las de par/impar del dataset de Hugging Face **no están centradas** en el tránsito.
 - La época del dataset (`epoch_bjd`) ya está en el tiempo de la misión; un error MJD→BKJD costó 400 días.
 - Los trimestres de Kepler salen de `kepler_quarters.csv` (MAST da el mismo intervalo a todos).
-- TESS tiene sectores >= 100: solo K2 tiene mitades de campaña (`mast_sequence(segment, mission)`).
+- TESS tiene sectores >= 100: solo K2 tiene mitades de campaña (`mast_sequence(segment, mission)`). En disco, la C10 de K2
+  está en la carpeta `ktwo...-c10_lc` con el archivo `...-c102_llc.fits` (segmento 102).
 - La misma estrella tiene un número distinto en cada misión (KIC, EPIC, TIC): cruza por coordenadas.
 - **Antes de borrar datos**, cuenta qué vas a borrar comparando por `star_id` y para si no es lo esperado.
 - MAST puede colgarse sin límite de tiempo: vigila que el log avance.

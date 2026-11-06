@@ -1,10 +1,10 @@
 # Contexto del proyecto exoplanet-ml (para continuar en otro chat)
 
-Actualizado el 2026-11-05. Lee también `CLAUDE.md` (reglas de trabajo), `README.md` (estructura y cómo reproducir) y `research/` (decisiones razonadas, sobre todo `05-negativos-no-signal.md` y `06-modelos-fase2.md`).
+Actualizado el 2026-11-06 (las secciones 8 y 9 son el estado al cerrar la fase 3; lo posterior está en las decisiones 7–12 y en `research/10`–`15`). Lee también `CLAUDE.md` (reglas de trabajo), `README.md` (estructura y cómo reproducir) y `research/` (decisiones razonadas, sobre todo `05-negativos-no-signal.md` y `06-modelos-fase2.md`).
 
 ## 1. Objetivo
 
-Un modelo que decide si una señal de tránsito es **PLANET**, **FALSE_POSITIVE** o **NO_SIGNAL** usando **solo la curva de luz** (y variables derivadas de ella), **portable a telescopios nuevos**. La portabilidad se mide entrenando con dos misiones y probando en la tercera (LOMO: Kepler, K2, TESS). CoRoT sería una cuarta misión si llegan sus etiquetas. Fases finales: modelo portable con efeméride dada (fase 4), búsqueda sin efeméride para telescopios nuevos, como PLATO o el seguimiento terrestre en España (fase 5, desde 2026-11-06), y web (fase 6).
+Un modelo que decide si una señal de tránsito es **PLANET**, **FALSE_POSITIVE** o **NO_SIGNAL** usando **solo la curva de luz** (y variables derivadas de ella), **portable a telescopios nuevos**. La portabilidad se mide entrenando con dos misiones y probando en la tercera (LOMO: Kepler, K2, TESS). CoRoT sería una cuarta misión si llegan sus etiquetas. Ruta desde el 2026-11-06 (decisión 12): fases 1–6 cerradas; 7 investigación (en curso), 8 herramienta para aficionados y astrónomos, 9 web, ingeniería y documentación.
 
 ## 2. Cómo se trabaja
 
@@ -110,12 +110,7 @@ Scripts en `scripts/data`, `scripts/checks` y `scripts/models` (no se importan e
 
 - Página principal: https://app.notion.com/p/40715f33376c81ea9534c0e8bd2b267d
 - Tareas: `collection://cf064316-c55a-46e0-a764-9985c623078f` · Fases: `collection://a3702b25-45cb-47e0-860f-5837c94448bb` (la relación se llama `Bloque`).
-- Fases:
-  1. Datos: Hecho.
-  2. Modelos por misión: casi cerrada.
-  3. LOMO: Hecho (2026-11-05).
-  4. Modelo portable (BLS, test único, CoRoT).
-  5. Web y documentación.
+- Fases (desde 2026-11-06): 1 Preprocesado y primeros tests, 2 Detección por misión, 3 Transferencia LOMO, 4 Modelo portable final, 5 Búsqueda sin efeméride y revisión de herramientas, 6 Mejora del modelo en TESS (todas Hecho); 7 Investigación (En curso); 8 Herramienta; 9 Web, ingeniería y documentación; `Stand-by · Tareas aparcadas`.
 
 ## 8. Fase 3 (LOMO) y estado actual
 
@@ -147,3 +142,11 @@ Scripts en `scripts/data`, `scripts/checks` y `scripts/models` (no se importan e
    - Decisión de Jairo: curvas FFI de TESS con todos los sectores.
    - Modelo final: CNN solo curva con Kepler + K2 + TESS, sin profundidad, ensemble y argmax.
    - Evaluación única en test con la receta fijada antes (#18); análisis de errores y techo físico (#19, #39); estado del arte (#38); CoRoT (#31) si se desbloquea.
+
+## 10. Estado tras las fases 4–7 (2026-11-06)
+
+- **Modelo final (fase 4, `research/10`):** CNN solo curva sin profundidad, tres misiones, 5 semillas; test (una vez) macro-F1 Kepler 0,886, K2 0,928, TESS 0,720; LOMO en test PR-AUC 0,906 / 0,961 / 0,761. Planeta frente a FP en el test de TESS: ROC-AUC 0,803, PR-AUC 0,766.
+- **Negativos difíciles (`research/11`):** −0,03/−0,04 con la efeméride de catálogo, +0,2 con la de BLS; decisión pendiente (adoptar, descartar o solo para búsqueda).
+- **Búsqueda (fase 5, `research/12`):** recall 0,564 con un 1 % de falsas alarmas; línea cerrada.
+- **TESS (fase 6, `research/14`):** multisector −0,019 [−0,059, +0,018] (sin potencia para decidir, ver auditoría A1); temperatura por misión en `data/models/final_temperature.json`.
+- **Fase 7:** tránsitos individuales sin ganancia sobre la CNN (`research/15`). Siguiente según la auditoría (`docs/auditoria-y-propuestas-2026-11-06.pdf`): P2 (vistas del secundario y local de alta resolución), pendiente de decisión de Jairo; antes de #87, manifiesto con los hashes del modelo congelado.

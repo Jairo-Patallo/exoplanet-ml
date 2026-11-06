@@ -2,11 +2,18 @@
 
 Clasificador de señales de tránsito en tres clases (**PLANET**, **FALSE_POSITIVE**, **NO_SIGNAL**) usando **solo la curva de luz**, pensado para ser **portable entre telescopios** (Kepler, K2 y TESS; CoRoT como prueba futura). Proyecto de Ciencia de Datos.
 
-## Estado (2026-11-04)
+## Estado (2026-11-06)
+
+Fases 1–6 cerradas; fase 7 (investigación) en curso. Resumen de las fases 4–7 al final de esta sección; auditoría completa y propuestas en [`docs/auditoria-y-propuestas-2026-11-06.pdf`](docs/auditoria-y-propuestas-2026-11-06.pdf).
+
 
 - **Fase 1, datos (cerrada):** curvas propias descargadas de MAST y plegadas con el mismo código en las tres misiones; negativos NO_SIGNAL fabricados con estrellas reales sin candidato, emparejadas por sector y brillo; tests de atajo y de fuga. Muestra completa: 17 164 estrellas (~14 700 con vista válida).
-- **Fase 2, modelos dentro de cada misión (casi cerrada):** dummy, regresión logística, kNN, gradient boosting, MLP, CNN 1D de dos ramas (AstroNet) y MOMENT (modelo preentrenado de Hugging Face). Mejor modelo solo curva: **CNN con ensemble de 3 semillas, macro-F1 0,85 en val** (Kepler 0,87, K2 0,90, TESS 0,78). Con el centroide como canal extra, Kepler sube a 0,89. El análisis de errores muestra que el techo lo ponen falsos positivos invisibles en la curva (luz de estrellas vecinas).
+- **Fase 2, modelos dentro de cada misión (cerrada):** dummy, regresión logística, kNN, gradient boosting, MLP, CNN 1D de dos ramas (AstroNet) y MOMENT (modelo preentrenado de Hugging Face). Mejor modelo solo curva: **CNN con ensemble de 3 semillas, macro-F1 0,85 en val** (Kepler 0,87, K2 0,90, TESS 0,78). Con el centroide como canal extra, Kepler sube a 0,89. El análisis de errores muestra que el techo lo ponen falsos positivos invisibles en la curva (luz de estrellas vecinas).
 - **Fase 3, transferencia entre telescopios (LOMO), cerrada:** entrenar con dos telescopios y evaluar en el tercero sin haberlo visto. PR-AUC Kepler 0,894, K2 0,927, TESS 0,764 (media 0,862 frente a 0,911 dentro de misión): el modelo solo curva es portable. TESS es el difícil por falta de información por estrella: con 2 sectores sube +0,034 (IC [+0,018, +0,048]); AdaBN, recortar Kepler/K2 y pseudo-etiquetas no ayudan. Regla de decisión en un telescopio nuevo: argmax sin corregir el prior. Detalle en [`research/07-fase3-lomo.md`](research/07-fase3-lomo.md).
+- **Fase 4, modelo final (cerrada):** CNN solo curva sin profundidad, tres misiones, 5 semillas; receta commiteada antes de mirar el test. Test: macro-F1 Kepler 0,886, K2 0,928, TESS 0,720; LOMO en test PR-AUC 0,906 / 0,961 / 0,761. Alcance: clasificador de señales ya detectadas (con la efeméride de BLS el macro-F1 cae a ~0,5). [`research/10`](research/10-modelo-final.md), [`research/11`](research/11-analisis-errores.md).
+- **Fase 5, búsqueda sin efeméride (cerrada):** CNN sobre la curva sin plegar + SDE de BLS + CNN plegada: recall 0,56 con un 1 % de falsas alarmas. Revisión de herramientas existentes: el proyecto se reorienta. [`research/12`](research/12-detector-sin-bls.md), [`research/13`](research/13-herramientas-existentes.md).
+- **Fase 6, TESS (cerrada):** varios sectores por estrella no mejora de forma detectable; temperatura por misión (ECE de Kepler 0,039 → 0,017). [`research/14`](research/14-fase6-mejora-tess.md).
+- **Fase 7, investigación (en curso):** la información de los tránsitos individuales no añade nada a la CNN en TESS (+0,000 de ROC-AUC). [`research/15`](research/15-transitos-individuales.md).
 
 Detalle y decisiones razonadas en [`research/`](research/); resumen en [`research/06-modelos-fase2.md`](research/06-modelos-fase2.md).
 
