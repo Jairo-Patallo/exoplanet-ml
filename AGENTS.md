@@ -13,7 +13,7 @@ Clasificador de tránsitos como **PLANET / FALSE_POSITIVE / NO_SIGNAL** usando *
 - Cambios mínimos y legibles; sin abstracciones ni dependencias nuevas sin justificarlas. No instales paquetes sin preguntar.
 - Nada de fugas: el preprocesado se ajusta solo con entrenamiento, y la misión excluida (test) no participa en ninguna decisión.
 - Nunca digas que algo funciona sin haberlo ejecutado. Ejecuta los tests antes de dar por bueno un cambio.
-- No lances ejecuciones largas o descargas grandes sin comprobar la configuración antes (presupuesto de descargas acumulado: 50 GB).
+- No lances ejecuciones largas o descargas grandes sin comprobar la configuración antes (presupuesto de descargas acumulado: 100 GB desde el 2026-11-06).
 - **El repositorio es público.** Nunca subas claves, tokens ni credenciales; el `.gitignore` ya cubre `.env`, `secrets.toml` y similares. `data/` está ignorado y no se sube. No hagas commit ni push sin que el usuario lo pida.
 
 ## Estado (2026-11-06)

@@ -74,7 +74,7 @@ Cualquier mejora se mide en val. La cifra de test de `research/10` sigue siendo 
 - Matiz: con vistas BLS, parte de los "planetas → NO_SIGNAL" son planetas a los que BLS dio un periodo erróneo (~30 %). Ahí NO_SIGNAL es la respuesta razonable.
 - Los NO_SIGNAL fáciles (catálogo) no cambian: 1,1–1,3 % → PLANET en los dos modelos.
 
-Decisión pendiente: adoptar, descartar o probar una fracción menor de negativos difíciles con un criterio fijado antes.
+**Decisión de Jairo (2026-11-06):** para las señales con efeméride dada (TOIs, informe de un candidato) se usa el modelo base; el de negativos difíciles queda solo para la búsqueda sin efeméride. La frontera FP «no parece tránsito» / NO_SIGNAL se deja como está en la v1 y se documenta en el informe.
 
 ## 4. Triaje en modo búsqueda: CANDIDATO frente a SIN_SEÑAL (2026-11-06)
 

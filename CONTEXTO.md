@@ -11,7 +11,7 @@ Un modelo que decide si una señal de tránsito es **PLANET**, **FALSE_POSITIVE*
 - Responder en español, con explicaciones sencillas. El usuario (Jairo) dirige; Claude implementa, evalúa cada instrucción y explica código y resultados.
 - Las decisiones importantes de ML son del usuario: proponer con pros y contras y esperar. No empezar una fase sin su visto bueno.
 - Tareas en Notion (sección 7). Una tarea es Hecho solo con un artefacto verificable. Revisar al empezar la columna "Nota de Jairo" (Tareas y Fases).
-- Pedir permiso para commit/push. Descargas: presupuesto de 50 GB acumulados (llevan ~23 GB en `data/raw_lc`).
+- Pedir permiso para commit/push. Descargas: presupuesto de 100 GB acumulados (ampliado por Jairo el 2026-11-06; ~36 GB en `data/raw_lc` antes de los TOIs).
 - **Antes de borrar datos:** imprimir cuántas filas o archivos se borran, comparar por `star_id` (único) y parar si no es lo esperado. En 2026-11-03 se borraron por error 6 607 vistas al comparar por una columna con vacíos.
 - Procesos largos: en segundo plano, con informes. MAST se cuelga a veces sin límite de tiempo; usar un vigilante que relance si el log no avanza en 10 min. `qc.csv` se escribe de forma atómica (un reinicio lo corrompió una vez).
 
@@ -86,6 +86,7 @@ Scripts en `scripts/data`, `scripts/checks` y `scripts/models` (no se importan e
     - **Fase 8, Herramienta:** informe didáctico de un candidato, explicabilidad, tipo probable de FP, informes en lote, integrador para aficionados y «Analiza tu observación».
     - **Fase 9, Web, ingeniería y documentación:** todo lo previsto (API, Docker, demo, tests y CI, model card, deriva, MLflow o W&B, asistente con LLM, README y texto para la web).
     Las tareas que no se van a hacer quedan en `Stand-by · Tareas aparcadas`, sin borrar.
+13. **Modelo para la v1 congelada (decisión de Jairo 2026-11-06):** con efeméride dada (TOIs), el modelo base de la fase 4 con temperaturas; el de negativos difíciles solo para búsqueda. La frontera FP «no parece tránsito» / NO_SIGNAL se mantiene y se documenta.
 
 ## 6. Resultados y hallazgos clave
 
