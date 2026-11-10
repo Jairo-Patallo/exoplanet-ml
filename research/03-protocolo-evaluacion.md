@@ -1,119 +1,79 @@
-# Protocolo de evaluación (LOMO anidado)
+# Guía para redactar: cómo se evalúa el modelo (protocolo LOMO y métricas)
 
-Decidido el 2026-10-30 (tarea #34, opción B). Sustituye al protocolo de #24, que usaba la validación de la misión excluida para desarrollar y por eso la dejaba de hacer "no vista".
+**Idea central de la sección:** la pregunta del proyecto es si el modelo funciona en un telescopio que no ha visto nunca. Para medirlo sin engañarte diseñaste un protocolo en el que la misión evaluada no participa en ninguna decisión, y elegiste métricas que tratan igual a todas las clases y a todas las misiones.
 
-## Objetivo del protocolo
+## Introducción: por qué y cómo
 
-Medir si un modelo entrenado con unas misiones funciona en otra que no ha visto, sin que ninguna decisión (modelo, hiperparámetros, umbral, preprocesado) haya mirado esa misión.
+**Por qué se hizo.**
+- Dividir los datos al azar en entrenamiento y prueba no responde a la pregunta del proyecto. Si el modelo ve TESS al entrenar, su nota en TESS no dice nada sobre PLATO o un telescopio terrestre.
+- Además, es muy fácil «hacer trampa» sin darse cuenta: si eliges un hiperparámetro, un umbral o una normalización mirando la misión que vas a evaluar, ya la estás usando para entrenar.
+- Hacía falta un procedimiento fijado de antemano que lo impidiera.
 
-## Definiciones
+**Cómo se hizo.**
+- Se adoptó *leave-one-mission-out* (LOMO) anidado:
+  - **bucle externo:** una misión fuera cada vez;
+  - **bucle interno:** se elige el modelo solo con las otras dos.
+- La unidad es la estrella, y las estrellas observadas por dos misiones se detectan por coordenadas.
+- Se fijaron por escrito la métrica principal, la secundaria, la regla de decisión y cómo calcular la incertidumbre.
 
-- **Misiones:** Kepler, K2 y TESS. CoRoT se añade como cuarta misión solo si llegan sus etiquetas (ver "CoRoT").
-- **Clases:** PLANET, FALSE_POSITIVE y NO_SIGNAL (negativos reales, tareas #30 y #32).
-- **Unidad:** la estrella (`star_id`). Ninguna estrella aparece en dos partes de un mismo experimento. Las estrellas compartidas entre misiones (cruce por coordenadas < 2", tarea #36) se excluyen del entrenamiento cuando su otra misión es la excluida.
-- **Splits del dataset** (`train`, `val`, `test`): se conservan tal cual vienen, por estrella.
+**Qué se buscaba conseguir.** Una cifra de portabilidad honesta y comparable entre misiones, y una referencia (el modelo que sí ve la misión) para medir cuánto se pierde al cambiar de telescopio.
 
-## Fold externo: la misión excluida
+## Qué contar, en orden
 
-Para cada misión M en {Kepler, K2, TESS}:
+1. **La pregunta de portabilidad.** Por qué no sirve partir al azar (los dos motivos de arriba).
+2. **El protocolo LOMO anidado,** apoyándote en el esquema de abajo.
+   - Bucle externo: para cada misión, se excluye de todo (normalización, modelo, hiperparámetros, umbral) y se evalúa una sola vez.
+   - Bucle interno: entrenar en A y validar en B, y al revés; se elige la configuración con mejor PR-AUC media. Recalca que así se premia lo que se transfiere entre telescopios.
+   - La referencia dentro de misión, para medir la brecha.
+3. **Detalle de las estrellas compartidas.** TESS volvió a observar campos de Kepler y K2. Se cruzaron por coordenadas (< 2″) y se quitan del entrenamiento cuando su otra misión es la evaluada.
+4. **Las métricas.**
+   - Macro-F1 de 3 clases por misión, y como resumen la media de las misiones. Explica por qué la media de misiones: si se juntaran las estrellas, Kepler pesaría más que las otras dos juntas.
+   - PR-AUC como secundaria (ordena sin umbral).
+   - IC 95 % por bootstrap sobre estrellas.
+   - Listón: el dummy da un macro-F1 de 0,22 y una PR-AUC de 1/3.
+5. **El umbral en un telescopio nuevo.** La proporción de FP cambia mucho (Kepler 0,71, K2 0,41, TESS 0,59), así que no se fija umbral en la misión excluida: se usan PR-AUC y ROC-AUC.
+6. **Cuándo se mira el test.** Una sola vez, al final. Las variantes de la fase de portabilidad se evaluaron con train + val de la misión excluida para no gastar su test (decisión del 2026-11-04).
+7. **CoRoT,** como cuarta misión que habría sido la prueba más limpia, bloqueada porque su catálogo no estaba disponible.
 
-1. M es la **misión excluida**. No participa en ningún paso de ajuste: ni normalización, ni selección de variables, ni hiperparámetros, ni umbral.
-2. Las otras dos misiones (A y B) forman el **conjunto de entrenamiento**.
-3. Se elige el modelo con el **bucle interno** (abajo), usando solo A y B.
-4. Se reentrena el modelo elegido con `train` y `val` de A y B.
-5. Se evalúa **una sola vez** en M. Como M no se usó para nada, se evalúa en M entera (`train`, `val` y `test` de esa misión), lo que da más estrellas por clase, sobre todo en K2.
+## Conceptos que conviene explicar al lector
 
-## Bucle interno: elegir sin mirar M
+- **LOMO:** dejar una misión fuera y evaluar en ella.
+- **Validación anidada:** un bucle de selección dentro de otro de evaluación, para que la selección no vea los datos de evaluación.
+- **Macro-F1 / PR-AUC:** la primera mide aciertos con un umbral; la segunda, lo bien que ordena el modelo sin umbral.
+- **Bootstrap:** remuestrear las estrellas muchas veces para ver cuánto varía la métrica, lo que da el intervalo de confianza.
+- **Prevalencia:** proporción de cada clase. En PR-AUC, el valor de un modelo al azar es la prevalencia.
 
-Dentro de cada fold externo hay dos folds internos, que son transferencias entre las dos misiones restantes:
+## Datos clave para citar
 
-- entrenar en `train` de A y validar en `val` de B,
-- entrenar en `train` de B y validar en `val` de A.
+Tamaños del LOMO:
+- Kepler excluida: 3 280 estrellas para ajustar y 9 935 para evaluar.
+- K2 excluida: 12 566 y 650.
+- TESS excluida: 10 579 y 2 634.
 
-El criterio de selección es la media de PR-AUC de los dos folds internos. Aquí se eligen la familia de modelo, los hiperparámetros y el umbral (regla pendiente, ver "Pendiente"). El preprocesado que aprende parámetros (escaladores, imputación) se ajusta solo con los datos de entrenamiento de cada fold.
+Proporción de FP: Kepler 0,71, K2 0,41, TESS 0,59. Dummy: macro-F1 0,22.
 
-## Evaluación dentro de dominio
+## Figuras
 
-Aparte, una sola vez al final: modelo entrenado con `train` y `val` de una misión y evaluado en el `test` de **esa misma misión**. Sirve de referencia para medir la brecha de generalización (rendimiento fuera de dominio frente a dentro).
+**Esquema del protocolo** (la figura central de la sección):
 
-## Reglas
+![Esquema LOMO](../docs/figuras/f25_esquema_lomo.png)
 
-- **Etiquetas:** la evaluación (fold externo y dentro de dominio) usa solo etiquetas **fuertes**; el entrenamiento puede añadir las débiles como variante elegida con los folds internos. Mapeo en `04-armonizacion-etiquetas.md`.
-- La **familia de modelos se fija con los folds internos**. Si después de ver los resultados externos se cambia de familia o de preprocesado, esos resultados pasan a considerarse exploratorios y se anota la razón en el registro de decisiones.
-- **Línea base en cada fold:** dummy (clase más frecuente en las misiones de entrenamiento).
-- **Métricas:** PR-AUC por clase y por misión, macro-F1 (detalle de la fase 2 en la sección de la tarea #51), y los puntos de la tarea #37 (calibración y recall a precisión fija). Intervalos de confianza al 95 % con bootstrap agrupado por estrella.
-- **Resultado a informar:** una tabla con tres filas externas (una por misión excluida), la fila dentro de dominio y la brecha.
-- **Modelo final:** una vez cerrado el protocolo, se entrena con las tres misiones para el uso real. Su rendimiento esperado es el de los folds externos, no el de su propio entrenamiento.
-- Toda aleatoriedad lleva semilla fija.
+**Por qué la misión es un problema** (si quieres justificar el protocolo con datos: la misión se adivina desde la curva):
 
-## Métricas de la fase 2: 3 clases dentro de cada misión (tarea #51, 2026-11-02)
+![Fuga de misión](../docs/figuras/f05_fuga_mision.png)
 
-Decisión de Jairo, a propuesta de Claude. Código: `exoplanet.evaluation.point_metrics` y `evaluate_by_mission`; tests en `tests/test_evaluation.py`.
+## Limitaciones que mencionar
 
-| Punto | Decisión |
-|---|---|
-| Métrica principal | **Macro-F1** de PLANET / FALSE_POSITIVE / NO_SIGNAL (cada clase pesa igual) |
-| Agregación | Por misión, y como resumen la **media de las 3 misiones** (si se juntan, Kepler pesa más que K2 y TESS juntas) |
-| Secundaria | **PR-AUC one-vs-rest por clase** y su media: mide la ordenación sin umbral, la que se usa en la misión excluida (#48) |
-| Diagnóstico | Matriz de confusión y F1 por clase, por misión |
-| Selección de modelos e hiperparámetros | Macro-F1 medio en **val**; el test se mira una sola vez al final |
-| Umbral | Clase de mayor probabilidad (argmax), con pesos de clase al entrenar; sin ajuste de umbrales |
-| Incertidumbre | IC 95 % por bootstrap sobre estrellas, por misión; la media se remuestrea con los mismos índices |
-| Etiquetas | Solo fuertes (la muestra A ya lo cumple) y solo vistas válidas |
+- La clase «sin señal» es ~50 % de cada misión porque se fabricó 1:1. Las métricas sirven para comparar modelos, no como rendimiento en una búsqueda real.
+- En K2 y TESS, val es pequeño: diferencias de ~0,03 pueden ser ruido.
 
-**Listón (dummy, clase más frecuente de train = NO_SIGNAL en las tres misiones), en val** (`scripts/models/dummy_sample.py`, `results/models/dummy_val.csv`):
+## Código
 
-| | Kepler | K2 | TESS | Media |
-|---|---|---|---|---|
-| n val | 166 | 69 | 76 | 311 |
-| Macro-F1 | 0,226 | 0,216 | 0,222 | **0,221** [0,202–0,237] |
-| PR-AUC PLANET / FP / NS (= prevalencia) | 0,16 / 0,33 / 0,51 | 0,25 / 0,28 / 0,48 | 0,20 / 0,30 / 0,50 | 0,20 / 0,30 / 0,50 |
+`src/exoplanet/evaluation.py` (`nested_folds`, `shared_stars`, `point_metrics` y `evaluate_by_mission`) y `tests/test_evaluation.py`.
 
-El PR-AUC macro de un dummy es siempre 1/3 (media de prevalencias) y no informa: el listón de la PR-AUC es la prevalencia de cada clase.
+## Fuentes
 
-**Limitaciones.**
-- NO_SIGNAL es ~50 % de cada misión porque se fabricó 1:1 con los positivos; en el cielo es casi el 100 %. Macro-F1 y PR-AUC dependen de esa proporción: sirven para **comparar modelos**, no como rendimiento esperado en uso real. Un informe de producción recalcularía la precisión con la prevalencia esperada.
-- Val es pequeño (K2 y TESS: 15-17 PLANET): diferencias de ~0,03 en macro-F1 pueden ser ruido; mirar siempre el IC.
-
-## Variables que delatan la misión: ablación con regla fijada de antemano (tarea #43, 2026-10-30)
-
-`legacy/mission_leak.py` mostró que la misión se predice con balanced accuracy ~0,70 (azar 0,33) a partir de las variables de la curva, sobre todo por `depth_local_ppm` y `snr_local`. Que la misión se adivine no es en sí el problema (parte es física y de selección real); lo que importa es el **coste fuera de dominio**.
-
-Variantes del conjunto de variables (se comparan con el mismo modelo y los mismos folds):
-
-- **(a)** todas las variables derivadas de la curva.
-- **(b)** sin `depth_local_ppm` ni `snr_local`.
-- **(c)** solo variables invariantes a la escala de profundidad: forma normalizada a profundidad unidad (`ingress_frac` y forma del fondo), `odd_even_z`, cociente de la profundidad del secundario sobre la del primario. Quedan fuera las transformaciones monótonas de la profundidad o del SNR (Rp/R★ = √profundidad, log SNR), porque conservan esa información.
-- **(d)** cada variante anterior con **estandarización por misión** usando curvas sin etiquetar de la misión objetivo. Es una adaptación no supervisada (no usa etiquetas, pero exige un lote de curvas del telescopio nuevo): se declara como tal, **no participa en la selección** y se informa aparte.
-
-**Regla de selección (fijada antes de ejecutar):** entre (a), (b) y (c) se elige la variante con mayor **PR-AUC macro medio en los folds internos**, sin mirar nunca la misión excluida. Se informa el resultado externo de las tres (para medir el coste de cada decisión) y el de (d) por separado.
-
-Se repite `legacy/mission_leak.py` sobre las variables del preprocesado propio antes de cerrar esta decisión, porque el 0,70 puede cambiar al unificar el detrending (tarea de repetición en la Fase 1C).
-
-## Negativos NO_SIGNAL (2026-10-30)
-
-Las vistas plegadas de NO_SIGNAL del dataset de Hugging Face son relleno a cero, así que los negativos se fabrican con la función de plegado propia. El método debe ser **idéntico en las cuatro misiones**, para que la clase no quede correlacionada con la forma de generarla:
-
-- **Método principal:** estrellas **sin candidato** (sin TCE en Kepler, sin TOI en TESS, sin candidato en K2), plegadas con un periodo, época y duración al azar tomados de la distribución de los positivos de su misión. En Kepler se usan las NO_SIGNAL ya existentes, también re-plegadas con esta función (no sus vistas a cero).
-- **Complementos opcionales:** tránsito enmascarado en estrellas PLANET/FP, y curvas invertidas o permutadas. Solo si el método principal no basta, y declarado aparte.
-- **Test de atajo de generación:** variables de nuisance (puntos por bin, fracción de bins vacíos o interpolados, ruido fuera del tránsito) no deben separar NO_SIGNAL del resto mejor que el azar. No se usa la media de la ventana central, porque ahí la diferencia real es que no hay caída.
-
-## CoRoT
-
-Si se consiguen las etiquetas (tarea #31), CoRoT se evalúa como misión excluida adicional, **sin participar nunca en la selección** (opción A). Es la prueba más limpia de portabilidad, con una muestra pequeña e intervalos de confianza amplios.
-
-## Umbral en una misión sin etiquetas (decisión del usuario, 2026-10-30, tarea #48)
-
-El prior de falsos positivos cambia mucho entre misiones (Kepler 0,71, K2 0,41, TESS 0,59 con etiquetas fuertes) y un umbral fijado en dos misiones no se transfiere a la tercera. **Decisión (opción C):** no se fija umbral para la misión excluida. La evaluación externa informa solo métricas independientes del umbral (**PR-AUC** y **ROC-AUC**). El comportamiento con un umbral concreto se muestra como análisis aparte, con curvas de calibración (tarea #37), y no entra en ninguna selección ni comparación.
-
-## Pendiente
-
-- **Utilidad de folds** (`lomo_folds`) y baseline dummy: el trabajo registrado en la tarea #27 no existe en el repo, hay que rehacerlo.
-
-## Preparación de la fase 3 (2026-11-04)
-
-- `evaluation.sample_meta()` carga la muestra actual con coordenadas y `nested_folds(..., eval_splits=...)` crea los folds. Script: `scripts/models/lomo.py` (dummy y CNN solo curva, opcionalmente con centroide). Probado con `--smoke`, sin ejecutar todavía.
-- Estrellas compartidas entre misiones (< 2″) que se quitan del ajuste: 4 si se excluye Kepler, 3 si K2, 7 si TESS.
-- Tamaños: excluida Kepler → ajuste 3 280 (K2 + TESS) y evaluación 9 935; excluida K2 → 12 566 / 650; excluida TESS → 10 579 / 2 634 (evaluación sin el split de test).
-- **Decisión pendiente (usuario): ¿la misión excluida se evalúa entera, con su test?** El protocolo dice "entera, una sola vez", pero la fase 3 comparará varias variantes (ablación, centroide, calibración). Cada una miraría el test de la misión excluida, que además es el que se reserva para la evaluación final (fase 4). Propuesta: evaluar las variantes de la fase 3 con train + val de la misión excluida (`--eval-splits train val`, sigue sin participar en ninguna decisión de ajuste) y dejar su test para una sola evaluación final del modelo elegido.
-- **Decidido (Jairo, 2026-11-04): sin test.** Las variantes de la fase 3 se evalúan con train + val de la misión excluida (`--eval-splits train val`). El test de las tres misiones queda reservado para una única evaluación final del modelo elegido (fase 4).
+- Davis, J. y Goadrich, M. (2006), *The relationship between Precision-Recall and ROC curves*, ICML.
+- scikit-learn, `average_precision_score`: https://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html
+- Efron, B. y Tibshirani, R. (1993), *An Introduction to the Bootstrap*, Chapman & Hall.
+- Deleuil, M. et al. (2018), catálogo de CoRoT en VizieR: https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/A+A/619/A97

@@ -181,3 +181,33 @@ Predicciones LOMO fuera de muestra. |z| par/impar, dispersión y tránsito más 
 ![f24_tois_v1](f24_tois_v1.png)
 
 Predicciones congeladas v1 (etiqueta v1 en GitHub). Con deriva > 0,25 la efeméride no sirve y aumentan NO_SIGNAL y FP (research/16).
+
+## f25_esquema_lomo
+
+![f25_esquema_lomo](f25_esquema_lomo.png)
+
+Cada pliegue deja fuera una misión, elige el modelo solo con las otras dos y la evalúa una única vez.
+
+## f26_etiquetas
+
+![f26_etiquetas](f26_etiquetas.png)
+
+Solo las etiquetas fuertes (confirmados y FP claros) se usan para evaluar; los candidatos son etiquetas débiles.
+
+## f27_atajos_evolucion
+
+![f27_atajos_evolucion](f27_atajos_evolucion.png)
+
+Capacidad de distinguir los negativos fabricados sin mirar el tránsito, en cada versión de su construcción (research/05).
+
+## f28_bls_periodo
+
+![f28_bls_periodo](f28_bls_periodo.png)
+
+Periodo de BLS frente al del catálogo en val. BLS acierta ~2 de cada 3; los FP dan más alias de ½ (binarias con dos eclipses parecidos).
+
+## f29_calibracion_par_impar
+
+![f29_calibracion_par_impar](f29_calibracion_par_impar.png)
+
+Fracción de estrellas con diferencia par/impar significativa usando el ajuste tránsito a tránsito con ruido rojo (research/15).

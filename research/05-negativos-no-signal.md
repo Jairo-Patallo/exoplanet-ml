@@ -1,71 +1,80 @@
-# Negativos NO_SIGNAL y test de atajo
+# Guía para redactar: los ejemplos «sin señal» y los atajos
 
-Tarea #32, 2026-11-01. Código: `src/exoplanet/negatives.py`, `scripts/data/build_negatives.py` (lista), `scripts/data/build_sample.py --negatives` (descarga y plegado), `scripts/checks/shortcut_negatives.py` (test de atajo). Tests: `tests/test_negatives.py`, `tests/test_curves.py`.
+**Idea central de la sección:** para enseñar al modelo qué es «aquí no hay tránsito» tuviste que fabricar ejemplos con estrellas reales sin candidato. Lo delicado fue evitar que el modelo distinguiera esos ejemplos por cómo se fabricaron (más datos, otra campaña, otro brillo) en lugar de por la ausencia de tránsito. Lo controlaste midiendo los atajos paso a paso.
 
-## Problema
+## Introducción: por qué y cómo
 
-Las vistas NO_SIGNAL del dataset de Hugging Face son ceros, así que los negativos se fabrican: estrellas sin candidato, descargadas y plegadas con la misma función que los positivos y con una efeméride al azar. El riesgo es que el modelo distinga NO_SIGNAL por **cómo se fabricó** (cantidad de datos, campaña, brillo) y no por la ausencia de tránsito.
+**Por qué se hizo.**
+- El dataset traía una clase NO_SIGNAL, pero sus curvas plegadas eran ceros: inservibles.
+- Sin ejemplos reales de «sin señal», el modelo no puede aprender esa clase.
+- El riesgo al fabricarlos es crear un **atajo**: una diferencia artificial entre clases que el modelo aprovecha para acertar sin aprender física. Un atajo da notas altas en validación y falla en la realidad.
 
-## Diseño final
+**Cómo se hizo.**
+- Se tomaron estrellas reales sin ningún candidato conocido. Se descargaron y plegaron exactamente igual que los positivos, con un periodo y una época prestados de un planeta real.
+- En cada versión se pasó un **test de atajo**: un clasificador que solo ve lo que no debería importar (la curva con el tránsito tapado, o los metadatos del proceso). Si separa las clases, hay atajo.
+- Se fue corrigiendo la construcción hasta dejar el atajo en un nivel bajo, explicado y aceptado.
 
-| | Kepler | K2 | TESS |
-|---|---|---|---|
-| Estrellas | NO_SIGNAL del dataset | sin candidato, fuera del dataset | sin TOI, fuera del dataset |
-| Emparejamiento | split | 1:1 con cada positivo: misma campaña del segmento usado y Kp más cercano | 1:1: mismo sector y Tmag más cercano |
-| Segmentos | ~100 d (D3) | 1 campaña | 1 sector |
-| Efeméride (P, duración) | pareja real de positivos de train de la misión | pareja real de positivos de train de la misma campaña | ídem, mismo sector |
-| Negativos | 1000 | 398 | 400 (4 sin curva en MAST) |
+**Qué se buscaba conseguir.** Una clase «sin señal» que el modelo solo pudiera reconocer por la ausencia de tránsito.
 
-Época uniforme en [0, P). Cada negativo de K2/TESS hereda el split de su pareja. Diferencia de magnitud con la pareja: mediana 0,00, p90 ≤ 0,01.
+## Qué contar, en orden
 
-**Reproducible** (2026-11-01): un generador por misión (`MISSION_SEED`) y orden fijo de estrellas y candidatos (ni MAST ni las descargas en paralelo lo garantizan). Dos ejecuciones seguidas de `build_negatives.py` dan el mismo CSV byte a byte. La versión anterior (979 en Kepler, de una muestra previa) queda en `results/sample/history/negatives_before_reproducible.csv`.
+1. **Por qué hacen falta negativos** y por qué los del dataset no servían.
+2. **Qué es un atajo y cómo se mide** (el test de atajo; AUC 0,5 = sin atajo).
+3. **La historia de cómo se quitó el atajo,** paso a paso con la figura de evolución. Es una buena historia de depuración:
+   - Al azar, con todos los sectores: K2 0,90 y TESS 0,83. Causa: los planetas tienen más sectores, porque TESS vuelve a observar lo interesante.
+   - 1 segmento por estrella: TESS 0,70.
+   - Emparejar cada positivo con una estrella del mismo sector y brillo: TESS 0,51.
+   - Efeméride prestada de un planeta del mismo sector: K2 0,84 y TESS 0,55.
+   - El fallo curioso de la campaña 10 de K2: publicada en dos mitades pero numerada como una, dejaba a 18 planetas sin pareja.
+4. **La exclusión por coordenadas:** algunas «estrellas sin señal» eran candidatos de otra misión con otro número de catálogo. Se excluyó todo lo que está a menos de 2″ de un candidato.
+5. **Lo que queda** (muestra completa, tránsito tapado):
+   - Planetas frente a sin señal: 0,60 / 0,59 / 0,55 (Kepler / K2 / TESS). Es un atajo débil y real: el **sesgo de detección**, porque los planetas se descubren más en estrellas tranquilas. Se acepta y se declara.
+   - FP frente a sin señal en K2: 0,84. No es atajo, es física (secundarios, variabilidad): el modelo debe aprenderlo.
+6. **La regla que sale de aquí:** el modelo nunca recibe metadatos del proceso (número de puntos, días de datos, cadencia, número de tránsitos), porque en K2 todavía delatan la clase.
+7. **Números finales:** 8 582 negativos (Kepler 6 560, TESS 1 624 y K2 398), uno por cada positivo. Reproducibles byte a byte.
+8. **La limitación descubierta después** (puente con BLS): estos negativos son demasiado fáciles; una estrella tranquila con una efeméride prestada da una curva plana. El ruido real que parece un tránsito es otra cosa.
 
-## Cómo se llegó aquí (ROC-AUC NO_SIGNAL vs positivos sin mirar el tránsito, boosting)
+## Conceptos que conviene explicar al lector
 
-Durante la tarea estas cifras se midieron en val+test. En la auditoría (2026-11-01) el script pasó a evaluar solo en val, sin tocar el test; los números de la última fila con ese criterio son K2 0,86, Kepler 0,60 y TESS 0,58. Que las decisiones se tomaran mirando también el test es una contaminación leve: son diagnósticos de los datos, no selección de modelos.
+- **Atajo** (*shortcut learning*).
+- **Test de atajo:** tapar lo importante y ver si aún se acierta.
+- **Sesgo de detección:** los planetas son más fáciles de encontrar en estrellas poco ruidosas.
+- **Emparejamiento:** cada negativo comparte sector y brillo con su positivo, para que solo difieran en la señal.
 
-| Paso | Kepler | K2 | TESS | Atajo encontrado |
-|---|---|---|---|---|
-| Negativos al azar por campaña/sector, todos los segmentos | 0,64 | 0,90 | 0,83 | los positivos tienen más sectores (TESS: mediana 3 frente a 1) |
-| 1 segmento en K2/TESS | 0,64 | 0,87 | 0,70 | mezcla de campañas distinta (K2) y ruido (TESS) |
-| Emparejados por segmento y magnitud | 0,64 | 0,85 | 0,51 | periodo típico distinto por campaña (K2) |
-| + efeméride por segmento y C10 corregida | 0,64 | 0,84 | 0,55 | — |
+## Datos clave para citar
 
-La campaña 10 de K2 se publica en dos mitades (archivos `c101`/`c102`) pero MAST la numera como 10 (`curves.mast_sequence`); sin eso, 18 positivos se quedaban sin pareja.
+- Evolución del atajo en TESS: 0,83 → 0,70 → 0,51 → 0,55.
+- Atajo final de los planetas: 0,55–0,60.
+- 8 582 negativos 1:1.
 
-## Lo que ve el modelo
+## Figuras
 
-Boosting sobre la vista global **con el tránsito tapado** (20 % central), AUC con validación cruzada de 5 particiones
-**dentro de train** (`results/sample/shortcut_negatives_views.csv`):
+**Evolución del atajo** (la figura de la sección):
 
-| | Kepler | K2 | TESS |
-|---|---|---|---|
-| PLANET vs NO_SIGNAL | 0,59 | 0,59 | 0,57 |
-| FP vs NO_SIGNAL | 0,65 | 0,84 | 0,49 |
+![Evolución del atajo](../docs/figuras/f27_atajos_evolucion.png)
 
-Con el sorteo anterior de negativos (no reproducible) PLANET daba 0,51 / 0,56 / 0,47 y FP 0,64 / 0,86 / 0,50: el AUC de PLANET varía ~0,05-0,10 solo por qué estrellas sin señal salen en el sorteo. Hay que leerlo como "0,5-0,6", no como un valor exacto.
+**Atajo final con el tránsito tapado:**
 
-- **FP**: separación sobre todo astrofísica (binarias y estrellas variables: eclipse secundario y variabilidad fuera del tránsito; en K2 el ruido fuera de tránsito y secundario da 0,80). Es señal que el modelo debe aprender.
-- **PLANET (~0,57-0,59) y ruido en Kepler (~0,56)**: sesgo de detección, los planetas se encuentran más en estrellas tranquilas. Se acepta y se declara.
+![Atajos finales](../docs/figuras/f04_atajos.png)
 
-## Limitaciones y reglas para la fase 2
+**Cómo se ve una estrella sin señal frente a un planeta** (fila inferior de la galería):
 
-- Los metadatos del proceso (`n_points`, `data_days`, `cadence_days`, `n_transits`, `frac_empty_*`, `n_files`) aún separan en K2 (AUC CV ~0,67). **Nunca se usan como rasgos.**
-- Evaluar también por clase y por misión, para ver si NO_SIGNAL se apoya en el ruido.
-- No se emparejó por ruido medido (CDPP): quitaría el sesgo de detección pero haría los negativos menos representativos (decisión 2026-11-01).
-- Con 1 sector, el % de vistas válidas de PLANET en TESS baja de 96,3 % a 87,8 % (planetas de periodo largo con pocos tránsitos).
+![Galería global](../docs/figuras/f03_galeria_global.png)
 
-Resultados: `results/sample/shortcut_negatives.csv` (final) y, en `results/sample/history/`, `*_multisegment.csv`, `*_matched_v1.csv` y demás pasos intermedios.
+## Limitaciones que mencionar
 
-## Muestra completa (2026-11-03)
+- Queda un atajo débil para los planetas (sesgo de detección), aceptado.
+- Los negativos son «fáciles» frente al ruido real de una búsqueda. Mejora propuesta: usar falsas alarmas reales (los conjuntos invertido y desordenado de Kepler DR25, las FA de TESS).
+- No se emparejó por el ruido de la estrella: quitaría el sesgo de detección pero haría los negativos menos realistas.
 
-8 582 negativos 1:1 (Kepler 6 560, TESS 1 624, K2 398) con el mismo procedimiento; 11 de TESS sin curva en MAST. Vistas válidas: NO_SIGNAL Kepler 83,5 %, K2 91,2 %, TESS 89,3 %.
+## Código
 
-Test de atajo con la vista global sin tránsito (CV en train):
+`src/exoplanet/negatives.py`, `scripts/data/build_negatives.py`, `scripts/data/build_sample.py --negatives` y `scripts/checks/shortcut_negatives.py`.
 
-| | Kepler A → completa | K2 | TESS A → completa |
-|---|---|---|---|
-| PLANET vs NO_SIGNAL | 0,59 → 0,60 | 0,59 | 0,57 → 0,55 |
-| FP vs NO_SIGNAL | 0,65 → 0,69 | 0,84 | 0,49 → 0,54 |
+## Fuentes
 
-Metadatos y ruido (train → val, boosting): Kepler 0,64, TESS 0,59, K2 0,77 (K2 sin cambios). Con ~5 veces más datos, el atajo sigue siendo débil para PLANET y estable. Bordes: sin artefactos en NO_SIGNAL ni en PLANET (|z| > 3 ≤ 0,2 % en la vista global). Los FP de K2 dan 32 % en la global, que es física (eclipses secundarios cerca de la fase 0,5), no un artefacto.
+- MAST: https://archive.stsci.edu/
+- Lightkurve: https://docs.lightkurve.org/
+- Thompson, S. E. et al. (2018), conjuntos invertido y desordenado de DR25: https://arxiv.org/abs/1710.06758
+- NASA Exoplanet Archive, datos simulados de Kepler DR25: https://exoplanetarchive.ipac.caltech.edu/docs/KeplerSimulated.html
+- Geirhos, R. et al. (2020), *Shortcut learning in deep neural networks*: https://arxiv.org/abs/2004.07780

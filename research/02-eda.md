@@ -1,139 +1,123 @@
-# Análisis exploratorio (Fase 1 + exploración de variables de la Fase 2)
+# Guía para redactar: análisis exploratorio de los datos
 
-Código: `legacy/eda.py` (análisis) y `legacy/features.py` (variables físicas). Ejecutar: `python legacy/eda.py`.
-Salida completa: `results/eda/eda_output.txt`; figuras y tablas en `results/eda/`.
+**Idea central de la sección:** antes de entrenar, exploraste los datos y descubriste que se podía «acertar» sin mirar la curva, solo con qué columnas faltan o de qué misión viene la estrella. Esto justifica la decisión más importante del proyecto: usar solo la curva de luz.
 
-**Regla seguida:** solo se explora **train** (18 853 estrellas). **Val** se usa únicamente en el test de atajos
-(entrenar en train → medir en val). **Test no se ha tocado.**
+## Introducción: por qué y cómo
 
-## 0. Decisiones tomadas a partir de la hoja de ruta
+**Por qué se hizo.** Un modelo solo es tan bueno como los datos con los que aprende. El dataset de partida mezcla tres telescopios muy distintos, con etiquetas de distinto origen y muchas columnas del catálogo de la estrella. Antes de entrenar nada había que responder tres preguntas:
+- ¿Están bien los datos o hay errores que el modelo aprendería como si fueran ciertos?
+- ¿Hay pistas falsas (atajos) que permitan acertar sin entender la física?
+- ¿Qué información distingue de verdad un planeta de un falso positivo, y se comporta igual en las tres misiones?
 
-| Decisión | Por qué |
-|---|---|
-| Analizar sobre todo la tarea de **vetting** (PLANET vs FP, 12 250 filas con vistas plegadas) | Fase 0: es el problema científico; NO_SIGNAL tiene vistas a cero (Problema B) |
-| Separabilidad con **AUC de Mann-Whitney** + IC 95 % bootstrap | No depende de umbral ni de la escala (es de rangos); AUC = P(X_planeta > X_fp) |
-| Todo **estratificado por misión** | La misión es un factor de confusión (Problema A); hay que comprobar el efecto Simpson |
-| Spearman en lugar de Pearson | Variables con colas de varios órdenes de magnitud; Spearman solo usa rangos |
-| PCA sobre la **forma** normalizada `(1-f)/δ` | Sin normalizar, la PCA solo vería la profundidad, que ya tenemos como variable |
+Sin este paso, cualquier resultado posterior podría ser un espejismo: un modelo con buena nota que en realidad solo ha aprendido de qué telescopio viene cada estrella.
 
-## 1. Integridad
+**Cómo se hizo.**
+- Solo con la parte de entrenamiento, para no contaminar la evaluación.
+- Primero se revisó la calidad (valores imposibles, columnas vacías).
+- Después se midió, variable a variable y misión a misión, cuánto separa planetas de falsos positivos, usando el AUC (independiente de umbrales y escalas).
+- Se entrenaron modelos «tramposos» que solo ven qué columnas faltan o la misión, para cuantificar los atajos.
+- Por último se probaron las reglas físicas clásicas de los astrónomos y una PCA de la forma de las curvas, para ver si la diferencia entre clases es simple o compleja.
 
-- No hay periodos ≤ 0 ni profundidades ≤ 0. Sí hay 5 duraciones ≤ 0, 2 profundidades ≥ 100 % y 1 duración > periodo: errores de catálogo.
-- **28 PLANET con Rp de catálogo > 100 R⊕** (17 del Robovetter, 10 de K2). Físicamente imposible para un planeta (Júpiter ≈ 11 R⊕):
-  es **ruido de etiqueta** (Problema D) o un radio estelar erróneo.
-- 331 filas PLANET/FP no tienen vistas plegadas (282 PLANET y 49 FP): se excluyen del vetting.
-- **Artefacto descubierto:** los bins 0-4 y 76-80 de `flux_local` tienen una dispersión 2-3 veces mayor que el resto de la zona
-  fuera del tránsito. En la primera PCA, PC1 (67 % de la varianza) era *solo* ese borde. Ahora se excluyen (`LOC_VALID`).
-  **Consecuencia para la CNN:** recortar esos bins o esperar que la red aprenda ruido de borde.
+**Qué se buscaba conseguir.** Fijar un listón honesto que el modelo tuviera que superar y decidir qué información podía usar el modelo. Esa decisión (solo la curva) condiciona todo el proyecto.
 
-## 2. Valores faltantes: el atajo está confirmado
+## Qué contar, en orden
 
-% de NaN (train): en TESS faltan `mass`, `metallicity` y `cdpp_3hr` el **100 %** de las veces; en K2 falta `cdpp_3hr` el 100 %.
-En PLANET, `mass` falta el 59 % de las veces; en FP, el 23 %.
+1. **De dónde vienen los datos.**
+   - Dataset de Hugging Face *exoplanet-transit-detection*: señales de Kepler, K2 y TESS etiquetadas como planeta, falso positivo o sin señal.
+   - Menciona la regla que seguiste: solo exploraste train (18 853 estrellas), val solo para los tests de atajo y el test no se tocó. Muestra rigor desde el principio.
 
-## 3. Test de atajos (macro-F1 en val)
+2. **Cómo mediste si una variable separa planetas de falsos positivos.**
+   - Explica el AUC de Mann-Whitney con una frase sencilla (ver «Conceptos» abajo).
+   - Explica por qué todo se mira por misión: son telescopios distintos y mezclarlos engaña (efecto Simpson, que aparece en el punto 5).
 
-| Tarea | Dummy | Solo `isna()` estelar | Solo misión |
-|---|---|---|---|
-| 3 clases | 0.196 | **0.478** | 0.458 |
-| Vetting | 0.384 | **0.687** | **0.687** |
+3. **Problemas de calidad que encontraste.**
+   - Pocos errores de catálogo (duraciones ≤ 0, profundidades > 100 %).
+   - El llamativo: 28 «planetas» con radio > 100 radios terrestres. Júpiter mide ~11, así que es imposible: etiqueta mala o radio estelar mal medido. Enlaza con la limpieza de la sección de etiquetas (umbral de 22).
+   - El artefacto de los bordes de las vistas del dataset: se llevaba el 67 % de la varianza en la PCA. Más tarde desapareció con tu propio plegado.
 
-Un modelo que **no ve ni un valor físico**, solo *qué falta*, sube el macro-F1 de 0.38 a 0.69 en vetting. Que la máscara
-y la misión den el mismo resultado demuestra que **la máscara de NaN es la misión encubierta**.
-Cualquier modelo futuro debe superar claramente 0.687 para demostrar que aprende algo más que la misión.
+4. **El hallazgo principal: el atajo de los valores faltantes.** Es el punto fuerte de la sección; dale espacio.
+   - En TESS siempre faltan la masa, la metalicidad y el ruido; en K2, el ruido. La masa falta más en planetas (59 %) que en FP (23 %).
+   - Experimento: modelos que no ven ningún valor físico.
+     - Solo «qué columnas faltan»: macro-F1 0,687 en *vetting*.
+     - Solo «de qué misión viene»: también 0,687.
+     - Dummy: 0,384.
+   - **Conclusión a transmitir:** los valores faltantes son la misión disfrazada.
+   - **Consecuencia:**
+     - el listón real es 0,687, no 0,384;
+     - se decide no usar nada del catálogo, solo la curva.
 
-## 4. Separabilidad univariante (AUC, vetting)
+5. **Qué variables separan y el efecto Simpson.**
+   - Ejemplo estrella, la profundidad: con todo junto no separa (AUC 0,50); dentro de cada misión sí, pero con signos opuestos (en Kepler y K2 los FP son más profundos, en TESS al revés).
+   - La magnitud también engaña: parece útil, pero es porque las estrellas de TESS son más brillantes.
+   - Variables que se comportan igual en las tres misiones: duración/periodo, forma de entrada y salida, temperatura y periodo.
 
-Lectura: 0.5 = no separa; < 0.5 = los PLANET tienen valores menores. Selección (tabla completa en `04_auc_by_mission.csv`):
+6. **Reglas físicas clásicas** (opcional, pero queda bien porque conecta con la astronomía).
+   - Regla del 2 % de profundidad: precisión 0,75.
+   - Mejor el radio implícito R★·√δ > 22 R⊕: precisión 0,86.
+   - La más precisa, la densidad estelar desde el tránsito (Seager y Mallén-Ornelas): precisión 0,94, pero detecta solo ~1 de cada 10 FP.
+   - La forma U frente a V detecta el 36 % de los FP.
+   - Cuenta el problema de los tests par/impar y secundario: no estaban calibrados (las vistas del dataset no estaban centradas, más el ruido rojo). Con el plegado propio, el secundario se arregla y el par/impar no; se resolvió en la sección de tránsitos individuales.
 
-| Variable | Todas | Kepler | K2 | TESS |
-|---|---|---|---|---|
-| depth_ppm | **0.50** | 0.40 | **0.07** | **0.59** |
-| rp_implied | 0.47 | 0.37 | 0.08 | 0.53 |
-| kepmag | 0.38 | 0.53 | 0.41 | 0.64 |
-| duty_cycle (T/P) | 0.36 | 0.32 | 0.19 | 0.36 |
-| ingress_frac (τ/T) | 0.34 | 0.31 | 0.38 | 0.41 |
-| snr_expected | 0.35 | 0.35 | — | — |
-| metallicity | 0.66 | 0.66 | 0.62 | — |
+7. **La forma de la curva y la PCA.**
+   - Los FP tienen el fondo más en V y los planetas más en U, pero ninguna componente separa sola (AUC 0,56–0,62).
+   - Mensaje: la diferencia existe, pero es sutil y no lineal. Eso justifica pasar a redes convolucionales (puente con la sección de modelos).
 
-Conclusiones:
-1. **Efecto Simpson en la profundidad.** En el conjunto global no separa (AUC 0.50), pero dentro de cada misión sí, y **con
-   signos opuestos**: en Kepler y K2 los FP son más profundos; en TESS ocurre lo contrario. Un modelo sin estratificar
-   aprendería una relación que no existe en ninguna misión por separado.
-2. **`kepmag` es un atajo:** en el global da 0.38, pero en Kepler 0.53. Casi toda su señal viene de que las estrellas de TESS son más brillantes.
-3. Las variables **robustas entre misiones** (mismo signo en las tres) son `duty_cycle`, `ingress_frac`, `teff`
-   y `period_days`. Son buenas candidatas para generalizar.
-4. `metallicity` (0.66) no puede usarse tal cual: falta en TESS y su tasa de NaN depende de la clase.
+8. **Cierre: qué decisiones salen de aquí.**
+   - Listón real de 0,687.
+   - Métricas siempre por misión.
+   - Solo la curva como entrada.
+   - Limpiar los planetas imposibles.
 
-## 5. Reglas físicas (escalón 2 de la escalera; positivo = FP; precisión del azar = 0.384)
+## Conceptos que conviene explicar al lector
 
-| Regla | % marcado | Precisión FP | Recall FP |
-|---|---|---|---|
-| δ > 2 % (regla original) | 12 % | 0.75 | 0.24 |
-| Rp implícito > 22 R⊕ | 10 % | **0.86** | 0.22 |
-| ρ_tránsito/ρ_catálogo < 0.1 | 4 % | **0.94** | 0.11 |
-| Forma V (τ/T > 0.35, SNR > 10) | 19 % | 0.72 | **0.36** |
-| Par/impar z > 3 | 19 % | 0.39 | 0.19 |
-| Secundario z > 3 | 28 % | 0.46 | 0.33 |
+- **AUC:** probabilidad de que un planeta al azar tenga un valor mayor que un FP al azar. 0,5 significa que no separa, y cuanto más lejos de 0,5, mejor.
+- **Macro-F1:** media del F1 de cada clase, todas con el mismo peso; no basta con acertar la clase más numerosa.
+- **Atajo:** una pista que delata la clase sin tener que ver con la física.
+- **Efecto Simpson:** una relación que aparece al juntar grupos y desaparece, o se invierte, dentro de cada grupo.
+- **Ruido rojo:** ruido con variaciones lentas, no independiente punto a punto; hace que los tests estadísticos clásicos exageren.
 
-- El criterio **Rp = R*·√δ** supera a la regla del 2 % en precisión (0.86 frente a 0.75) con un recall parecido. Confirma el Error 9 del informe.
-- **Densidad estelar (ec. 6):** con b = 0, ρ_tr es una **cota superior** de la densidad real, porque un b > 0 acorta T
-  y obliga a una a/R* menor. Por eso, un ρ_tr diez veces menor que el del catálogo no se puede explicar con la geometría:
-  el 94 % de los casos marcados son FP. Es la regla más precisa, aunque de bajo recall.
-- **Forma (τ/T):** para un trapecio simétrico, el déficit medio en T es δ(1-τ/T), así que τ/T = 1 - déficit_medio/δ.
-  Los planetas salen con τ/T ≈ 0.25, no 0.09 como en la teoría, porque el binning (T ≈ 10 bins) y el oscurecimiento
-  del limbo suavizan los bordes. El valor absoluto está sesgado, pero **ordena bien** (AUC 0.34).
+## Datos clave para citar
 
-### Advertencia: los tests z par/impar y secundario no están calibrados
-Si el ruido fuera gaussiano e independiente entre bins, en los PLANET se cumpliría |z| ~ |N(0,1)|: mediana 0.67 y P(|z|>3) = 0.003.
-Lo medido es:
-- par/impar: mediana 1.16, P(|z|>3) = **0.197**
-- secundario: mediana 2.60, P(|z|>3) = **0.449**
+18 853 estrellas en train · 28 planetas con radio imposible · atajo de faltantes 0,687 frente a dummy 0,384 · profundidad AUC 0,50 global frente a 0,07 (K2) y 0,59 (TESS) · regla de densidad con precisión 0,94.
 
-Por tanto **la hipótesis de bins independientes es falsa** en las vistas de 201 bins: están suavizadas y hay ruido rojo,
-así que σ/√n subestima el error. Estos z **no son significancias** y no se puede usar "z > 3" como test.
-Siguen sirviendo como variables de ranking. Arreglo futuro: estimar el error con la varianza entre bloques
-(*block bootstrap*) en lugar de σ/√n.
+## Figuras
 
-### Revisión con las vistas propias (tarea #46, 2026-11-01)
-Las vistas global y par/impar del dataset no estaban centradas en el tránsito, así que `odd_even_z` y `secondary_z`
-medían la zona equivocada. Recalculadas sobre el train de la muestra A (vistas propias centradas, solo PLANET y FP con vista válida;
-`scripts/checks/recheck_z_features.py`, `results/eda/z_features_own_views.csv`):
+**Composición de la muestra** (para el punto 1; cuántas estrellas hay de cada clase y misión):
 
-| | Dataset HF | Vistas propias |
-|---|---|---|
-| `secondary_z` en PLANET: mediana \|z\|, P(\|z\|>3) | 2.60, 0.449 | **0.57, 0.013** |
-| `odd_even_z` en PLANET: mediana \|z\|, P(\|z\|>3) | 1.16, 0.197 | 1.21, 0.145 |
-| Regla secundario z > 3: precisión / recall FP | 0.46 / 0.33 | **0.95 / 0.15** (K2: 0.98 / 0.38) |
-| Regla par/impar z > 3: precisión / recall FP | 0.39 / 0.19 | 0.75 / 0.24 (prevalencia FP 0.61) |
+![Muestra por misión y clase](../docs/figuras/f01_muestra.png)
 
-Qué queda de cada conclusión:
-- **Secundario: se rehace.** El fallo de calibración venía casi todo del descentrado. Con las vistas propias `secondary_z` se comporta como una significancia y "z > 3" sirve de test (muy preciso, poco sensible).
-- **Par/impar: sigue sin calibrar.** El ruido rojo es real; el arreglo sigue siendo el *block bootstrap* (#9). Úsese solo como ranking.
-- **Tabla de reglas (sección 5) y AUC por misión (sección 4):** las filas de estas dos variables quedan sustituidas por las de arriba. El resto de variables no usa la vista global y sigue siendo válido.
-- **#35 (fuga de misión):** sustituido por #44 (`results/leak/mission_leak_own_views.csv`).
-- **`results/catalog_reference/`** (transferencia con catálogo, usaba `odd_even_z`): solo referencia, no se rehace.
+**Valores faltantes por misión** (para el punto 4; se ve que en TESS faltan columnas enteras):
 
-## 6. Redundancia (Spearman |ρ| > 0.7)
+![Valores faltantes](../results/eda/02_missingness.png)
 
-`logg`–`radius` (-0.97), `depth_ppm`–`depth_local` (0.95), `planet_radius_earth`–`rp_implied` (0.92),
-`period`–`duty_cycle` (-0.89), `kepmag`–`cdpp_3hr` (0.81). Para la regresión logística conviene quedarse con una de cada par.
-**Comprobación cruzada:** la profundidad medida en la curva coincide con la del catálogo (ρ = 0.95) y el Rp implícito
-con el del catálogo (mediana |log10 ratio| = 0.036, es decir, ~8 %). Los datos son coherentes entre sí.
+**Distribución de las variables en planetas y FP** (para el punto 5; sirve para enseñar el efecto Simpson de la profundidad):
 
-## 7. Forma de las curvas y PCA (flux_local, SNR > 10, n = 9 870)
+![Histogramas de variables](../results/eda/04_histograms_vetting.png)
 
-- Tras normalizar por δ, la mediana de los FP tiene el fondo más puntiagudo (V) y la de los PLANET es más plana (U).
-- PCA: PC1 (44 %) recoge el nivel fuera del tránsito y PC2/PC3 (10 % cada una) el ancho y la asimetría del egreso y el ingreso.
-  Ninguna PC separa bien por sí sola (AUC 0.56-0.62). La diferencia de forma existe pero es sutil y **no lineal**.
-  Esto justifica probar luego una CNN (escalones 5-6).
+**Forma media de las curvas y PCA** (para el punto 7; U frente a V):
 
-## Implicaciones para la Fase 3
+![Formas y PCA](../results/eda/07_curve_shapes_pca.png)
 
-1. **Listón real** para vetting: macro-F1 de val **0.687**, el que se consigue solo con la misión, no el 0.384 del dummy.
-2. Reportar siempre las **métricas por misión**. Alternativa: entrenar solo con Kepler para quitar el confusor.
-3. No usar `kepmag`, `metallicity`, `mass` ni `cdpp_3hr` sin controlar la misión.
-4. Variables candidatas para la regresión logística: `log period`, `log duty_cycle`, `ingress_frac`, `log rp_implied`,
-   `log_rho_ratio`, `teff`, `logg`, `odd_even_z` (solo como ranking), `secondary_z` (con vistas propias, ya como test; #46).
-5. Para la CNN, recortar los bins de borde de `flux_local`.
-6. Limpiar o ponderar los 28 PLANET con Rp > 100 R⊕ (ruido de etiqueta).
+**Cómo se ven las curvas plegadas** (útil para que el lector entienda qué es una vista local antes de hablar de formas):
+
+![Galería de vistas locales](../docs/figuras/f02_galeria_local.png)
+
+**La misión se adivina desde la curva** (enlaza el atajo de la misión con lo que se hizo después):
+
+![Fuga de misión](../docs/figuras/f05_fuga_mision.png)
+
+## Limitaciones que mencionar
+
+- Esta exploración usó las vistas del dataset original; algunas conclusiones (par/impar, secundario) cambiaron con el plegado propio.
+- Los z de par/impar y secundario no son significancias fiables con las vistas del dataset.
+
+## Código
+
+`legacy/eda.py` y `legacy/features.py`; la revisión con el plegado propio está en `scripts/checks/recheck_z_features.py`.
+
+## Fuentes
+
+- Dataset: https://huggingface.co/datasets/bingbangboom/exoplanet-transit-detection
+- Seager, S. y Mallén-Ornelas, G. (2003), densidad estelar desde el tránsito: https://arxiv.org/abs/astro-ph/0206228
+- Mandel, K. y Agol, E. (2002), forma del tránsito: https://arxiv.org/abs/astro-ph/0210099
+- Thompson, S. E. et al. (2018), catálogo DR25 de Kepler y Robovetter: https://arxiv.org/abs/1710.06758

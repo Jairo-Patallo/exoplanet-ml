@@ -12,6 +12,8 @@ import re
 from pathlib import Path
 
 import matplotlib
+import matplotlib.patches
+import matplotlib.ticker
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
@@ -555,6 +557,110 @@ def f_tois():
     save(fig, "f24_tois_v1", "Predicciones congeladas v1 (etiqueta v1 en GitHub). Con deriva > 0,25 la efeméride no sirve y aumentan NO_SIGNAL y FP (research/16).")
 
 
+def f_esquema_lomo():
+    fig, ax = plt.subplots(figsize=(8, 3.2))
+    ax.grid(False)
+    ax.axis("off")
+    for r, held in enumerate(MIS):
+        y = 2 - r
+        ax.text(-0.15, y + 0.35, f"Pliegue {r + 1}", ha="right", va="center", fontsize=9.5, color=INK)
+        for c, m in enumerate(MIS):
+            ev = m == held
+            ax.add_patch(matplotlib.patches.FancyBboxPatch((c * 1.25, y), 1.1, 0.7, boxstyle="round,pad=0.02,rounding_size=0.06",
+                         facecolor="#e6f1fb" if not ev else "#faeeda", edgecolor="#185fa5" if not ev else "#854f0b", lw=0.8))
+            ax.text(c * 1.25 + 0.55, y + 0.47, MIS_LABEL[m], ha="center", va="center", fontsize=10, fontweight="bold",
+                    color="#0c447c" if not ev else "#633806")
+            ax.text(c * 1.25 + 0.55, y + 0.18, "evaluación\n(una sola vez)" if ev else "entrenamiento\ny selección", ha="center",
+                    va="center", fontsize=7, color="#185fa5" if not ev else "#854f0b", linespacing=1.1)
+    ax.text(3.9, 1.9, "Bucle interno (solo con las dos\nmisiones de entrenamiento):\nentrenar en A → validar en B\ny al revés; se elige la\nconfiguración con mejor PR-AUC", fontsize=8.5,
+            va="center", color=MUTED)
+    ax.set_xlim(-0.9, 5.6)
+    ax.set_ylim(-0.1, 3)
+    ax.set_title("Protocolo LOMO anidado: la misión evaluada no participa en ninguna decisión")
+    save(fig, "f25_esquema_lomo", "Cada pliegue deja fuera una misión, elige el modelo solo con las otras dos y la evalúa una única vez.")
+
+
+def f_etiquetas():
+    d = csv("labels/strength_counts.csv")
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.2), sharey=True)
+    for ax, cls in zip(axes, ["PLANET", "FALSE_POSITIVE"]):
+        t = d[d.disposition == cls].set_index("mission").reindex(MIS)
+        left = np.zeros(3)
+        for col, lab, color in (("fuerte", "Fuerte (se evalúa)", "#2a78d6"), ("debil", "Débil (candidato)", "#85b7eb"),
+                                ("excluida", "Excluida", "#d3d1c7")):
+            ax.barh(range(3), t[col], left=left, color=color, label=lab, height=0.6, edgecolor="white", lw=1)
+            left += t[col].to_numpy()
+        ax.set_yticks(range(3), [MIS_LABEL[m] for m in MIS])
+        ax.invert_yaxis()
+        ax.set_title(CLS_LABEL[cls])
+        ax.set_xlabel("Objetos del dataset")
+    legend_below(axes[0], 3, -0.25)
+    fig.suptitle("Fuerza de las etiquetas por misión", x=0.01, ha="left", fontweight="bold")
+    fig.subplots_adjust(top=0.8)
+    save(fig, "f26_etiquetas", "Solo las etiquetas fuertes (confirmados y FP claros) se usan para evaluar; los candidatos son etiquetas débiles.")
+
+
+def f_atajos_evolucion():
+    steps = ["Al azar,\ntodos los sectores", "1 segmento\nen K2 y TESS", "Emparejados por\nsegmento y brillo", "+ efeméride del\nmismo segmento"]
+    vals = {"kepler": [0.64, 0.64, 0.64, 0.64], "k2": [0.90, 0.87, 0.85, 0.84], "tess": [0.83, 0.70, 0.51, 0.55]}   # research/05
+    fig, ax = plt.subplots(figsize=(7.5, 3.4))
+    for m in MIS:
+        ax.plot(range(4), vals[m], "-o", color=MIS_COLOR[m], lw=2, ms=6, label=MIS_LABEL[m])
+        ax.annotate(f"{vals[m][-1]:.2f}", (3, vals[m][-1]), xytext=(8, 0), textcoords="offset points", va="center", fontsize=8)
+    ax.axhline(0.5, color=INK, lw=0.8, ls="--")
+    ax.text(0, 0.47, "0,5 = sin atajo", fontsize=8, color=MUTED, va="top")
+    ax.set_xticks(range(4), steps, fontsize=8.5)
+    ax.set_ylim(0.4, 1)
+    ax.set_ylabel("ROC-AUC sin mirar el tránsito")
+    ax.set_title("Cómo se fue quitando el atajo de los negativos")
+    legend_below(ax, 3, -0.3)
+    save(fig, "f27_atajos_evolucion", "Capacidad de distinguir los negativos fabricados sin mirar el tránsito, en cada versión de su construcción (research/05).")
+
+
+def f_bls_periodo():
+    q = csv("sample/qc_bls.csv")
+    q = q[(q.split == "val") & q.disposition.isin(["PLANET", "FALSE_POSITIVE"]) & q.match.notna()]
+    q["cat"] = q.match.map(lambda s: "Periodo correcto" if s == "igual" else ("Otro periodo" if s == "otro" else "Alias (½, 2×, ⅓…)"))
+    g = q.groupby(["mission", "disposition"]).cat.value_counts(normalize=True).unstack().fillna(0)
+    rows = [(m, c) for m in MIS for c in ["PLANET", "FALSE_POSITIVE"]]
+    fig, ax = plt.subplots(figsize=(7.5, 3.4))
+    y = np.arange(len(rows))[::-1]
+    left = np.zeros(len(rows))
+    for cat, color in (("Periodo correcto", "#1baf7a"), ("Alias (½, 2×, ⅓…)", "#eda100"), ("Otro periodo", "#b9b7b0")):
+        v = np.array([g.loc[r, cat] if r in g.index and cat in g.columns else 0 for r in rows])
+        ax.barh(y, v, left=left, color=color, label=cat, height=0.6, edgecolor="white", lw=1)
+        left += v
+    n = q.groupby(["mission", "disposition"]).size()
+    ax.set_yticks(y, [f"{MIS_LABEL[m]} · {CLS_LABEL[c]} (n={n.get((m, c), 0)})" for m, c in rows])
+    ax.set_xlim(0, 1)
+    ax.xaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1))
+    ax.set_title("¿Encuentra BLS el periodo correcto?")
+    legend_below(ax, 3, -0.18)
+    save(fig, "f28_bls_periodo", "Periodo de BLS frente al del catálogo en val. BLS acierta ~2 de cada 3; los FP dan más alias de ½ (binarias con dos eclipses parecidos).")
+
+
+def f_calibracion_par_impar():
+    f = csv("sample/transit_feats.csv")
+    f = f[f.get("error", pd.Series(index=f.index, dtype=object)).isna()]
+    f["out"] = f.z_odd_even.abs() > 3
+    g = f.groupby(["mission", "disposition"]).out.mean().unstack().reindex(MIS)
+    fig, ax = plt.subplots(figsize=(6.5, 3.3))
+    x, w = np.arange(3), 0.36
+    for i, c in enumerate(["PLANET", "FALSE_POSITIVE"]):
+        bar_labels(ax, ax.bar(x + (i - 0.5) * (w + 0.02), g[c], w, color=CLS_COLOR[c], label=CLS_LABEL[c]), "{:.1%}")
+    ax.axhline(0.145, color="#e34948", lw=1, ls="--")
+    ax.text(2.45, 0.15, "planetas con el test\nantiguo (14,5 %)", fontsize=7.5, color="#a32d2d", va="bottom", ha="right")
+    ax.axhline(0.003, color=INK, lw=0.8, ls=":")
+    ax.text(-0.45, 0.008, "ideal 0,3 %", fontsize=7.5, color=MUTED)
+    ax.set_xticks(x, [MIS_LABEL[m] for m in MIS])
+    ax.yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1))
+    ax.set_ylim(0, 0.36)
+    ax.set_ylabel("Estrellas con |z| par/impar > 3")
+    ax.set_title("El nuevo test par/impar está mucho mejor calibrado")
+    legend_below(ax, 2)
+    save(fig, "f29_calibracion_par_impar", "Fracción de estrellas con diferencia par/impar significativa usando el ajuste tránsito a tránsito con ruido rojo (research/15).")
+
+
 def write_index() -> None:
     lines = ["# Figuras del proyecto", "", "Generadas con `scripts/checks/figuras.py` a partir de `results/` (no entrena nada).", ""]
     lines += [f"## {n}\n\n![{n}]({n}.png)\n\n{c}\n" for n, c in INDEX]
@@ -564,7 +670,8 @@ def write_index() -> None:
 if __name__ == "__main__":
     for f in (f_muestra, f_galeria, f_atajos, f_fuga_mision, f_modelos, f_prauc_clases, f_confusiones, f_centroide,
               f_variantes_cnn, f_errores_fp_kepler, f_lomo, f_adaptacion_tess, f_curva_aprendizaje, f_test_final, f_bls,
-              f_negativos_dificiles, f_errores_tipo_final, f_triaje, f_snr, f_multisector, f_transitos, f_tois):
+              f_negativos_dificiles, f_errores_tipo_final, f_triaje, f_snr, f_multisector, f_transitos, f_tois,
+              f_esquema_lomo, f_etiquetas, f_atajos_evolucion, f_bls_periodo, f_calibracion_par_impar):
         try:
             f()
         except Exception as e:

@@ -1,66 +1,90 @@
-# Modelo final y evaluación única en test (fase 4)
+# Guía para redactar: el modelo final y su evaluación en test
 
-**Esta receta se fija y se commitea antes de mirar el test.** Nada de lo que hay aquí se cambia después de ver el resultado. Si algo se cambiara, la cifra de test dejaría de ser honesta y habría que decirlo.
+**Idea central de la sección:** fijaste la receta del modelo final y la guardaste en git antes de mirar el test, y después evaluaste una sola vez. Resultado: macro-F1 de 0,886 en Kepler, 0,928 en K2 y 0,720 en TESS. En LOMO, el test dio lo mismo que validación, así que lo medido antes no estaba inflado.
 
-## Receta (decisiones de Jairo, 2026-11-05)
+## Introducción: por qué y cómo
 
-| Elemento | Elección | Motivo |
-|---|---|---|
-| Alcance | Clasificador de señales ya detectadas: curva + periodo y época dados | #53: con BLS el macro-F1 cae de ~0,86 a ~0,50 (`research/09`) |
-| Entrada | Vistas global (201 bins) y local (81 bins) plegadas con la efeméride del catálogo, normalizadas por estrella; **sin log10 de la profundidad** | #43: aportaba +0,003 y es la variable que más delata la misión |
-| Datos | Kepler + K2 + TESS juntos; TESS con 1 sector | FFI con todos los sectores queda como trabajo futuro (+0,034 con 2 sectores, `research/07`) |
-| Modelo | CNN de dos ramas tipo AstroNet | Mejor modelo de la fase 2 |
-| Configuración | **base 16, dropout 0,5**, elegida en val sin profundidad (`results/models/final_select.csv`: macro-F1 medio 0,839; Kepler 0,860, K2 0,877, TESS 0,779; las otras tres, 0,812–0,834) | Misma rejilla y criterio que la fase 2 (macro-F1 medio de misiones en val, semilla 0) |
-| Entrenamiento | train + val, 5 semillas, ensemble por media de probabilidades | Práctica estándar; AstroNet-K2 y ExoMiner++ usan ensembles |
-| Decisión | argmax | #37: corregir el prior empeora el macro-F1 |
+**Por qué se hizo.**
+- El test es la única medida honesta de cómo funcionará el modelo con datos nuevos, pero solo si no influye en ninguna decisión.
+- Si se mira, se cambia algo y se vuelve a mirar, deja de valer.
+- Por eso había que cerrar la receta antes y gastar el test una sola vez.
 
-`scripts/models/final_model.py {select, train, test}`; pesos en `data/models/final_seed{0..4}.pt`.
+**Cómo se hizo.**
+- Se escribió y commiteó la receta completa (commit `05a737a`): modelo, entrada, datos, configuración, semillas y regla de decisión.
+- Se entrenó con train + val y 5 semillas, promediando las probabilidades.
+- Se evaluó de dos maneras:
+  1. el modelo final en el test de cada misión;
+  2. la misma receta en LOMO, en el test de cada misión excluida.
 
-## Cómo se evalúa (una vez)
+**Qué se buscaba conseguir.** Las cifras oficiales del proyecto, y comprobar si la fase de portabilidad estaba inflada por haber probado muchas variantes.
 
-1. **Por telescopio:** el modelo final en el test de Kepler, K2 y TESS. Macro-F1 (principal) y PR-AUC macro, con IC 95 % bootstrap; matrices de confusión. `results/models/final_test.csv`.
-2. **Portabilidad (LOMO en test):** la misma receta con el protocolo LOMO (`lomo.py --model cnn --amp --no-depth --seeds 5 --eval-splits test`). Por cada telescopio excluido: selección de la configuración en los folds internos de los otros dos, reentrenamiento con su train + val sin las estrellas compartidas y evaluación en el **test** del excluido. `results/models/lomo_cnn_nodepth_test.csv`.
+## Qué contar, en orden
 
-Las métricas de val de las fases 2 y 3 son las de referencia para comparar. Se espera que el test quede algo por debajo, porque en val se eligieron configuraciones y variantes.
+1. **Por qué se fija la receta antes** (el argumento de arriba). Muestra madurez metodológica.
+2. **La receta, y el porqué de cada elemento:**
+   - CNN de dos ramas tipo AstroNet (la mejor de la fase 2);
+   - solo las vistas, sin profundidad (aportaba +0,003 y delata la misión);
+   - Kepler + K2 + TESS juntos (juntar misiones funciona mejor que ajustar fino);
+   - TESS con 1 sector;
+   - base 16 y dropout 0,5, elegidos en val;
+   - 5 semillas promediadas (como ExoMiner++ y AstroNet-K2);
+   - la clase más probable como decisión (corregir la mezcla de clases empeoraba);
+   - alcance: clasificador de señales ya detectadas (por lo visto con BLS).
+3. **Resultado por telescopio:**
+   - Kepler 0,886 [0,867–0,906], K2 0,928 [0,858–0,983], TESS 0,720 [0,661–0,772]; media 0,845.
+   - Kepler y K2 suben respecto a val (más datos y 5 semillas); TESS baja un poco (0,779 → 0,720), dentro del IC.
+   - K2 solo tiene 81 estrellas de test.
+4. **La matriz de confusión:**
+   - El fallo dominante: en TESS, 34 de 89 FP se predicen como planeta.
+   - «Sin señal» va muy bien (F1 0,92–0,96).
+   - El problema difícil es planeta frente a FP.
+5. **LOMO en test:**
+   - PR-AUC 0,906 (Kepler), 0,961 (K2) y 0,761 (TESS), igual que en val.
+   - Mensaje: la fase de portabilidad no estaba inflada.
+   - Coste de no ver la misión en PR-AUC: Kepler 0,947 → 0,906, K2 0,972 → 0,961, TESS 0,816 → 0,761.
+6. **La métrica que importa para candidatos** (puente con la validación prospectiva):
+   - Planeta frente a FP en el test de TESS: ROC-AUC 0,803 y PR-AUC 0,766.
+   - Con un 90 % de precisión, recupera el 34 % de los planetas.
+   - Conclusión: el modelo prioriza, no confirma.
 
-## Resultados
+## Conceptos que conviene explicar al lector
 
-Ejecutado el 2026-11-05, una sola vez, sin tocar la receta después. Épocas de parada de las 5 semillas: 32, 30, 11, 10, 24.
+- **Conjunto de test reservado.**
+- **Ensemble de semillas.**
+- **Matriz de confusión.**
+- **Intervalo de confianza por bootstrap.**
+- **Precisión y recall** a un umbral dado.
 
-### 1. Por telescopio (modelo final, ensemble de 5 semillas)
+## Datos clave para citar
 
-| Misión | n test | Macro-F1 [IC 95 %] | PR-AUC macro [IC 95 %] | Val (selección, 1 semilla) |
-|---|---|---|---|---|
-| Kepler | 1102 | **0,886** [0,867–0,906] | 0,947 [0,928–0,964] | 0,860 |
-| K2 | 81 | **0,928** [0,858–0,983] | 0,972 [0,928–1,000] | 0,877 |
-| TESS | 292 | **0,720** [0,661–0,772] | 0,816 [0,762–0,871] | 0,779 |
-| Media | | 0,845 [0,814–0,873] | 0,912 [0,888–0,935] | 0,839 |
+Test 0,886 / 0,928 / 0,720 (media 0,845) · PR-AUC 0,947 / 0,972 / 0,816 · LOMO en test 0,906 / 0,961 / 0,761 · FP de TESS predichos como planeta: 34 de 89 · planeta frente a FP en TESS: PR-AUC 0,766.
 
-Matrices de confusión (filas real, columnas predicha; PLANET / FP / NO_SIGNAL):
+## Figuras
 
-| | Kepler | K2 | TESS |
-|---|---|---|---|
-| PLANET | 179 / 7 / 0 | 17 / 2 / 1 | 47 / 8 / 3 |
-| FALSE_POSITIVE | 49 / 287 / 39 | 0 / 18 / 1 | 34 / 41 / 14 |
-| NO_SIGNAL | 5 / 7 / 529 | 0 / 1 / 41 | 1 / 6 / 138 |
+**Resultado en test con intervalos:**
 
-- Kepler y K2 quedan por encima de val. Es lo esperable: el modelo final entrena con train + val y es un ensemble de 5 semillas, y en val había una sola. K2 tiene solo 81 estrellas en test; su IC es amplio.
-- TESS baja 0,06 respecto a val (0,779 → 0,720), dentro del IC. El fallo dominante es el mismo que en val: falsos positivos que el modelo llama planeta (34 de 89, 38 %). F1 de FALSE_POSITIVE en TESS: 0,57.
-- NO_SIGNAL se separa bien en las tres misiones (F1 0,92–0,96): el problema difícil es planeta frente a falso positivo.
+![Test final](../docs/figuras/f15_test_final.png)
 
-### 2. Portabilidad (LOMO en test, sin profundidad, 5 semillas)
+**Matriz de confusión en test:**
 
-| Excluida | n | Config. elegida | PR-AUC macro | Macro-F1 | LOMO en val (fase 3, sin profundidad) |
-|---|---|---|---|---|---|
-| Kepler | 1102 | base 16, dropout 0,3 | **0,906** | 0,855 | 0,891 |
-| K2 | 81 | base 8, dropout 0,3 | **0,961** | 0,924 | 0,923 |
-| TESS | 292 | base 8, dropout 0,5 | **0,761** | 0,667 | 0,761 |
+![Confusión test](../docs/figuras/f16_confusion_final_test.png)
 
-- Las cifras de test coinciden con las de val: lo que se midió en la fase 3 no estaba inflado por la selección.
-- Coste de no haber visto la misión (PR-AUC, por telescopio frente a LOMO): Kepler 0,947 → 0,906, K2 0,972 → 0,961, TESS 0,816 → 0,761. TESS sigue siendo la misión que peor se transfiere y la que peor se aprende aun viéndola.
+**Portabilidad (la barra más oscura es este modelo final):**
 
-### Conclusión
+![LOMO](../docs/figuras/f12_lomo.png)
 
-El modelo solo curva clasifica Kepler y K2 con macro-F1 ≈ 0,89–0,93 y TESS con 0,72. Llevado a una misión que no ha visto pierde 0,01–0,06 de PR-AUC. El cuello de botella es separar planetas de falsos positivos en TESS (1 sector, 2 min, señales más débiles), coherente con la fase 3: la única mejora que funcionó allí fue más datos de TESS (2 sectores, +0,034).
+## Limitaciones que mencionar
 
-Salidas: `results/models/final_test.csv`, `final_test_confusion.csv`, `final_test_pred.csv`, `lomo_cnn_nodepth_test.csv`, `lomo_cnn_nodepth_test_inner.csv`, `lomo_cnn_nodepth_test_pred.csv`.
+- K2 tiene pocas estrellas en test.
+- La métrica de 3 clases incluye negativos fabricados 1:1; la cifra útil para candidatos es la de planeta frente a FP.
+
+## Código
+
+`scripts/models/final_model.py {select, train, test, val}`; pesos en `data/models/final_seed0.pt` a `final_seed4.pt`.
+
+## Fuentes
+
+- Shallue y Vanderburg (2018), AstroNet: https://arxiv.org/abs/1712.05044
+- Valizadegan et al. (2025), ExoMiner++: https://arxiv.org/abs/2502.09790
+- Dattilo et al. (2019), AstroNet-K2: https://arxiv.org/abs/1903.10507
+- Efron y Tibshirani (1993), *An Introduction to the Bootstrap*, Chapman & Hall.

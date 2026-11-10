@@ -1,46 +1,81 @@
-# Predicciones congeladas v1 en los TOIs abiertos (fase 7, #85 y #87; 2026-11-07)
+# Guía para redactar: predicciones congeladas (v1) sobre los candidatos abiertos
 
-Primer paso de la validación prospectiva: predecir hoy los TOIs en PC y compararlos dentro de meses con las disposiciones nuevas del TFOPWG (#92). Las predicciones no se pueden cambiar después: si se mejora el modelo, se congela una v2 aparte, con su fecha.
+**Idea central de la sección:** predijiste los 3 536 candidatos de TESS sin resolver que tenían una curva usable. Guardaste las predicciones con huellas digitales y las publicaste en GitHub (etiqueta `v1`) para compararlas en el futuro con las respuestas reales, junto a ExoMiner++ y el TFOP. Por el camino descubriste y resolviste el problema de la deriva de la efeméride.
 
-## Qué se congeló
+## Introducción: por qué y cómo
 
-- **TOIs:** los 4 813 en PC de ExoFOP (`data/labels/exofop_toi.csv`, descargado el 2026-11-05). 76 no tienen periodo (un tránsito) y se omiten. Se procesan 4 737; **3 536 tienen vista válida**. 756 no tienen curva de 2 min de SPOC (solo imágenes completas, QLP) y 444 no son válidas (pocos tránsitos o huecos).
-- **Modelo:** el final de la fase 4 (CNN solo curva sin profundidad, 5 semillas) con la temperatura de TESS (T = 1,07). Decisión 13: modelo base, no el de negativos difíciles.
-- **Columnas** (`results/toi/predictions_v1.csv`):
-  - las 3 probabilidades, la clase y P(planeta | señal) = p_P/(p_P + p_FP);
-  - la deriva de la efeméride y la marca `efemeride_incierta`;
-  - la puntuación de ExoMiner++ (Zenodo 10.5281/zenodo.15466293, CC-BY-4.0; misma TIC y periodo a ±1 %; 2 007 TOIs con puntuación);
-  - las prioridades del TFOP (Master, SG1A, SG1B, SG2).
-- **Manifiesto** (`results/toi/manifest_v1.json`): SHA-256 de los 5 pesos, la temperatura, las vistas (concatenadas), el qc, ExoFOP, ExoMiner++ y las predicciones. Commit `c0839cc`, árbol limpio.
+**Por qué se hizo.**
+- Toda la evaluación anterior usa casos con respuesta conocida, y siempre queda la duda de si alguna decisión se tomó mirándolas.
+- Una **validación prospectiva** (predecir hoy, comprobar después) elimina esa duda y es la prueba más convincente posible.
+- Además, permite comparar a ciegas con ExoMiner++ y con las prioridades del TFOP.
 
-## Hallazgo: la deriva de la efeméride
+**Cómo se hizo.**
+- Se descargó 1 sector de 2 min para cada TOI en estado PC y se plegó igual que al entrenar.
+- Se predijo con el modelo final más la temperatura de TESS.
+- Se guardaron la probabilidad de planeta dado que hay señal, la puntuación de ExoMiner++ y las prioridades del TFOP.
+- Se congeló todo con hashes SHA-256 y una etiqueta pública en GitHub.
 
-El error de una efeméride crece con las órbitas desde la época: σ_t = sqrt(σ_t0² + (n·σ_P)²).
+**Qué se buscaba conseguir.** Arrancar el reloj de la validación prospectiva con un resultado verificable.
 
-- **Con la regla del entrenamiento** (el sector con más tránsitos), el 8 % de los TOIs tenía σ_t > 1 duración en el sector usado, y el 54 % de ellos salía NO_SIGNAL. El plegado no encontraba el tránsito. Histórico en `results/toi/history/`.
-- **Decisión de Jairo (opción 1):** entre los sectores con ≥ 2 tránsitos esperados, el de menor deriva; si varios tienen deriva ≤ 0,1, el de más tránsitos, como en el entrenamiento. Se marca `efemeride_incierta` si la deriva supera 0,25.
+## Qué contar, en orden
 
-| Deriva del sector usado (σ_t / duración) | TOIs | NO_SIGNAL | FP |
-|---|---|---|---|
-| ≤ 0,1 | 3 084 | 4,1 % | 14,9 % |
-| 0,1–0,25 | 126 | 22,2 % | 27,0 % |
-| 0,25–0,5 | 43 | 14,0 % | 23,3 % |
-| 0,5–1 | 61 | 23,0 % | 24,6 % |
-| > 1 | 222 | 39,2 % | 41,9 % |
+1. **Qué es una validación prospectiva.** La analogía de la quiniela en un sobre cerrado funciona bien.
+2. **Qué se predijo:**
+   - 4 813 TOIs en PC; 76 sin periodo; 4 737 procesados; 3 536 con curva usable.
+   - 756 sin datos de 2 min y 444 con pocos tránsitos o huecos.
+3. **Qué se guardó por candidato:**
+   - las 3 probabilidades;
+   - **P(planeta | señal)**, y explica por qué es la cifra útil: en un candidato ya hay una señal;
+   - ExoMiner++ (2 007 TOIs);
+   - las prioridades del TFOP.
+4. **Cómo se demuestra que no se cambió:** los hashes SHA-256 de pesos, temperatura, vistas, ExoFOP, ExoMiner++ y predicciones; el manifiesto y la etiqueta `v1`. Una mejora futura se congela como v2.
+5. **El problema de la deriva de la efeméride** (la parte más interesante de la sección):
+   - Qué es: el error del periodo se acumula con cada órbita, como un reloj que atrasa.
+   - Cómo apareció: al elegir el sector con más tránsitos, el 8 % de los TOIs tenía un error mayor que la duración, y el 54 % de ellos salía «sin señal».
+   - Por qué no pasaba al entrenar: las efemérides de los objetos resueltos están refinadas.
+   - La solución: elegir el sector con menor deriva y marcar como inciertos los que superan 0,25 duraciones.
+   - Con deriva baja, solo el 4 % sale «sin señal»; con deriva > 1, el 39 %.
+   - 326 TOIs (9 %) quedan marcados como inciertos.
+   - Lección: el fallo estaba en el puente entre el catálogo y los datos, no en el modelo, y solo aparece al usar el modelo con datos reales.
+6. **Resultado:**
+   - De los 3 210 fiables: 2 564 planeta, 493 FP y 153 sin señal.
+   - Frente a ExoMiner++: coinciden en el 76 %, con una correlación de 0,37 (esperable, porque ExoMiner++ usa más información).
+7. **Qué falta:**
+   - Cruzar periódicamente con ExoFOP.
+   - Idea complementaria: una validación pseudo-prospectiva por fecha de alerta, que daría un resultado ya.
 
-- 326 TOIs (9,2 %) quedan con efeméride incierta. Ningún sector de 2 min les da menos de 0,25: suelen ser TOIs con periodo poco preciso o con los sectores de 2 min lejos de la época. Hay que excluirlos de la validación prospectiva o tratarlos aparte.
-- **Aviso:** entre 0,1 y 0,25 la tasa de NO_SIGNAL ya sube al 22 % (n = 126). La marca a 0,25 se fijó antes de ver esta tabla y no se cambia en la v1. Al analizar (#92), conviene informar también con el corte en 0,1.
-- La v1 elige el sector con información que el entrenamiento no usaba (la deriva). Es la única diferencia con la cadena de entrenamiento.
+## Conceptos que conviene explicar al lector
 
-## Primera comparación con ExoMiner++ (descriptiva)
+- **TOI y disposición.**
+- **Validación prospectiva.**
+- **Hash SHA-256:** una huella digital de un archivo.
+- **Deriva de la efeméride.**
+- **P(planeta | señal):** probabilidad condicionada.
 
-Entre los 1 947 TOIs con deriva ≤ 0,25 y puntuación de ExoMiner++:
-- correlación de Spearman entre nuestro P(planeta | señal) y ExoMiner++: 0,37;
-- coinciden en el lado del umbral 0,5 en el 76 % de los casos.
+## Datos clave para citar
 
-No es una medida de acierto, porque no hay etiquetas. El análisis caso a caso es la tarea #102.
+3 536 TOIs · 3 210 fiables · 326 inciertos · 2 564 / 493 / 153 · coincidencia con ExoMiner++ del 76 % · deriva > 1 → 39 % «sin señal».
 
-## Qué falta
+## Figuras
 
-- Publicar el manifiesto con un sello de tiempo externo (release de GitHub o Zenodo). Pendiente de permiso de Jairo.
-- #92: repetir el cruce con ExoFOP cada pocos meses. Las disposiciones del TFOP tardan en llegar, así que conviene medir primero cuántos PC cambian al mes.
+**Las predicciones v1:** distribución, comparación con ExoMiner++ y efecto de la deriva (la figura de la sección):
+
+![TOIs v1](../docs/figuras/f24_tois_v1.png)
+
+## Limitaciones que mencionar
+
+- El corte de 0,25 duraciones se fijó antes de ver los datos; entre 0,1 y 0,25 ya se nota algo (22 % «sin señal»).
+- La elección del sector usa la deriva, que el entrenamiento no necesitaba: es la única diferencia con la cadena de entrenamiento.
+- Las disposiciones del TFOP tardan meses o años en llegar.
+
+## Código
+
+`scripts/data/build_toi_views.py`, `scripts/models/predict_tois.py` y `scripts/checks/toi_ephemeris_drift.py`; resultados en `results/toi/`.
+
+## Fuentes
+
+- ExoFOP-TESS: https://exofop.ipac.caltech.edu/tess/
+- ExoMiner++: https://arxiv.org/abs/2502.09790 ; catálogo: https://doi.org/10.5281/zenodo.15466293
+- TFOP: https://heasarc.gsfc.nasa.gov/docs/tess/tfop.html
+- Guerrero et al. (2021), catálogo de TOIs: https://arxiv.org/abs/2103.12538
+- MAST, curvas de TESS: https://archive.stsci.edu/missions-and-data/tess
