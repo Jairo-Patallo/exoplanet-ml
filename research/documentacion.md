@@ -28,7 +28,7 @@ para poder detectar todos los cambios y saber cuando existen cambios en la super
 Una curva de luz representa cómo cambia el brillo observado de un objeto astronómico a lo largo del tiempo. Cuando un exoplaneta pasa por delante como ya dijimos la luz disminuye. Los telescopios obviamente no pueden ver estos exoplanetas a cientos de años luz, pero generan unas series temporales con brillo, cuando la luz total que entra por el telescopio disminuye
 existe un posible exoplaneta lo que llamamos candidato, adjunto imágen.
 
-![Tránsito de un exoplante](/wasp-10b.jpg)
+![Tránsito de un exoplaneta](./wasp-10b.jpg)
 
 ### Falsos positivos
 
