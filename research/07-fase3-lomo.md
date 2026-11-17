@@ -21,23 +21,45 @@
    - PR-AUC sin ver la misión: Kepler 0,894, K2 0,927, TESS 0,764 (media 0,862).
    - Viéndola: 0,937, 0,956 y 0,840 (media 0,911).
    - Pérdida media −0,05.
+   - **Por dónde tirar:**
+     - Abre con la tabla dentro frente a fuera de misión.
+     - Interpreta: la pérdida es pequeña en Kepler y K2 y grande en TESS; ahí está la pregunta del resto de la sección.
 2. **Qué se transfiere y qué no:** «hay señal o no» se transfiere casi perfecto (F1 de 0,88–0,94); lo que se degrada es planeta frente a FP.
+   - **Por dónde tirar:**
+     - Divide el problema en dos: detectar que hay señal y decidir si es planeta o FP. Muestra que el difícil es el segundo.
 3. **Por qué falla TESS:**
    - **¿Es el modelo?** La logística da 0,716 y la CNN 0,764, pero la CNN viendo TESS llega a 0,84: TESS tiene patrones propios.
    - **Pocos tránsitos:** mediana de 5–8 en TESS frente a decenas en Kepler. Con ≤ 8 tránsitos, el acierto en FP es ~30 %; con más, 52–61 %.
    - **Otra población:** el 14 % de los planetas de TESS tienen P < 2 d (6–7 % en Kepler y K2, donde los periodos cortos son sobre todo binarias). El modelo aprendió «periodo corto → binaria» y falla en la mitad de esos planetas (40 de 82).
+   - **Por dónde tirar:**
+     - Estructúralo como una investigación: tres hipótesis (el modelo, pocos tránsitos, otra población) y la evidencia de cada una.
+     - Apoya cada hipótesis con una figura o tabla (acierto según número de tránsitos, según periodo).
 4. **Curva de aprendizaje:** con pocas etiquetas de TESS apenas mejora; solo con todas llega a 0,836. Probable causa: 234 estrellas de TESS frente a ~10 000 de Kepler y K2. Dar más peso a TESS quedó sin probar.
+   - **Por dónde tirar:**
+     - Explica qué es una curva de aprendizaje y qué significa que se aplane.
+     - Menciona el desequilibrio de tamaños y la idea no probada (dar más peso a TESS) como trabajo futuro.
 5. **Intentos de adaptación** (usa la figura):
    - AdaBN −0,024: no es un problema de escala.
    - Recortar Kepler/K2 a 27 d −0,011: ya veía curvas con pocos tránsitos.
    - Pseudo-etiquetas −0,001: se autoconfirma en lo fácil.
    - **2 sectores +0,034 [+0,018, +0,048]:** a TESS le falta información por estrella.
+   - **Por dónde tirar:**
+     - Para cada técnica: qué hipótesis prueba y qué dice el resultado.
+     - Conclusión: lo único que funciona aporta más información por estrella, no adapta el modelo.
 6. **Decisión 1, quitar la profundidad:** el cambio es de solo −0,003 y es la variable que más delata la misión, así que el modelo final no la usa.
+   - **Por dónde tirar:**
+     - Explica el criterio: una pérdida mínima a cambio de no depender de algo que delata la misión.
 7. **Decisión 2, la regla en un telescopio nuevo:**
    - Corregir las probabilidades con la mezcla de clases estimada (EM de Saerens) empeora el macro-F1 en las tres misiones, así que se usa la clase más probable.
    - En TESS el modelo es demasiado confiado: cuando dice 0,75, acierta el 60 %.
    - Con precisión 0,9 solo recupera el 12 % de los planetas de TESS: sirve para priorizar, no para confirmar.
+   - **Por dónde tirar:**
+     - Explica el cambio de prevalencia entre misiones y por qué la corrección de Saerens podía ayudar en teoría.
+     - Explica la calibración con un diagrama de fiabilidad.
+     - Termina con el uso práctico: priorizar candidatos, no confirmarlos.
 8. **Aviso honesto:** todas estas variantes se midieron sobre el mismo TESS. La cifra final se midió en test una sola vez (0,761, igual que en val).
+   - **Por dónde tirar:**
+     - Explica el riesgo de sobreajustar a la validación al probar muchas variantes y cómo lo mitigaste (test mirado una sola vez).
 
 ## Conceptos que conviene explicar al lector
 

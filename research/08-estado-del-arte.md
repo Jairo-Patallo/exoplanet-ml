@@ -24,21 +24,34 @@
    - **AstroNet-Triage/Vetting (2019):** TESS; el *vetting* (planeta frente a binaria) da AP 0,693.
    - **ExoMiner (2022):** PR-AUC 0,995 en Kepler, con centroide, par/impar, secundario y parámetros estelares.
    - **ExoMiner++ (2025):** PR-AUC 0,976 en TESS; publica puntuaciones para ~150 000 señales.
+   - **Por dónde tirar:**
+     - Haz una tabla con columnas: misión, entrada, tipo de negativos, partición y métrica. El punto 2 sale casi solo de ella.
+     - Para cada trabajo, una frase de qué aportó y qué tomaste de él.
 2. **Por qué no se puede comparar directamente.** Son los cinco motivos que debes explicar:
    - ellos prueban en el mismo telescopio con el que entrenan;
    - sus negativos son sobre todo señales de no tránsito, que son fáciles;
    - AstroNet parte al azar por señal (la misma estrella puede estar en entrenamiento y en prueba);
    - ExoMiner usa información extra;
    - ellos parten de la efeméride de una tubería de detección.
+   - **Por dónde tirar:**
+     - Para cada motivo, explica en qué dirección cambia la cifra (la infla o la hace no comparable).
+     - Idea general: comparar métricas sin comparar protocolos es engañoso.
 3. **Dónde te sitúas:**
    - LOMO en TESS, planeta frente a FP: PR-AUC 0,704, parecido al 0,693 de AstroNet-Vetting, que sí vio TESS.
    - Con el modelo final, en el test de TESS: 0,766.
    - ExoMiner++ como techo: la diferencia hasta 0,976 es lo que aporta la información que no usas.
+   - **Por dónde tirar:**
+     - Sitúate con humildad: la comparación más justa es con AstroNet-Vetting; ExoMiner++ es el techo con más información.
 4. **La laguna que cubres:** no encontraste una evaluación entre tres telescopios como la tuya. Hay indicios aislados (EXOVEIL usa Kepler en TESS; «Depth-Blind by Design» analiza un modelo de Kepler congelado en TESS). Di que la búsqueda no fue exhaustiva.
+   - **Por dónde tirar:**
+     - Formula tu contribución en una sola frase.
+     - Explica cómo hiciste la búsqueda (fuentes, palabras clave, fecha) para que el lector valore lo de «no exhaustiva».
 5. **Lecciones aplicadas:**
    - promediar varias semillas;
    - juntar misiones mejor que ajustar fino;
    - un modelo solo curva prioriza, no confirma.
+   - **Por dónde tirar:**
+     - Para cada lección: de qué trabajo viene y en qué parte de tu proyecto se aplicó.
 6. **Trabajos recientes (2025–2026):**
    - PANOPTICON (U-Net para PLATO);
    - Salinas et al. (Transformer en TESS);
@@ -48,6 +61,9 @@
    - LEO-Vetter;
    - Chaushev et al. (binarias inyectadas);
    - AstroMMBench (los LLM leen mal las curvas).
+   - **Por dónde tirar:**
+     - No hace falta detalle: agrúpalos por tendencia (nuevas arquitecturas, aprendizaje sin etiquetas, incertidumbre, LLM).
+     - Indica cuáles podrían servir en fases futuras.
 
 ## Conceptos que conviene explicar al lector
 

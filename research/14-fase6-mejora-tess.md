@@ -23,15 +23,27 @@
    - **La solución:** el mismo número de sectores en cada pareja (714 parejas, 2–3 sectores y 16–24 tránsitos de mediana).
    - **Resultado:** 0,784 → 0,765 (−0,019 [−0,059, +0,018]); el criterio no se cumple.
    - **La lectura honesta:** las estrellas que no ganan sectores bajan casi igual que las que ganan, así que es variación entre entrenamientos. Con 134 estrellas, un efecto de +0,03 era indetectable: **falta de potencia estadística**. La forma correcta sería evaluar el modelo actual con las vistas multisector, estrella a estrella.
+   - **Por dónde tirar:**
+     - Explica el atajo con la cifra y el emparejamiento como solución.
+     - Interpreta el resultado con el IC y explica en una frase qué es la potencia estadística.
+     - Propón el análisis correcto como trabajo pendiente.
 2. **Más etiquetas:**
    - De 885 TOIs resueltos nuevos, con datos de 2 min casi todos son planetas conocidos (unos 412) y solo hay 1 FP; los ~280 FP nuevos solo tienen datos de imágenes completas.
    - Mezclarlos crearía el atajo «imágenes completas → FP». Se aparcó.
    - Idea alternativa: usarlos solo para evaluar, como un cuarto telescopio.
+   - **Por dónde tirar:**
+     - Relaciónalo con los atajos de la sección 05: el tipo de datos también puede delatar la clase.
+     - Desarrolla la idea de usarlos como cuarto telescopio de evaluación.
 3. **Calibración:**
    - Explica qué es estar calibrado y qué hace la temperatura (un número que suaviza o agudiza sin cambiar la clase predicha).
    - El conjunto de 5 semillas era poco confiado en Kepler y K2 (decía 0,86 y acertaba 0,90). El ECE de Kepler pasó de 0,039 a 0,017.
    - TESS ya estaba casi calibrado (T = 1,07): la sobreconfianza de la fase 3 era del modelo LOMO.
+   - **Por dónde tirar:**
+     - Usa un diagrama de fiabilidad antes y después.
+     - Explica qué es el ECE y por qué la temperatura no cambia el macro-F1.
 4. **Cierre:** el modelo final se queda igual, con temperaturas.
+   - **Por dónde tirar:**
+     - Resume: fase de resultados mayoritariamente negativos pero informativa, y justifica por qué el modelo no cambia.
 
 ## Conceptos que conviene explicar al lector
 

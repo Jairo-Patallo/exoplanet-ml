@@ -19,32 +19,57 @@
 ## Qué contar, en orden
 
 1. **Qué ve cada modelo.** Explica el plegado y las dos vistas con la galería (figura abajo).
+   - **Por dónde tirar:**
+     - Antes de los modelos, explica el plegado en un párrafo: superponer todos los tránsitos usando el periodo para sumar señal.
+     - Explica qué aporta cada vista: la global da contexto (secundario, variabilidad) y la local da la forma del tránsito.
 2. **Modelos clásicos:**
    - Logística: vistas 0,80 frente a físicas 0,66 (muestra A). La forma completa contiene más información que 5 números. Sus coeficientes tienen sentido físico: el secundario y el par/impar empujan a FP.
    - kNN: con las vistas falla (0,49) por la **maldición de la dimensionalidad**; con PCA (~20 componentes) sube a 0,79. Es una buena anécdota para explicar el concepto.
    - Gradient boosting: el mejor de los clásicos con muchos datos (Kepler), pero sobreajusta en TESS.
    - MLP: empata con la logística; la parada temprana lo deja casi lineal.
+   - **Por dónde tirar:**
+     - Preséntalos como una escalera de complejidad con una tabla (modelo, entrada, macro-F1) y una frase de lo que enseña cada uno.
+     - Aclara la diferencia entre la muestra A y la muestra completa para que no se mezclen cifras.
 3. **La CNN:**
    - Arquitectura AstroNet (dos ramas, global y local).
    - Por qué funciona mejor: la convolución aprovecha que los puntos vecinos están relacionados y reutiliza filtros (sesgo inductivo, no más parámetros).
    - Aumento de datos: reflejar la curva en el tiempo, porque un tránsito es simétrico.
+   - **Por dónde tirar:**
+     - Describe la arquitectura con un esquema: convoluciones y pooling en cada rama, unión y capas finales.
+     - Explica el sesgo inductivo con un ejemplo: el filtro que detecta una «bajada brusca» sirve en cualquier posición de la curva.
+     - Justifica el aumento de datos con la simetría física del tránsito.
 4. **Resultados con la muestra completa:**
    - CNN 0,84 (PR-AUC 0,91), boosting 0,82, el resto 0,78–0,80, dummy 0,22.
    - Por misión: Kepler 0,87, K2 0,87, TESS 0,78.
    - **Mensaje clave:** Kepler tenía 6,5 veces más datos y no mejoró, así que el límite no es la cantidad de datos.
+   - **Por dónde tirar:**
+     - Pon la tabla de resultados (con IC si los tienes) y compara siempre contra el dummy.
+     - Desarrolla el mensaje clave: si más datos no mejoran, el límite está en la información de la curva, no en el modelo.
 5. **MOMENT:**
    - Congelado ya mejora a la logística (0,82), aunque nunca vio un tránsito.
    - Ajustado no supera a la CNN (0,815 frente a 0,839): sobreajusta.
    - Conclusión: seis familias acaban en 0,81–0,84.
+   - **Por dónde tirar:**
+     - Explica qué es un modelo fundacional (preentrenado con muchas series temporales) y la diferencia entre congelado y ajustado.
+     - La frase clave es que seis familias acaban en 0,81–0,84: techo de la información, no del modelo.
 6. **El centroide:**
    - Qué es (el centro de luz se mueve si la señal viene de una estrella vecina).
    - Mejora Kepler (0,865 → 0,893) pero empeora K2 y TESS (píxeles grandes, apuntado inestable).
    - Por eso la versión portable usa solo la curva.
+   - **Por dónde tirar:**
+     - Explica por qué el centroide depende del instrumento (tamaño de píxel, estabilidad del apuntado).
+     - Preséntalo como compromiso entre rendimiento y portabilidad, y justifica la elección.
 7. **Errores por tipo de FP (Kepler):**
    - Binarias: 88 % de acierto. Contaminación: 66 %.
    - Casi la mitad de los FP que pasan por planeta son de contaminación: el **techo físico**. Con el centroide, del 66 % al 80 %.
    - El 22 % de los FP «no parece tránsito» van a «sin señal»: frontera difusa de las etiquetas.
+   - **Por dónde tirar:**
+     - Usa una tabla de acierto por tipo de FP.
+     - Separa los errores que un modelo mejor podría arreglar de los que no puede ver en la curva (techo físico).
 8. **Intentos de mejora:** añadir canales par/impar o diagnósticos no mejora; promediar 3 semillas sí (0,833 → 0,850).
+   - **Por dónde tirar:**
+     - Cuenta también lo que no funcionó: un resultado negativo es información.
+     - Explica por qué promediar semillas ayuda: reduce la varianza del modelo.
 
 ## Conceptos que conviene explicar al lector
 

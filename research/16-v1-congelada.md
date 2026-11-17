@@ -20,15 +20,23 @@
 ## Qué contar, en orden
 
 1. **Qué es una validación prospectiva.** La analogía de la quiniela en un sobre cerrado funciona bien.
+   - **Por dónde tirar:**
+     - Explica por qué es la prueba más honesta: la predicción se hace antes de que exista la respuesta.
 2. **Qué se predijo:**
    - 4 813 TOIs en PC; 76 sin periodo; 4 737 procesados; 3 536 con curva usable.
    - 756 sin datos de 2 min y 444 con pocos tránsitos o huecos.
+   - **Por dónde tirar:**
+     - Usa una figura de embudo con el motivo de cada pérdida.
 3. **Qué se guardó por candidato:**
    - las 3 probabilidades;
    - **P(planeta | señal)**, y explica por qué es la cifra útil: en un candidato ya hay una señal;
    - ExoMiner++ (2 007 TOIs);
    - las prioridades del TFOP.
+   - **Por dónde tirar:**
+     - Explica la probabilidad condicionada con palabras sencillas.
 4. **Cómo se demuestra que no se cambió:** los hashes SHA-256 de pesos, temperatura, vistas, ExoFOP, ExoMiner++ y predicciones; el manifiesto y la etiqueta `v1`. Una mejora futura se congela como v2.
+   - **Por dónde tirar:**
+     - Explica qué es un hash en una frase y por qué garantiza reproducibilidad y trazabilidad.
 5. **El problema de la deriva de la efeméride** (la parte más interesante de la sección):
    - Qué es: el error del periodo se acumula con cada órbita, como un reloj que atrasa.
    - Cómo apareció: al elegir el sector con más tránsitos, el 8 % de los TOIs tenía un error mayor que la duración, y el 54 % de ellos salía «sin señal».
@@ -37,12 +45,20 @@
    - Con deriva baja, solo el 4 % sale «sin señal»; con deriva > 1, el 39 %.
    - 326 TOIs (9 %) quedan marcados como inciertos.
    - Lección: el fallo estaba en el puente entre el catálogo y los datos, no en el modelo, y solo aparece al usar el modelo con datos reales.
+   - **Por dónde tirar:**
+     - Usa una figura de deriva frente a proporción de «sin señal».
 6. **Resultado:**
    - De los 3 210 fiables: 2 564 planeta, 493 FP y 153 sin señal.
    - Frente a ExoMiner++: coinciden en el 76 %, con una correlación de 0,37 (esperable, porque ExoMiner++ usa más información).
+   - **Por dónde tirar:**
+     - Explica por qué una correlación baja no es mala: los modelos usan información distinta.
+     - Muestra una tabla de cruce y presenta los resultados como predicciones pendientes de validar.
 7. **Qué falta:**
    - Cruzar periódicamente con ExoFOP.
    - Idea complementaria: una validación pseudo-prospectiva por fecha de alerta, que daría un resultado ya.
+   - **Por dónde tirar:**
+     - Detalla el plan: cada cuánto se cruzará y qué métricas se calcularán cuando se resuelvan los TOIs.
+     - Explica la validación pseudo-prospectiva y qué ventaja tiene.
 
 ## Conceptos que conviene explicar al lector
 

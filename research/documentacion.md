@@ -37,3 +37,18 @@ Una de las cosas que distingue al resto de observaciones de un exoplaneta es la 
 por ejemplo, una estrella binaria eclipsante tendrá picos en forma de V, mientras que los de un exoplaneta tiene su curva menos marcada, siendo similar a una U. Un sistema binario es aquel en el que existen dos estrellas que orbitan entre ellas, por tanto, 
 cuando una estrella pasa por delante de otra, se detectará una caída de luz mayor que la de un exoplaneta, mientras que el tránsito de un exoplaneta es mucho menor, debido principalmente a su tamaño. También hay que añadir
 que la curva del exoplaneta tendrá una caída mucho mas rápida.
+
+## Análisis Exploratorio de los datos
+
+### De dónde vienen los datos
+
+Se ha obtenido una base de datos de HuggingFace llamada exoplanet-transit-detection [https://huggingface.co/datasets/bingbangboom/exoplanet-transit-detection]
+Al hacer una exploración previa, llegué a la conclusión de que el modelo podía acertar si una curva de tránsito era de un exoplaneta o no
+tan solo mirando las columnas que faltaban o de que misión procedía. Por ello, el proyecto se ha basado únicamente en entrenar el modelo utilizando la curva de luz, quitando el resto de variables.
+
+### Introducción al problema de fuga de datos
+
+Un modelo solo es tan bueno como los datos con los que aprende. El dataset de partida mezcla tres telescopios muy distintos, con etiquetas de distinto origen y muchas columnas del catálogo de la estrella. Antes de entrenar nada había que responder tres preguntas:
+- ¿Están bien los datos o hay errores que el modelo aprendería como si fueran ciertos?
+- ¿Hay pistas falsas (atajos) que permitan acertar sin entender la física?
+- ¿Qué información distingue de verdad un planeta de un falso positivo, y se comporta igual en las tres misiones?

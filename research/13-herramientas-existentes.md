@@ -18,21 +18,34 @@
 ## Qué contar, en orden
 
 1. **El plan inicial:** recomendar qué observar, informar de un candidato y buscar en una estrella.
+   - **Por dónde tirar:**
+     - Explica la motivación original (para quién: aficionados) y por qué revisar lo existente antes de construir.
 2. **Lo que existe,** agrupado:
    - **Planificar:** Tapir/Swarthmore, el servicio del Exoplanet Archive, ExoClock (Ariel) y Exoplanet Watch con EXOTIC.
    - **Priorizar:** las prioridades del TFOP en ExoFOP (de unos 5 300 TOIs abiertos, 427 con prioridad máxima).
    - **Clasificar:** ExoMiner++ (catálogo de unas 150 000 señales), LEO-Vetter y TRICERATOPS.
    - **Buscar e inspeccionar:** SPOC, QLP, Planet Hunters TESS y LATTE.
+   - **Por dónde tirar:**
+     - Haz una tabla: herramienta / qué hace / para quién / enlace.
+     - Cuenta cómo hiciste la búsqueda.
 3. **El dato propio:** 4 813 TOIs sin resolver; unos 793 asequibles para un aficionado (Tmag < 12 y profundidad > 3 000 ppm).
+   - **Por dónde tirar:**
+     - Explica cómo se calcularon los criterios (Tmag < 12, profundidad > 3 000 ppm) y por qué son realistas para un telescopio de aficionado.
 4. **La conclusión:**
    - Recomendar ya existe; integrarlo para aficionados sería solo una integración.
    - Informar con probabilidades no aporta frente a ExoMiner++ (PR-AUC ~0,98 frente a 0,70–0,77).
    - Buscar ya lo hacen mejor otros.
+   - **Por dónde tirar:**
+     - Para cada idea: qué existe, qué aportarías y veredicto. Es la parte de «no reinventar la rueda».
 5. **Lo que sí es tuyo,** los tres puntos:
    - portabilidad demostrada (un modelo solo de curva medido en telescopios no vistos);
    - evaluación prospectiva frente a ExoMiner++ y el TFOP;
    - explicación en español para no expertos.
+   - **Por dónde tirar:**
+     - Formúlalo como propuesta de valor: qué ofrece el proyecto que las otras herramientas no ofrecen.
 6. **La decisión:** reorganización en fases 6–9 (mejora de TESS, investigación, herramienta explicativa, web y documentación). Menciona la posible colaboración con DIPS Ojos (Universidad de Oviedo y Sociedad Astronómica Asturiana Omega).
+   - **Por dónde tirar:**
+     - Explica el cambio de plan como una decisión de producto basada en evidencia.
 
 ## Conceptos que conviene explicar al lector
 

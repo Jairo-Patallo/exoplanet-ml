@@ -25,15 +25,26 @@ Sin este paso, cualquier resultado posterior podría ser un espejismo: un modelo
 1. **De dónde vienen los datos.**
    - Dataset de Hugging Face *exoplanet-transit-detection*: señales de Kepler, K2 y TESS etiquetadas como planeta, falso positivo o sin señal.
    - Menciona la regla que seguiste: solo exploraste train (18 853 estrellas), val solo para los tests de atajo y el test no se tocó. Muestra rigor desde el principio.
+   - **Por dónde tirar:**
+     - Abre situando al lector: qué es una «señal» (estrella + efeméride) y qué significan las tres clases.
+     - Apóyate en la figura de la muestra para comentar el desequilibrio entre misiones (Kepler domina) y entre clases.
+     - Responde a «¿por qué no mirar el test?»: decidir con el test es usar información que en la realidad no tendrías.
 
 2. **Cómo mediste si una variable separa planetas de falsos positivos.**
    - Explica el AUC de Mann-Whitney con una frase sencilla (ver «Conceptos» abajo).
    - Explica por qué todo se mira por misión: son telescopios distintos y mezclarlos engaña (efecto Simpson, que aparece en el punto 5).
+   - **Por dónde tirar:**
+     - Da un ejemplo numérico: un AUC de 0,70 significa que en el 70 % de las parejas planeta–FP el planeta tiene el valor mayor.
+     - Justifica por qué AUC y no diferencia de medias: no depende de la escala ni de valores extremos, así que se puede comparar entre variables.
+     - Deja anunciado que mirar por misión cambia las conclusiones (lo demostrarás en el punto 5).
 
 3. **Problemas de calidad que encontraste.**
    - Pocos errores de catálogo (duraciones ≤ 0, profundidades > 100 %).
    - El llamativo: 28 «planetas» con radio > 100 radios terrestres. Júpiter mide ~11, así que es imposible: etiqueta mala o radio estelar mal medido. Enlaza con la limpieza de la sección de etiquetas (umbral de 22).
    - El artefacto de los bordes de las vistas del dataset: se llevaba el 67 % de la varianza en la PCA. Más tarde desapareció con tu propio plegado.
+   - **Por dónde tirar:**
+     - Ordena de menos a más grave y, para cada problema, sigue el esquema: qué viste → por qué importa al modelo → qué hiciste.
+     - Idea a transmitir: un modelo aprende los errores de los datos como si fueran física.
 
 4. **El hallazgo principal: el atajo de los valores faltantes.** Es el punto fuerte de la sección; dale espacio.
    - En TESS siempre faltan la masa, la metalicidad y el ruido; en K2, el ruido. La masa falta más en planetas (59 %) que en FP (23 %).
@@ -45,11 +56,19 @@ Sin este paso, cualquier resultado posterior podría ser un espejismo: un modelo
    - **Consecuencia:**
      - el listón real es 0,687, no 0,384;
      - se decide no usar nada del catálogo, solo la curva.
+   - **Por dónde tirar:**
+     - Estructúralo como un mini experimento: observación (figura de faltantes) → hipótesis (falta = misión) → prueba (modelos tramposos) → conclusión.
+     - Explica qué pasaría en la realidad: en un telescopio nuevo el patrón de faltantes es otro y el modelo fallaría sin avisar.
+     - Usa la figura de fuga de misión para decir que el problema no desaparece del todo con solo la curva: por eso hace falta el protocolo LOMO (sección 03).
 
 5. **Qué variables separan y el efecto Simpson.**
    - Ejemplo estrella, la profundidad: con todo junto no separa (AUC 0,50); dentro de cada misión sí, pero con signos opuestos (en Kepler y K2 los FP son más profundos, en TESS al revés).
    - La magnitud también engaña: parece útil, pero es porque las estrellas de TESS son más brillantes.
    - Variables que se comportan igual en las tres misiones: duración/periodo, forma de entrada y salida, temperatura y periodo.
+   - **Por dónde tirar:**
+     - Empieza por la figura de histogramas: profundidad global sin separar frente a profundidad por misión.
+     - Si tienes una explicación física de los signos opuestos, dala; si no, preséntalo como hallazgo y su consecuencia práctica (no mezclar misiones al analizar).
+     - Cierra destacando las variables estables entre misiones: son las que tienen sentido físico y deberían ser portables.
 
 6. **Reglas físicas clásicas** (opcional, pero queda bien porque conecta con la astronomía).
    - Regla del 2 % de profundidad: precisión 0,75.
@@ -57,16 +76,25 @@ Sin este paso, cualquier resultado posterior podría ser un espejismo: un modelo
    - La más precisa, la densidad estelar desde el tránsito (Seager y Mallén-Ornelas): precisión 0,94, pero detecta solo ~1 de cada 10 FP.
    - La forma U frente a V detecta el 36 % de los FP.
    - Cuenta el problema de los tests par/impar y secundario: no estaban calibrados (las vistas del dataset no estaban centradas, más el ruido rojo). Con el plegado propio, el secundario se arregla y el par/impar no; se resolvió en la sección de tránsitos individuales.
+   - **Por dónde tirar:**
+     - Para cada regla, una frase con su lógica física (un planeta no puede ser mayor que ~2 radios de Júpiter; la densidad estelar del tránsito debe coincidir con la de la estrella).
+     - Patrón a remarcar: precisión alta pero cobertura baja. Las reglas descartan lo obvio y dejan la mayoría sin resolver, lo que motiva el ML.
 
 7. **La forma de la curva y la PCA.**
    - Los FP tienen el fondo más en V y los planetas más en U, pero ninguna componente separa sola (AUC 0,56–0,62).
    - Mensaje: la diferencia existe, pero es sutil y no lineal. Eso justifica pasar a redes convolucionales (puente con la sección de modelos).
+   - **Por dónde tirar:**
+     - Describe la figura: qué es la forma media de cada clase y qué recoge cada componente de la PCA.
+     - Explica por qué «sutil y no lineal» apunta a una CNN: detecta patrones locales (pendiente de entrada, fondo en V) en cualquier posición.
 
 8. **Cierre: qué decisiones salen de aquí.**
    - Listón real de 0,687.
    - Métricas siempre por misión.
    - Solo la curva como entrada.
    - Limpiar los planetas imposibles.
+   - **Por dónde tirar:**
+     - Escríbelo como lista de decisiones, cada una con su motivo y la sección donde se aplica.
+     - Termina con una frase de transición a la sección 03: si el modelo puede reconocer la misión, hay que evaluarlo en misiones que no ha visto.
 
 ## Conceptos que conviene explicar al lector
 

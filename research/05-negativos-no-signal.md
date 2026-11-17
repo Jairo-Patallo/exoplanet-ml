@@ -19,20 +19,41 @@
 ## Qué contar, en orden
 
 1. **Por qué hacen falta negativos** y por qué los del dataset no servían.
+   - **Por dónde tirar:**
+     - Explica que sin negativos el modelo solo sabría decir planeta o FP, nunca «aquí no hay nada».
+     - Cuenta por qué los del dataset no servían y qué atajo introducían.
 2. **Qué es un atajo y cómo se mide** (el test de atajo; AUC 0,5 = sin atajo).
+   - **Por dónde tirar:**
+     - Describe el test: un clasificador que no ve el tránsito intenta adivinar la clase; si lo consigue (AUC lejos de 0,5), hay atajo.
+     - Frase guía: si puedes adivinar la clase sin mirar el tránsito, algo va mal.
 3. **La historia de cómo se quitó el atajo,** paso a paso con la figura de evolución. Es una buena historia de depuración:
    - Al azar, con todos los sectores: K2 0,90 y TESS 0,83. Causa: los planetas tienen más sectores, porque TESS vuelve a observar lo interesante.
    - 1 segmento por estrella: TESS 0,70.
    - Emparejar cada positivo con una estrella del mismo sector y brillo: TESS 0,51.
    - Efeméride prestada de un planeta del mismo sector: K2 0,84 y TESS 0,55.
    - El fallo curioso de la campaña 10 de K2: publicada en dos mitades pero numerada como una, dejaba a 18 planetas sin pareja.
+   - **Por dónde tirar:**
+     - Cuéntalo como un diario de depuración: hipótesis → arreglo → nueva cifra, apoyándote en la figura de evolución.
+     - Remarca que cada arreglo vino de entender una causa, no de probar cosas al azar.
 4. **La exclusión por coordenadas:** algunas «estrellas sin señal» eran candidatos de otra misión con otro número de catálogo. Se excluyó todo lo que está a menos de 2″ de un candidato.
+   - **Por dónde tirar:**
+     - Presenta el problema general: el mismo objeto con nombres distintos en catálogos distintos es un fallo típico al cruzar datos.
 5. **Lo que queda** (muestra completa, tránsito tapado):
    - Planetas frente a sin señal: 0,60 / 0,59 / 0,55 (Kepler / K2 / TESS). Es un atajo débil y real: el **sesgo de detección**, porque los planetas se descubren más en estrellas tranquilas. Se acepta y se declara.
    - FP frente a sin señal en K2: 0,84. No es atajo, es física (secundarios, variabilidad): el modelo debe aprenderlo.
+   - **Por dónde tirar:**
+     - Distingue atajo (artefacto del proceso de observación) de señal física legítima. Es la idea más madura de la sección.
+     - Explica por qué el sesgo de detección se acepta y se declara en lugar de eliminarse.
 6. **La regla que sale de aquí:** el modelo nunca recibe metadatos del proceso (número de puntos, días de datos, cadencia, número de tránsitos), porque en K2 todavía delatan la clase.
+   - **Por dónde tirar:**
+     - Formúlala como regla de diseño del pipeline y explica por qué es general: cualquier metadato del proceso puede delatar la clase.
 7. **Números finales:** 8 582 negativos (Kepler 6 560, TESS 1 624 y K2 398), uno por cada positivo. Reproducibles byte a byte.
+   - **Por dónde tirar:**
+     - Comenta que la proporción 1:1 no refleja la realidad, donde hay muchísimos más «sin señal» que planetas (enlaza con la sección 11).
+     - Menciona la reproducibilidad byte a byte como práctica de producción (semillas, listas fijas).
 8. **La limitación descubierta después** (puente con BLS): estos negativos son demasiado fáciles; una estrella tranquila con una efeméride prestada da una curva plana. El ruido real que parece un tránsito es otra cosa.
+   - **Por dónde tirar:**
+     - Admítelo como limitación descubierta a posteriori y muestra que el proyecto la detectó y la trató (negativos difíciles, sección 11).
 
 ## Conceptos que conviene explicar al lector
 

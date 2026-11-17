@@ -23,27 +23,44 @@
    - **Binaria** (visible en la curva).
    - **Contaminación** (invisible): binaria de fondo, centroide desplazado o coincidencia de efemérides.
    - **No tránsito.**
+   - **Por dónde tirar:**
+     - Explica la taxonomía y por qué la contaminación es invisible en una curva sola: la señal es real, pero viene de otra estrella.
 2. **Kepler:**
    - Binarias: 88 % de acierto. Contaminación: 60 %, y el 29 % pasa por planeta.
    - La mitad de los FP que pasan por planeta son de contaminación: el **techo físico**.
+   - **Por dónde tirar:**
+     - Usa una tabla de acierto por tipo de FP y explica qué es el techo físico.
 3. **TESS:**
    - Las binarias pasan por planeta un 31 % de las veces (9 % en Kepler). **Margen de mejora.**
    - El modelo no recibe vistas par/impar locales ni del secundario, que es como lo hacen AstroNet-Vetting y ExoMiner.
    - En test es peor: el 38 % de los FP pasan por planeta.
+   - **Por dónde tirar:**
+     - Compara Kepler con TESS y propone la causa (faltan vistas par/impar y del secundario); enlaza con la sección 15.
 4. **«No tránsito» → «sin señal»:** frontera difusa de las etiquetas.
+   - **Por dónde tirar:**
+     - Si puedes, enseña una curva de ejemplo de cada caso para que se vea la ambigüedad.
 5. **Planeta frente a «sin señal» con prevalencias realistas:**
    - Con los negativos fáciles, solo el 1–3 % de los «sin señal» pasan por planeta. Pero con 100 «sin señal» por planeta, más de la mitad de los «planetas» serían falsos.
    - Con ruido realista (picos de BLS), entre el 20 % y el 43 % pasan por planeta.
+   - **Por dónde tirar:**
+     - Haz el cálculo a mano (1–3 % de 100 «sin señal» = 1–3 falsos por cada planeta real).
+     - Lección: la precisión depende de la prevalencia; un buen resultado en un conjunto equilibrado puede ser malo en el cielo real.
 6. **Experimento de negativos difíciles:**
    - Gana robustez: en Kepler, el ruido como FP baja del 69 % al 3 %; con BLS, el macro-F1 sube unas 0,2.
    - Pierde con catálogo: −0,03/−0,04.
    - **Decisión:** el modelo base para señales con efeméride (TOIs); el de negativos difíciles solo para búsqueda.
+   - **Por dónde tirar:**
+     - Preséntalo como compromiso: ningún modelo es el mejor en todo.
+     - Explica la decisión de tener dos modelos según el uso.
 7. **Triaje sin efeméride:**
    - Métrica: recall de candidatos dejando pasar solo el 1 % del ruido. Explica por qué: en el cielo, el ruido es mayoría.
    - SDE sola 0,26; CNN con negativos difíciles 0,31; las dos juntas 0,47.
    - **El límite es BLS:** si encuentra el periodo correcto (68 %), el recall es 0,65; si no, 0,11.
    - Los 3 mejores picos de BLS no ayudan (0,474 → 0,470).
    - Esto lleva al detector sin BLS (siguiente sección).
+   - **Por dónde tirar:**
+     - Explica la métrica y por qué refleja la realidad.
+     - Sigue el orden: SDE → CNN → combinación → diagnóstico (el límite es BLS) → motivación de la sección 12.
 
 ## Conceptos que conviene explicar al lector
 

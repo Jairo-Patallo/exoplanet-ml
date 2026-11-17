@@ -22,23 +22,42 @@
 ## Qué contar, en orden
 
 1. **Qué es BLS:** prueba miles de periodos, busca la caída en forma de caja que mejor encaja y la SDE mide si el pico es significativo.
+   - **Por dónde tirar:**
+     - Usa una figura con un periodograma y la curva plegada en el mejor periodo.
+     - Explica la SDE como «cuánto sobresale el pico respecto al resto».
 2. **Problemas prácticos resueltos** (opcional, pero muestra trabajo):
    - dos trimestres de Kepler separados por años daban millones de periodos (se resolvió con una rejilla gruesa y refinado);
    - sin aplanar el periodograma, BLS elegía siempre el periodo más corto.
+   - **Por dónde tirar:**
+     - Sé breve: preséntalos como problemas de ingeniería reales que aparecen al pasar de la teoría a los datos.
 3. **¿Acierta el periodo?**
    - 65–69 % en Kepler y TESS.
    - Los FP dan más alias de ½ (binarias con dos eclipses parecidos).
    - En K2, los planetas solo el 31 % (artefactos del telescopio cada ~6 h).
    - La SDE sí separa señal de ruido (ROC-AUC de 0,82–0,87).
+   - **Por dónde tirar:**
+     - Explica qué es un alias y por qué las binarias con dos eclipses parecidos lo provocan.
+     - Separa dos preguntas: ¿encuentra BLS una señal? y ¿encuentra el periodo correcto?
 4. **El golpe:**
    - Macro-F1 de 0,86 → 0,50 en Kepler, 0,45 en K2 y 0,44 en TESS.
    - Casi todo viene de «sin señal»: en Kepler, del 97 % al 26 % de acierto.
+   - **Por dónde tirar:**
+     - Preséntalo como sorpresa: misma red y mismas estrellas, solo cambia de dónde viene la efeméride.
+     - Una matriz de confusión antes y después hace el golpe muy visible.
 5. **Por qué pasa** (explícalo bien, es la lección de la sección): en el entrenamiento, los «sin señal» se plegaban con una efeméride al azar y daban una curva plana. Plegados en el mejor pico de ruido de BLS, parecen un tránsito débil que el modelo nunca había visto. El buen resultado anterior en «sin señal» era optimista.
+   - **Por dónde tirar:**
+     - Pon lado a lado una curva plana (efeméride al azar) y un pico de ruido de BLS.
+     - Lección general: los datos de entrenamiento deben parecerse a cómo se usará el modelo (en la industria se llama train/serve skew).
 6. **Cuando BLS acierta el periodo,** el modelo funciona igual o mejor con los planetas (92 % → 96 %).
+   - **Por dónde tirar:**
+     - Úsalo para demostrar que el problema no es la red, sino la entrada.
 7. **La decisión:**
    - Opciones: (A) clasificador de señales ya detectadas, (B) de principio a fin reentrenando con BLS, (C) un umbral de SDE delante.
    - Se eligió (A), como AstroNet y ExoMiner.
    - Consecuencia: «sin señal» pasa a significar «la efeméride dada no corresponde a un tránsito real».
+   - **Por dónde tirar:**
+     - Expón las opciones en una tabla con pros y contras.
+     - Justifica la A con la literatura y el alcance del proyecto, y explica cómo cambia la definición de la clase «sin señal».
 
 ## Conceptos que conviene explicar al lector
 

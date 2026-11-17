@@ -21,6 +21,8 @@
 ## Qué contar, en orden
 
 1. **Por qué se fija la receta antes** (el argumento de arriba). Muestra madurez metodológica.
+   - **Por dónde tirar:**
+     - Usa la analogía del preregistro: fijar la receta antes de ver el test evita ajustarla al resultado.
 2. **La receta, y el porqué de cada elemento:**
    - CNN de dos ramas tipo AstroNet (la mejor de la fase 2);
    - solo las vistas, sin profundidad (aportaba +0,003 y delata la misión);
@@ -30,22 +32,34 @@
    - 5 semillas promediadas (como ExoMiner++ y AstroNet-K2);
    - la clase más probable como decisión (corregir la mezcla de clases empeoraba);
    - alcance: clasificador de señales ya detectadas (por lo visto con BLS).
+   - **Por dónde tirar:**
+     - Haz una tabla «elemento / motivo / sección donde se decidió». Así la sección resume todo el proyecto.
 3. **Resultado por telescopio:**
    - Kepler 0,886 [0,867–0,906], K2 0,928 [0,858–0,983], TESS 0,720 [0,661–0,772]; media 0,845.
    - Kepler y K2 suben respecto a val (más datos y 5 semillas); TESS baja un poco (0,779 → 0,720), dentro del IC.
    - K2 solo tiene 81 estrellas de test.
+   - **Por dónde tirar:**
+     - Pon la tabla con IC y comenta la variación entre val y test: por qué está dentro de lo esperable.
+     - Advierte del tamaño de K2 antes de que el lector saque conclusiones.
 4. **La matriz de confusión:**
    - El fallo dominante: en TESS, 34 de 89 FP se predicen como planeta.
    - «Sin señal» va muy bien (F1 0,92–0,96).
    - El problema difícil es planeta frente a FP.
+   - **Por dónde tirar:**
+     - Muestra la matriz normalizada por misión, nombra el error dominante y enlaza con el análisis de errores (sección 11).
 5. **LOMO en test:**
    - PR-AUC 0,906 (Kepler), 0,961 (K2) y 0,761 (TESS), igual que en val.
    - Mensaje: la fase de portabilidad no estaba inflada.
    - Coste de no ver la misión en PR-AUC: Kepler 0,947 → 0,906, K2 0,972 → 0,961, TESS 0,816 → 0,761.
+   - **Por dónde tirar:**
+     - Explica qué demuestra: que las decisiones tomadas con validación no estaban sobreajustadas.
 6. **La métrica que importa para candidatos** (puente con la validación prospectiva):
    - Planeta frente a FP en el test de TESS: ROC-AUC 0,803 y PR-AUC 0,766.
    - Con un 90 % de precisión, recupera el 34 % de los planetas.
    - Conclusión: el modelo prioriza, no confirma.
+   - **Por dónde tirar:**
+     - Explica el compromiso precisión–recall con la curva PR.
+     - Tradúcelo al usuario: un astrónomo con poco tiempo de telescopio quiere una lista corta y fiable.
 
 ## Conceptos que conviene explicar al lector
 

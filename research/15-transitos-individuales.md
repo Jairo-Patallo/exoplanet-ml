@@ -19,24 +19,44 @@
 ## Qué contar, en orden
 
 1. **La pregunta:** ¿qué información borra el plegado? Pon ejemplos: binaria con periodo a la mitad, tránsito anómalo, profundidad variable.
+   - **Por dónde tirar:**
+     - Ilustra cada ejemplo con un dibujo o curva real.
 2. **Por qué probar barato antes de construir:** buena práctica, que cuesta un día frente a semanas.
+   - **Por dónde tirar:**
+     - Explica qué se ahorró: si la prueba rápida sale negativa, no se construye el modelo caro.
 3. **Cómo se mide cada tránsito:**
    - Explica por qué se usa la forma de los demás: para que el tránsito no se compare consigo mismo.
    - Cuenta el fallo de la primera versión: medir la media de los puntos centrales daba variaciones falsas en las binarias en V con cadencia de 30 min. Es un buen ejemplo de depuración.
+   - **Por dónde tirar:**
+     - Incluye una figura de un tránsito individual con su ajuste.
 4. **El ruido rojo y los «tránsitos falsos»:** qué es el ruido rojo y por qué los tests clásicos exageran.
+   - **Por dónde tirar:**
+     - Compara ruido blanco y rojo con un ejemplo y explica la consecuencia: z inflados y falsas detecciones.
 5. **Las tres medidas, y por qué no deben depender del número de tránsitos** (es un atajo conocido).
+   - **Por dónde tirar:**
+     - Explica cada medida en una frase y cómo se normaliza para no depender del número de tránsitos.
 6. **El criterio fijado antes de mirar.**
+   - **Por dónde tirar:**
+     - Di qué mejora mínima esperabas y por qué fijarla antes evita autoengañarse.
 7. **Resultado:**
    - TESS: +0,000 [−0,005, +0,005]; entre los que la red llama planeta, AUC 0,515.
    - Kepler y K2: la dispersión separa sola (~0,67), pero la red ya lo sabe.
+   - **Por dónde tirar:**
+     - Interpreta con el IC; explica que un AUC de 0,515 equivale a no separar.
 8. **Interpretación:**
    - En TESS, con 6–9 tránsitos de un sector, cada tránsito tiene poca señal.
    - Las binarias que se escapan no son de tránsitos alternos.
    - Siguiente palanca: una vista del secundario y una local de más resolución.
+   - **Por dónde tirar:**
+     - Explica por qué no funcionó y propone el siguiente paso con su justificación.
 9. **Lo que se gana:**
    - Test par/impar calibrado: en planetas, P(|z| > 3) baja del 14,5 % al 5 %.
    - El 19 % de los planetas de Kepler tienen tránsitos más irregulares de lo esperado: candidatos a manchas o TTV, que conecta con DIPS Ojos.
+   - **Por dónde tirar:**
+     - Preséntalo como subproducto científico útil, aunque la hipótesis principal no se cumpliera.
 10. **Corrección colateral:** el código no encontraba los archivos de la campaña 10 de K2 (44 estrellas).
+   - **Por dónde tirar:**
+     - Breve: ejemplo de que probar con datos reales descubre errores ocultos.
 
 ## Conceptos que conviene explicar al lector
 

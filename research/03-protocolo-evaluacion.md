@@ -21,19 +21,42 @@
 ## Qué contar, en orden
 
 1. **La pregunta de portabilidad.** Por qué no sirve partir al azar (los dos motivos de arriba).
+   - **Por dónde tirar:**
+     - Plantea el escenario real: entrenas con Kepler, K2 y TESS y quieres usar el modelo en un telescopio futuro (PLATO).
+     - Analogía útil: una partición al azar es un examen con preguntas del mismo libro; LOMO es un examen con un libro que no has leído.
 2. **El protocolo LOMO anidado,** apoyándote en el esquema de abajo.
    - Bucle externo: para cada misión, se excluye de todo (normalización, modelo, hiperparámetros, umbral) y se evalúa una sola vez.
    - Bucle interno: entrenar en A y validar en B, y al revés; se elige la configuración con mejor PR-AUC media. Recalca que así se premia lo que se transfiere entre telescopios.
    - La referencia dentro de misión, para medir la brecha.
+   - **Por dónde tirar:**
+     - Recorre el esquema con un ejemplo concreto: «excluyendo TESS, se entrena en Kepler y se valida en K2, y al revés…».
+     - Insiste en que todo lo que se ajusta (incluida la normalización) se hace sin la misión evaluada; si no, hay fuga.
+     - Explica que la brecha entre LOMO y dentro de misión es la cifra que mide la portabilidad.
 3. **Detalle de las estrellas compartidas.** TESS volvió a observar campos de Kepler y K2. Se cruzaron por coordenadas (< 2″) y se quitan del entrenamiento cuando su otra misión es la evaluada.
+   - **Por dónde tirar:**
+     - Explica por qué sería fuga: la misma estrella vista por dos telescopios permitiría al modelo «reconocerla».
+     - Si añades la justificación del radio de 2″ (precisión de las coordenadas frente a tamaño de píxel), hazlo en una frase.
 4. **Las métricas.**
    - Macro-F1 de 3 clases por misión, y como resumen la media de las misiones. Explica por qué la media de misiones: si se juntaran las estrellas, Kepler pesaría más que las otras dos juntas.
    - PR-AUC como secundaria (ordena sin umbral).
    - IC 95 % por bootstrap sobre estrellas.
    - Listón: el dummy da un macro-F1 de 0,22 y una PR-AUC de 1/3.
+   - **Por dónde tirar:**
+     - Para cada métrica, di qué pregunta responde y por qué se eligió.
+     - Interpreta el listón dummy para que el lector sepa leer las cifras posteriores.
+     - Explica por qué el bootstrap se hace por estrellas y no por señales: las señales de una misma estrella no son independientes.
 5. **El umbral en un telescopio nuevo.** La proporción de FP cambia mucho (Kepler 0,71, K2 0,41, TESS 0,59), así que no se fija umbral en la misión excluida: se usan PR-AUC y ROC-AUC.
+   - **Por dónde tirar:**
+     - Pon un ejemplo: un umbral ajustado con un 71 % de FP (Kepler) aplicado a un 41 % (K2) queda sesgado.
+     - Idea clave: las métricas sin umbral miden la capacidad de ordenar, que es lo que realmente se transfiere.
 6. **Cuándo se mira el test.** Una sola vez, al final. Las variantes de la fase de portabilidad se evaluaron con train + val de la misión excluida para no gastar su test (decisión del 2026-11-04).
+   - **Por dónde tirar:**
+     - Explica el riesgo: cada mirada al test es una decisión contaminada y la cifra final deja de ser honesta.
+     - Menciona la fecha de la decisión como trazabilidad, como haría un equipo real con un registro de decisiones.
 7. **CoRoT,** como cuarta misión que habría sido la prueba más limpia, bloqueada porque su catálogo no estaba disponible.
+   - **Por dónde tirar:**
+     - Explica por qué sería la prueba más limpia: un telescopio que no participó en ninguna decisión.
+     - Déjalo como trabajo futuro, indicando qué haría falta para desbloquearlo.
 
 ## Conceptos que conviene explicar al lector
 

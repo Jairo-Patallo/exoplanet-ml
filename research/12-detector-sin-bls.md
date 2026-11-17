@@ -20,20 +20,37 @@
 ## Qué contar, en orden
 
 1. **Por qué un detector sin BLS** (el límite de BLS de la sección anterior).
+   - **Por dónde tirar:**
+     - Una frase de enlace basta: si el cuello de botella es BLS, se prueba a prescindir de BLS.
 2. **Cómo funciona** (la entrada y la red), y sobre todo **la inyección de tránsitos sintéticos:** explica que permite ver miles de tránsitos sin necesitar etiquetas nuevas.
+   - **Por dónde tirar:**
+     - Describe la entrada y la red con un esquema sencillo.
+     - Explica la inyección: tránsitos sintéticos sobre curvas reales sin planeta, con parámetros aleatorios; da etiquetas gratis y permite controlar la SNR.
+     - Menciona el riesgo: las inyecciones simples no imitan a los FP reales.
 3. **Resultados:**
    - Sola, con 5 semillas: 0,525 de recall con un 1 % de falsas alarmas (BLS + CNN: 0,473).
    - Las tres puntuaciones juntas: 0,564.
    - Mira cosas distintas que BLS.
+   - **Por dónde tirar:**
+     - Haz una tabla comparativa con 5 semillas.
+     - Explica por qué combinar puntuaciones ayuda: sus errores no coinciden.
 4. **Sensibilidad por SNR:** ~90 % con SNR > 30; menos de la mitad con SNR < 15.
+   - **Por dónde tirar:**
+     - Usa una figura de recall frente a SNR (curva de completitud), la figura estándar en búsqueda de planetas.
 5. **El precio:** con un recall del 95 %, pasan dos tercios del ruido.
+   - **Por dónde tirar:**
+     - Explica la consecuencia práctica: no sirve como filtro de alto recall.
 6. **Variantes:**
    - Inyecciones más débiles, red el doble de ancha y más semillas: ninguna mejora.
    - **Lección:** la primera prueba (0,554) fue una semilla afortunada; la media de una semilla es 0,50.
+   - **Por dónde tirar:**
+     - Lección metodológica: informar media ± desviación entre semillas, nunca la mejor semilla.
 7. **Cierre de la línea:**
    - Techo alcanzado.
    - La búsqueda ya la hacen las tuberías oficiales y Planet Hunters TESS, y ya existe un Transformer para TESS (Salinas et al. 2025).
    - Si se retoma: un detector por punto (U-Net, como PANOPTICON).
+   - **Por dónde tirar:**
+     - Explica que cerrar una línea es una decisión válida de coste/beneficio y deja la puerta abierta.
 
 ## Conceptos que conviene explicar al lector
 
